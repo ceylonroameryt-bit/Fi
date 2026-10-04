@@ -87,10 +87,40 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
   const data = isJson ? await res.json() : await res.text();
 
   if (!res.ok) {
-    const errorBody = data?.error;
-    const message = errorBody?.message || res.statusText || 'An error occurred';
-    const code = errorBody?.code || 'ERROR';
-    throw new ApiError(code, message, res.status, errorBody?.details);
+    let message = 'An error occurred';
+    let code = 'ERROR';
+    let details: Record<string, unknown> | undefined;
+
+    if (typeof data === 'object' && data !== null) {
+      if (data.error && typeof data.error === 'object') {
+        message = data.error.message || message;
+        code = data.error.code || code;
+        details = data.error.details;
+      } else if (data.message) {
+        message = Array.isArray(data.message) ? data.message.join(', ') : data.message;
+      }
+    } else if (typeof data === 'string' && data.length > 0) {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.error?.message) {
+          message = parsed.error.message;
+          code = parsed.error.code || code;
+          details = parsed.error.details;
+        } else if (parsed.message) {
+          message = Array.isArray(parsed.message) ? parsed.message.join(', ') : parsed.message;
+        }
+      } catch {
+        if (data.length < 200) {
+          message = data;
+        }
+      }
+    }
+
+    if (message === 'An error occurred' && (res.status === 502 || res.status === 503 || res.status === 504)) {
+      message = 'The backend server is starting up or temporarily unreachable. Please wait a moment and try again.';
+    }
+
+    throw new ApiError(code, message, res.status, details);
   }
 
   return data as T;
