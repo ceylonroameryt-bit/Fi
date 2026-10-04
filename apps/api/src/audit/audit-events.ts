@@ -63,6 +63,12 @@ export const AuditEvents = {
 
   // System & Accounting Integrity
   ACCOUNTING_INTEGRITY_CHECK_RUN: 'ACCOUNTING_INTEGRITY_CHECK_RUN',
+
+  // Platform Super Admin
+  ADMIN_ORG_STATUS_CHANGED: 'ADMIN_ORG_STATUS_CHANGED',
+  ADMIN_USER_STATUS_CHANGED: 'ADMIN_USER_STATUS_CHANGED',
+  ADMIN_USER_SUPER_ADMIN_TOGGLED: 'ADMIN_USER_SUPER_ADMIN_TOGGLED',
+  ADMIN_USER_PASSWORD_RESET: 'ADMIN_USER_PASSWORD_RESET',
 } as const;
 
 export type AuditEventType = (typeof AuditEvents)[keyof typeof AuditEvents];

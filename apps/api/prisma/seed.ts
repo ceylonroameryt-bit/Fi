@@ -40,9 +40,11 @@ async function main() {
       emailVerified: true,
       emailVerifiedAt: new Date(),
       status: UserStatus.ACTIVE,
+      isSuperAdmin: true,
     },
     update: {
       passwordHash: defaultPasswordHash,
+      isSuperAdmin: true,
     },
   });
 

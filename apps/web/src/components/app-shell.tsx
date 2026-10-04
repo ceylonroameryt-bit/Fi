@@ -58,6 +58,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         { label: 'Dashboard', href: '/', icon: '📊' },
       ],
     },
+    ...(user?.isSuperAdmin ? [{
+      title: 'Platform Control',
+      items: [
+        { label: 'Admin Portal', href: '/admin', icon: '⚡' },
+      ],
+    }] : []),
     {
       title: 'Sales & Contacts',
       items: [
@@ -258,6 +264,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="topbar-actions">
+            {user.isSuperAdmin && (
+              <Link
+                href="/admin"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  backgroundColor: '#FEF3C7',
+                  color: '#92400E',
+                  border: '1px solid #FCD34D',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  letterSpacing: '0.02em',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                  cursor: 'pointer',
+                }}
+                title="Open Platform Super Admin Portal"
+              >
+                <span>⚡</span>
+                <span>Super Admin</span>
+              </Link>
+            )}
+
             {/* Quick Currency Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: '#F8FAFC', border: '1px solid #E6EAF0', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', color: '#4B5563' }}>
               <span style={{ color: '#16A56A' }}>●</span>
@@ -337,6 +369,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     Organisation Settings
                   </Link>
+                  {user.isSuperAdmin && (
+                    <Link
+                      href="/admin"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.45rem 0.5rem',
+                        fontSize: '0.8rem',
+                        color: '#92400E',
+                        backgroundColor: '#FEF3C7',
+                        borderRadius: '4px',
+                        textDecoration: 'none',
+                        fontWeight: 600,
+                        marginTop: '0.2rem',
+                      }}
+                      onClick={() => setShowUserDropdown(false)}
+                    >
+                      <span>⚡</span>
+                      <span>Super Admin</span>
+                    </Link>
+                  )}
                   <div style={{ borderTop: '1px solid #E6EAF0', marginTop: '0.3rem', paddingTop: '0.3rem' }}>
                     <button
                       onClick={() => logout().then(() => router.push('/login'))}

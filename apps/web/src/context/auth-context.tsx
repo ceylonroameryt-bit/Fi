@@ -8,6 +8,8 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  isSuperAdmin?: boolean;
+  status?: string;
 }
 
 export interface Organization {

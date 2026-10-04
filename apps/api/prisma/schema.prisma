@@ -158,6 +158,7 @@ model User {
   emailVerified       Boolean    @default(false) @map("email_verified")
   emailVerifiedAt     DateTime?  @map("email_verified_at")
   status              UserStatus @default(ACTIVE)
+  isSuperAdmin        Boolean    @default(false) @map("is_super_admin")
   mfaEnabled          Boolean    @default(false) @map("mfa_enabled")
   failedLoginAttempts Int        @default(0) @map("failed_login_attempts")
   lockedUntil         DateTime?  @map("locked_until")

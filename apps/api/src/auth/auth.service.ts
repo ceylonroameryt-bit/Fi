@@ -29,6 +29,7 @@ export interface SessionResult {
     firstName: string;
     lastName: string;
     emailVerified: boolean;
+    isSuperAdmin: boolean;
   };
 }
 
@@ -207,6 +208,7 @@ export class AuthService {
         firstName: session.user.firstName,
         lastName: session.user.lastName,
         emailVerified: session.user.emailVerified,
+        isSuperAdmin: session.user.isSuperAdmin,
       },
     };
   }
@@ -366,6 +368,7 @@ export class AuthService {
         lastName: true,
         emailVerified: true,
         status: true,
+        isSuperAdmin: true,
         lastLoginAt: true,
         createdAt: true,
       },
@@ -421,6 +424,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         emailVerified: user.emailVerified,
+        isSuperAdmin: user.isSuperAdmin,
       },
     };
   }
