@@ -1,7 +1,11 @@
-const rawBase = process.env.NEXT_PUBLIC_API_URL?.trim();
-const API_BASE = rawBase
-  ? (rawBase.endsWith('/api/v1') ? rawBase : `${rawBase.replace(/\/$/, '')}/api/v1`)
-  : '/api/v1';
+const rawBase =
+  process.env.NEXT_PUBLIC_API_URL?.trim() ||
+  (typeof window !== 'undefined' &&
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1'
+    ? 'https://fi-46xw.onrender.com/api/v1'
+    : '/api/v1');
+const API_BASE = rawBase.endsWith('/api/v1') ? rawBase : `${rawBase.replace(/\/$/, '')}/api/v1`;
 
 export class ApiError extends Error {
   constructor(
