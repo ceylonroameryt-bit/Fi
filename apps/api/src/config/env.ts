@@ -15,6 +15,7 @@ const envSchema = z
       .refine((v) => v.startsWith('postgresql://') || v.startsWith('postgres://'), {
         message: 'DATABASE_URL must be a PostgreSQL connection string',
       }),
+    DIRECT_URL: z.string().optional(),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
     SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
     ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
