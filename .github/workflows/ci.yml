@@ -22,5 +22,8 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    - name: Generate Prisma Client
+      run: npm run prisma:generate --workspace apps/api
+
     - name: Build API & Web
       run: npm run build
