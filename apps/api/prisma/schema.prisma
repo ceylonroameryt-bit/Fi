@@ -1,0 +1,646 @@
+// Ledgerline accounting core schema (Phases 1-8).
+//
+// Tenant isolation is enforced at the database level wherever possible:
+// child records reference their parents through composite foreign keys of
+// (organization_id, id), so a row can never point at a record owned by
+// another organisation even if application code were to make a mistake.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────── Enums ───────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  DISABLED
+}
+
+enum UserTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum MemberStatus {
+  ACTIVE
+  INVITED
+  REMOVED
+}
+
+enum ContactType {
+  CUSTOMER
+  SUPPLIER
+  BOTH
+}
+
+enum ContactStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  APPROVED
+  POSTED
+  PAID
+  PARTIALLY_PAID
+  VOIDED
+}
+
+enum SystemRoleKey {
+  OWNER
+  ADMINISTRATOR
+  ACCOUNTANT
+  BOOKKEEPER
+  VIEWER
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum AccountSubtype {
+  BANK
+  CASH
+  ACCOUNTS_RECEIVABLE
+  INVENTORY
+  CURRENT_ASSET
+  FIXED_ASSET
+  ACCUMULATED_DEPRECIATION
+  ACCOUNTS_PAYABLE
+  CURRENT_LIABILITY
+  LONG_TERM_LIABILITY
+  TAX_PAYABLE
+  OWNER_EQUITY
+  RETAINED_EARNINGS
+  SALES
+  SERVICE_REVENUE
+  OTHER_INCOME
+  COST_OF_SALES
+  OPERATING_EXPENSE
+  OTHER_EXPENSE
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+}
+
+enum FinancialYearStatus {
+  OPEN
+  CLOSED
+}
+
+enum PeriodStatus {
+  OPEN
+  SOFT_LOCKED
+  HARD_LOCKED
+}
+
+enum JournalStatus {
+  DRAFT
+  VALIDATED
+  POSTED
+  REVERSED
+}
+
+enum JournalType {
+  GENERAL
+  SALES
+  PURCHASE
+  CASH_RECEIPT
+  CASH_PAYMENT
+  BANK_TRANSFER
+  EXPENSE
+  TAX
+  CREDIT_NOTE
+  REFUND
+  OPENING_BALANCE
+  YEAR_END
+  ADJUSTMENT
+}
+
+enum JournalSourceType {
+  MANUAL
+  INVOICE
+  BILL
+  BANK_TRANSACTION
+  PAYROLL
+  SYSTEM
+}
+
+// ─────────────────────────── Identity & auth ──────────────────────────
+
+model User {
+  id                  String     @id @default(uuid()) @db.Uuid
+  email               String     @unique @db.VarChar(254)
+  passwordHash        String?    @map("password_hash") @db.VarChar(255)
+  firstName           String     @default("") @map("first_name") @db.VarChar(100)
+  lastName            String     @default("") @map("last_name") @db.VarChar(100)
+  emailVerified       Boolean    @default(false) @map("email_verified")
+  emailVerifiedAt     DateTime?  @map("email_verified_at")
+  status              UserStatus @default(ACTIVE)
+  mfaEnabled          Boolean    @default(false) @map("mfa_enabled")
+  failedLoginAttempts Int        @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?  @map("locked_until")
+  lastLoginAt         DateTime?  @map("last_login_at")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+
+  sessions              Session[]
+  tokens                UserToken[]
+  memberships           OrganizationMember[]   @relation("MemberUser")
+  invitedMemberships    OrganizationMember[]   @relation("MemberInvitedBy")
+  organizationsCreated  Organization[]         @relation("OrganizationCreatedBy")
+  accountsCreated       Account[]              @relation("AccountCreatedBy")
+  accountsUpdated       Account[]              @relation("AccountUpdatedBy")
+  financialYearsCreated FinancialYear[]        @relation("FinancialYearCreatedBy")
+  periodsLocked         AccountingPeriod[]     @relation("PeriodLockedBy")
+  journalsCreated       JournalEntry[]         @relation("JournalCreatedBy")
+  journalsUpdated       JournalEntry[]         @relation("JournalUpdatedBy")
+  journalsValidated     JournalEntry[]         @relation("JournalValidatedBy")
+  journalsPosted        JournalEntry[]         @relation("JournalPostedBy")
+  contactsCreated       Contact[]              @relation("ContactCreatedBy")
+  invoicesCreated       Invoice[]              @relation("InvoiceCreatedBy")
+  auditLogs             AuditLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id                   String    @id @default(uuid()) @db.Uuid
+  userId               String    @map("user_id") @db.Uuid
+  refreshTokenHash     String    @unique @map("refresh_token_hash") @db.VarChar(128)
+  activeOrganizationId String?   @map("active_organization_id") @db.Uuid
+  ipAddress            String?   @map("ip_address") @db.VarChar(64)
+  userAgent            String?   @map("user_agent") @db.VarChar(512)
+  // MFA-ready: when MFA is introduced a session is only fully trusted once verified.
+  mfaVerifiedAt        DateTime? @map("mfa_verified_at")
+  expiresAt            DateTime  @map("expires_at")
+  lastUsedAt           DateTime  @default(now()) @map("last_used_at")
+  revokedAt            DateTime? @map("revoked_at")
+  revokedReason        String?   @map("revoked_reason") @db.VarChar(64)
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model UserToken {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  type      UserTokenType
+  tokenHash String        @unique @map("token_hash") @db.VarChar(128)
+  expiresAt DateTime      @map("expires_at")
+  usedAt    DateTime?     @map("used_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("user_tokens")
+}
+
+// ─────────────────────────── Organisations ───────────────────────────
+
+model Organization {
+  id                     String             @id @default(uuid()) @db.Uuid
+  name                   String             @db.VarChar(150)
+  legalName              String?            @map("legal_name") @db.VarChar(200)
+  registrationNumber     String?            @map("registration_number") @db.VarChar(50)
+  country                String             @db.Char(2)
+  baseCurrency           String             @map("base_currency") @db.Char(3)
+  timezone               String             @db.VarChar(64)
+  financialYearStartMonth Int               @default(4) @map("financial_year_start_month") @db.SmallInt
+  financialYearStartDay  Int                @default(1) @map("financial_year_start_day") @db.SmallInt
+  taxNumber              String?            @map("tax_number") @db.VarChar(50)
+  addressLine1           String?            @map("address_line_1") @db.VarChar(200)
+  addressLine2           String?            @map("address_line_2") @db.VarChar(200)
+  city                   String?            @db.VarChar(100)
+  postcode               String?            @db.VarChar(20)
+  status                 OrganizationStatus @default(ACTIVE)
+  createdById            String             @map("created_by") @db.Uuid
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  createdBy      User                   @relation("OrganizationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  members        OrganizationMember[]
+  roles          Role[]
+  accounts       Account[]
+  financialYears FinancialYear[]
+  periods        AccountingPeriod[]
+  journals       JournalEntry[]
+  contacts       Contact[]
+  invoices       Invoice[]
+  sequences      OrganizationSequence[]
+  auditLogs      AuditLog[]
+
+  @@index([status])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  roleId         String       @map("role_id") @db.Uuid
+  status         MemberStatus @default(ACTIVE)
+  invitedById    String?      @map("invited_by") @db.Uuid
+  joinedAt       DateTime?    @map("joined_at")
+  removedAt      DateTime?    @map("removed_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation("MemberUser", fields: [userId], references: [id], onDelete: Restrict)
+  invitedBy    User?        @relation("MemberInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  // Composite FK guarantees the role belongs to the same organisation.
+  role         Role         @relation(fields: [organizationId, roleId], references: [organizationId, id], onDelete: Restrict)
+
+  // One membership row per user per organisation; removed members are
+  // re-activated rather than duplicated.
+  @@unique([organizationId, userId])
+  @@index([userId, status])
+  @@map("organization_members")
+}
+
+// ─────────────────────────── Roles & permissions ─────────────────────
+
+model Role {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  name           String         @db.VarChar(50)
+  description    String?        @db.VarChar(255)
+  systemKey      SystemRoleKey? @map("system_key")
+  isSystemRole   Boolean        @default(false) @map("is_system_role")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  permissions  RolePermission[]
+  members      OrganizationMember[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, name])
+  @@unique([organizationId, systemKey])
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique @db.VarChar(64)
+  description String           @db.VarChar(255)
+  category    String           @db.VarChar(50)
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ─────────────────────────── Chart of accounts ───────────────────────
+
+model Account {
+  id                 String         @id @default(uuid()) @db.Uuid
+  organizationId     String         @map("organization_id") @db.Uuid
+  code               String         @db.VarChar(20)
+  name               String         @db.VarChar(150)
+  accountType        AccountType    @map("account_type")
+  accountSubtype     AccountSubtype @map("account_subtype")
+  parentAccountId    String?        @map("parent_account_id") @db.Uuid
+  normalBalance      NormalBalance  @map("normal_balance")
+  reportGroup        String?        @map("report_group") @db.VarChar(100)
+  description        String?        @db.VarChar(500)
+  // NULL = organisation base currency. Retained for future multi-currency.
+  currency           String?        @db.Char(3)
+  isSystemAccount    Boolean        @default(false) @map("is_system_account")
+  isControlAccount   Boolean        @default(false) @map("is_control_account")
+  allowManualPosting Boolean        @default(true) @map("allow_manual_posting")
+  isActive           Boolean        @default(true) @map("is_active")
+  archivedAt         DateTime?      @map("archived_at")
+  createdById        String?        @map("created_by") @db.Uuid
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedById        String?        @map("updated_by") @db.Uuid
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parentAccount Account?      @relation("AccountHierarchy", fields: [parentAccountId], references: [id], onDelete: Restrict)
+  childAccounts Account[]     @relation("AccountHierarchy")
+  createdBy     User?         @relation("AccountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?         @relation("AccountUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  journalLines  JournalLine[]
+  invoiceLines  InvoiceLine[]
+
+  @@unique([organizationId, code])
+  @@unique([organizationId, id])
+  @@index([organizationId, accountType])
+  @@index([organizationId, isActive])
+  @@index([parentAccountId])
+  @@map("accounts")
+}
+
+// ──────────────────── Financial years & accounting periods ───────────
+
+model FinancialYear {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @map("organization_id") @db.Uuid
+  name           String              @db.VarChar(50)
+  startDate      DateTime            @map("start_date") @db.Date
+  endDate        DateTime            @map("end_date") @db.Date
+  status         FinancialYearStatus @default(OPEN)
+  createdById    String?             @map("created_by") @db.Uuid
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy    User?              @relation("FinancialYearCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  periods      AccountingPeriod[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, name])
+  @@index([organizationId, startDate])
+  @@map("financial_years")
+}
+
+model AccountingPeriod {
+  id              String       @id @default(uuid()) @db.Uuid
+  organizationId  String       @map("organization_id") @db.Uuid
+  financialYearId String       @map("financial_year_id") @db.Uuid
+  periodNumber    Int          @map("period_number") @db.SmallInt
+  name            String       @db.VarChar(50)
+  startDate       DateTime     @map("start_date") @db.Date
+  endDate         DateTime     @map("end_date") @db.Date
+  status          PeriodStatus @default(OPEN)
+  lockedById      String?      @map("locked_by") @db.Uuid
+  lockedAt        DateTime?    @map("locked_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  financialYear FinancialYear  @relation(fields: [organizationId, financialYearId], references: [organizationId, id], onDelete: Restrict)
+  lockedBy      User?          @relation("PeriodLockedBy", fields: [lockedById], references: [id], onDelete: SetNull)
+  journals      JournalEntry[]
+
+  @@unique([organizationId, id])
+  @@unique([financialYearId, periodNumber])
+  @@index([organizationId, startDate, endDate])
+  @@index([organizationId, status])
+  @@map("accounting_periods")
+}
+
+// ─────────────────────────────── Journals ────────────────────────────
+
+model JournalEntry {
+  id                  String            @id @default(uuid()) @db.Uuid
+  organizationId      String            @map("organization_id") @db.Uuid
+  journalNumber       String            @map("journal_number") @db.VarChar(30)
+  journalType         JournalType       @default(GENERAL) @map("journal_type")
+  journalDate         DateTime          @map("journal_date") @db.Date
+  postingDate         DateTime          @map("posting_date") @db.Date
+  description         String            @db.VarChar(500)
+  reference           String?           @db.VarChar(100)
+  sourceType          JournalSourceType @default(MANUAL) @map("source_type")
+  sourceId            String?           @map("source_id") @db.Uuid
+  periodId            String?           @map("period_id") @db.Uuid
+  currency            String            @db.Char(3)
+  exchangeRate        Decimal           @default(1) @map("exchange_rate") @db.Decimal(19, 8)
+  status              JournalStatus     @default(DRAFT)
+  idempotencyKey      String?           @map("idempotency_key") @db.VarChar(100)
+  // Optimistic concurrency token, incremented on every change.
+  version             Int               @default(1)
+  validatedById       String?           @map("validated_by") @db.Uuid
+  validatedAt         DateTime?         @map("validated_at")
+  createdById         String            @map("created_by") @db.Uuid
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedById         String?           @map("updated_by") @db.Uuid
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  postedById          String?           @map("posted_by") @db.Uuid
+  postedAt            DateTime?         @map("posted_at")
+  reversedByJournalId String?           @unique @map("reversed_by_journal_id") @db.Uuid
+  reversalOfJournalId String?           @unique @map("reversal_of_journal_id") @db.Uuid
+  metadata            Json?
+
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  period            AccountingPeriod? @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  createdBy         User              @relation("JournalCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy         User?             @relation("JournalUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  validatedBy       User?             @relation("JournalValidatedBy", fields: [validatedById], references: [id], onDelete: SetNull)
+  postedBy          User?             @relation("JournalPostedBy", fields: [postedById], references: [id], onDelete: Restrict)
+  reversedByJournal JournalEntry?     @relation("JournalReversal", fields: [reversedByJournalId], references: [id], onDelete: Restrict)
+  reverses          JournalEntry?     @relation("JournalReversal")
+  lines             JournalLine[]
+  invoice           Invoice?          @relation("InvoiceJournal")
+
+  @@unique([organizationId, journalNumber])
+  @@unique([organizationId, idempotencyKey])
+  @@unique([organizationId, id])
+  @@index([organizationId, status])
+  @@index([organizationId, postingDate])
+  @@index([organizationId, createdAt])
+  @@index([periodId])
+  @@index([reversalOfJournalId])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  journalEntryId String   @map("journal_entry_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  lineNumber     Int      @map("line_number") @db.SmallInt
+  accountId      String   @map("account_id") @db.Uuid
+  description    String?  @db.VarChar(255)
+  debit          Decimal  @default(0) @db.Decimal(19, 4)
+  credit         Decimal  @default(0) @db.Decimal(19, 4)
+  currency       String   @db.Char(3)
+  exchangeRate   Decimal  @default(1) @map("exchange_rate") @db.Decimal(19, 8)
+  // Reserved for future contacts / tax modules (no FK until those tables exist).
+  contactId      String?  @map("contact_id") @db.Uuid
+  taxRateId      String?  @map("tax_rate_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Composite FKs: a line can only reference a journal and an account of its own organisation.
+  journalEntry JournalEntry @relation(fields: [organizationId, journalEntryId], references: [organizationId, id], onDelete: Cascade)
+  account      Account      @relation(fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([journalEntryId, lineNumber])
+  @@index([organizationId, accountId])
+  @@index([journalEntryId])
+  @@map("journal_lines")
+}
+
+model OrganizationSequence {
+  organizationId String   @map("organization_id") @db.Uuid
+  sequenceKey    String   @map("sequence_key") @db.VarChar(50)
+  currentValue   Int      @default(0) @map("current_value")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@id([organizationId, sequenceKey])
+  @@map("organization_sequences")
+}
+
+// ─────────────────────────────── Audit ───────────────────────────────
+
+model AuditLog {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String?   @map("organization_id") @db.Uuid
+  userId         String?   @map("user_id") @db.Uuid
+  eventType      String    @map("event_type") @db.VarChar(64)
+  entityType     String    @map("entity_type") @db.VarChar(64)
+  entityId       String?   @map("entity_id") @db.VarChar(64)
+  oldValues      Json?     @map("old_values")
+  newValues      Json?     @map("new_values")
+  ipAddress      String?   @map("ip_address") @db.VarChar(64)
+  userAgent      String?   @map("user_agent") @db.VarChar(512)
+  sessionId      String?   @map("session_id") @db.Uuid
+  requestId      String?   @map("request_id") @db.VarChar(100)
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, entityType, entityId])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────── Contacts ─────────────────────────────────
+
+model Contact {
+  id                  String        @id @default(uuid()) @db.Uuid
+  organizationId      String        @map("organization_id") @db.Uuid
+  type                ContactType   @default(CUSTOMER)
+  status              ContactStatus @default(ACTIVE)
+  name                String        @db.VarChar(200)
+  companyName         String?       @map("company_name") @db.VarChar(200)
+  email               String?       @db.VarChar(254)
+  phone               String?       @db.VarChar(50)
+  website             String?       @db.VarChar(200)
+  taxNumber           String?       @map("tax_number") @db.VarChar(50)
+  currency            String?       @db.Char(3)
+  paymentTermsDays    Int           @default(30) @map("payment_terms_days")
+  creditLimit         Decimal?      @map("credit_limit") @db.Decimal(19, 4)
+  addressLine1        String?       @map("address_line_1") @db.VarChar(200)
+  addressLine2        String?       @map("address_line_2") @db.VarChar(200)
+  city                String?       @db.VarChar(100)
+  state               String?       @db.VarChar(100)
+  postcode            String?       @db.VarChar(20)
+  country             String        @default("GB") @db.Char(2)
+  notes               String?       @db.VarChar(1000)
+  receivableAccountId String?       @map("receivable_account_id") @db.Uuid
+  payableAccountId    String?       @map("payable_account_id") @db.Uuid
+  createdById         String?       @map("created_by") @db.Uuid
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedById         String?       @map("updated_by") @db.Uuid
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy    User?        @relation("ContactCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  invoices     Invoice[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, type])
+  @@index([organizationId, status])
+  @@index([organizationId, name])
+  @@map("contacts")
+}
+
+// ─────────────────────────── Sales Invoices ───────────────────────────
+
+model Invoice {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  contactId      String        @map("contact_id") @db.Uuid
+  invoiceNumber  String        @map("invoice_number") @db.VarChar(30)
+  reference      String?       @db.VarChar(100)
+  issueDate      DateTime      @map("issue_date") @db.Date
+  dueDate        DateTime      @map("due_date") @db.Date
+  currency       String        @db.Char(3)
+  exchangeRate   Decimal       @default(1) @map("exchange_rate") @db.Decimal(19, 8)
+  subtotal       Decimal       @default(0) @db.Decimal(19, 4)
+  taxTotal       Decimal       @default(0) @map("tax_total") @db.Decimal(19, 4)
+  totalAmount    Decimal       @default(0) @map("total_amount") @db.Decimal(19, 4)
+  amountPaid     Decimal       @default(0) @map("amount_paid") @db.Decimal(19, 4)
+  status         InvoiceStatus @default(DRAFT)
+  notes          String?       @db.VarChar(1000)
+  terms          String?       @db.VarChar(1000)
+  journalEntryId String?       @unique @map("journal_entry_id") @db.Uuid
+  createdById    String        @map("created_by") @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedById    String?       @map("updated_by") @db.Uuid
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  postedById     String?       @map("posted_by") @db.Uuid
+  postedAt       DateTime?     @map("posted_at")
+  voidedById     String?       @map("voided_by") @db.Uuid
+  voidedAt       DateTime?     @map("voided_at")
+  voidReason     String?       @map("void_reason") @db.VarChar(255)
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contact      Contact       @relation(fields: [organizationId, contactId], references: [organizationId, id], onDelete: Restrict)
+  journalEntry JournalEntry? @relation("InvoiceJournal", fields: [journalEntryId], references: [id], onDelete: Restrict)
+  createdBy    User          @relation("InvoiceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  lines        InvoiceLine[]
+
+  @@unique([organizationId, invoiceNumber])
+  @@unique([organizationId, id])
+  @@index([organizationId, status])
+  @@index([organizationId, contactId])
+  @@index([organizationId, issueDate])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  invoiceId      String   @map("invoice_id") @db.Uuid
+  lineNumber     Int      @map("line_number") @db.SmallInt
+  accountId      String   @map("account_id") @db.Uuid
+  description    String   @db.VarChar(255)
+  quantity       Decimal  @default(1) @db.Decimal(19, 4)
+  unitPrice      Decimal  @map("unit_price") @db.Decimal(19, 4)
+  taxRate        Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 4)
+  taxAmount      Decimal  @default(0) @map("tax_amount") @db.Decimal(19, 4)
+  lineTotal      Decimal  @map("line_total") @db.Decimal(19, 4)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  invoice Invoice @relation(fields: [organizationId, invoiceId], references: [organizationId, id], onDelete: Cascade)
+  account Account @relation(fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([invoiceId, lineNumber])
+  @@index([organizationId, accountId])
+  @@map("invoice_lines")
+}
+

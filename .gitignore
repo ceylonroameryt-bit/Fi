@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+coverage/
+.data/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+apps/api/.env
+apps/api/.env.test
+apps/web/.env.local
+next-env.d.ts
+npm-debug.log*

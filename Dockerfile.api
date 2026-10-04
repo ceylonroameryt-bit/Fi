@@ -1,0 +1,51 @@
+# ─── Stage 1: Build ───
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl libc6-compat
+
+# Copy workspace package manifests
+COPY package.json package-lock.json ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+
+# Install all dependencies
+RUN npm ci
+
+# Copy API source and schema
+COPY apps/api/tsconfig*.json ./apps/api/
+COPY apps/api/nest-cli.json ./apps/api/
+COPY apps/api/prisma ./apps/api/prisma
+COPY apps/api/src ./apps/api/src
+
+# Generate Prisma Client and build NestJS
+RUN npm run prisma:generate --workspace apps/api
+RUN npm run build --workspace apps/api
+
+# Prune dev dependencies for production
+RUN npm prune --production
+
+# ─── Stage 2: Production Runner ───
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+RUN apk add --no-cache openssl dumb-init libc6-compat
+
+ENV NODE_ENV=production
+ENV PORT=4000
+
+# Copy necessary production assets
+COPY --from=builder /app/package.json /app/package-lock.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder /app/apps/api/package.json ./apps/api/
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+
+EXPOSE 4000
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "apps/api/dist/main.js"]

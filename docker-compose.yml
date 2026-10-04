@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ledgerline-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ledgerline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ledgerline_prod_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-ledgerline}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ledgerline} -d ${POSTGRES_DB:-ledgerline}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: ledgerline-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ledgerline}:${POSTGRES_PASSWORD:-ledgerline_prod_secret}@postgres:5432/${POSTGRES_DB:-ledgerline}
+      JWT_SECRET: ${JWT_SECRET:-ledgerline_jwt_production_secret_key_change_me_before_production_deployment}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: ledgerline-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: http://api:4000/api/v1
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+    driver: local
