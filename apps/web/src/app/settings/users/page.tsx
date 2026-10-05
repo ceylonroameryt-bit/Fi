@@ -237,7 +237,19 @@ export default function UsersSettingsPage() {
                         )}
                       </td>
                       <td>
-                        <span className="badge badge-active">Active</span>
+                        {(() => {
+                          const st = (m.status || 'ACTIVE').toUpperCase();
+                          const cls =
+                            st === 'ACTIVE'
+                              ? 'badge-active'
+                              : st === 'INVITED'
+                              ? 'badge-draft' // amber
+                              : st === 'SUSPENDED'
+                              ? 'badge-danger' // red
+                              : 'badge-archived'; // grey
+                          const lbl = st.charAt(0) + st.slice(1).toLowerCase();
+                          return <span className={`badge ${cls}`}>{lbl}</span>;
+                        })()}
                       </td>
                       <td style={{ color: '#6B7280', fontSize: '0.775rem' }}>
                         {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}

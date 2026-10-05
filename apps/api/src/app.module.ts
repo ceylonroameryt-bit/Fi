@@ -1,10 +1,14 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from './config/config.module';
+import { APP_CONFIG } from './config/config.module';
+import type { AppEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { AuthGuard } from './auth/auth.guard';
+import { CsrfGuard } from './common/guards/csrf.guard';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { OrganizationAccessGuard } from './common/guards/organization-access.guard';
 import { OrganizationMembersModule } from './organization-members/organization-members.module';
@@ -25,6 +29,16 @@ import { AllExceptionsFilter } from './common/errors/all-exceptions.filter';
 @Module({
   imports: [
     ConfigModule,
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [APP_CONFIG],
+      useFactory: (config: AppEnv) => [
+        {
+          ttl: 60000,
+          limit: config.RATE_LIMIT_PER_MINUTE,
+        },
+      ],
+    }),
     DatabaseModule,
     AuditModule,
     AuthModule,
@@ -49,7 +63,15 @@ import { AllExceptionsFilter } from './common/errors/all-exceptions.filter';
     },
     {
       provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard,
     },
     {
       provide: APP_GUARD,

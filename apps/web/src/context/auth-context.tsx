@@ -40,7 +40,7 @@ interface AuthContextType {
   activeRole: UserOrgMembership['role'] | null;
   userOrgs: UserOrgMembership[];
   isLoading: boolean;
-  login: (token: string, userData: User) => Promise<void>;
+  login: (userData: User, token?: string) => Promise<void>;
   logout: () => Promise<void>;
   switchOrg: (orgId: string) => Promise<void>;
   refreshOrgs: () => Promise<void>;
@@ -58,19 +58,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUserData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
+      // Query /auth/me with HttpOnly ambient credentials
       const currentUser = await apiRequest<User>('/auth/me');
       setUser(currentUser);
 
       const orgs = await apiRequest<UserOrgMembership[]>('/organizations');
       setUserOrgs(orgs);
 
-      const savedOrgId = localStorage.getItem('active_org_id');
+      const savedOrgId = typeof window !== 'undefined' ? localStorage.getItem('active_org_id') : null;
       const matchingMembership = orgs.find((m) => m.organization.id === savedOrgId) || orgs[0];
 
       if (matchingMembership) {
@@ -79,7 +74,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('active_org_id', matchingMembership.organization.id);
       }
     } catch {
-      localStorage.removeItem('access_token');
       setUser(null);
       setActiveOrg(null);
       setActiveRole(null);
@@ -92,8 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadUserData();
   }, [loadUserData]);
 
-  const login = async (token: string, userData: User) => {
-    localStorage.setItem('access_token', token);
+  const login = async (userData: User, _token?: string) => {
     setUser(userData);
     await loadUserData();
   };
@@ -104,8 +97,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('active_org_id');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('active_org_id');
+    }
     setUser(null);
     setActiveOrg(null);
     setActiveRole(null);

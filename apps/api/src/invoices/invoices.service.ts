@@ -363,13 +363,16 @@ export class InvoicesService {
     journalLines.push({
       accountId: arAccount.id,
       description: `Sales Invoice ${invoice.invoiceNumber} - ${invoice.contact.name}`,
-      debit: Number(invoice.totalAmount),
+      debit: new Prisma.Decimal(invoice.totalAmount).toNumber(),
       credit: 0,
     });
 
     // Lines 2..N: Revenue Accounts (CREDIT)
     for (const line of invoice.lines) {
-      const lineSubtotal = Number(line.quantity) * Number(line.unitPrice);
+      const lineSubtotal = new Prisma.Decimal(line.quantity)
+        .mul(new Prisma.Decimal(line.unitPrice))
+        .toDecimalPlaces(4, Prisma.Decimal.ROUND_HALF_UP)
+        .toNumber();
       journalLines.push({
         accountId: line.accountId,
         description: line.description || `Sales: ${invoice.invoiceNumber}`,
@@ -384,7 +387,7 @@ export class InvoicesService {
         accountId: taxAccount.id,
         description: `VAT / Sales Tax on Invoice ${invoice.invoiceNumber}`,
         debit: 0,
-        credit: Number(taxTotalDec),
+        credit: taxTotalDec.toDecimalPlaces(4, Prisma.Decimal.ROUND_HALF_UP).toNumber(),
       });
     }
 

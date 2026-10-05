@@ -44,7 +44,7 @@ interface LedgerEntry {
   accountType: string;
   debit: string;
   credit: string;
-  runningBalance: string;
+  runningBalance: string | null;
   source: string;
 }
 
@@ -180,10 +180,9 @@ function GeneralLedgerContent() {
       if (selectedFyId) params.set('financialYearId', selectedFyId);
       if (selectedPeriodId) params.set('periodId', selectedPeriodId);
 
-      const token = localStorage.getItem('access_token');
       const res = await fetch(`/api/v1/organizations/${activeOrg.id}/general-ledger/export?${params.toString()}`, {
+        credentials: 'include',
         headers: {
-          Authorization: `Bearer ${token}`,
           'x-organization-id': activeOrg.id,
         },
       });
@@ -512,7 +511,9 @@ function GeneralLedgerContent() {
                     </td>
                     {selectedAccountId && (
                       <td className="text-right font-mono" style={{ fontWeight: 600, color: '#0f172a' }}>
-                        {Number(entry.runningBalance).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                        {entry.runningBalance != null
+                          ? Number(entry.runningBalance).toLocaleString('en-GB', { minimumFractionDigits: 2 })
+                          : '—'}
                       </td>
                     )}
                   </tr>

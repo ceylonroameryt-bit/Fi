@@ -131,12 +131,11 @@ function TrialBalanceContent() {
       else if (selectedFyId) params.set('financialYearId', selectedFyId);
       else if (asOfDate) params.set('asOfDate', asOfDate);
 
-      const token = localStorage.getItem('access_token');
       const res = await fetch(
         `/api/v1/organizations/${activeOrg.id}/reports/trial-balance/export?${params.toString()}`,
         {
+          credentials: 'include',
           headers: {
-            Authorization: `Bearer ${token}`,
             'x-organization-id': activeOrg.id,
           },
         },

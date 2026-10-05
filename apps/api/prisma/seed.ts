@@ -7,6 +7,23 @@ const prisma = new PrismaClient();
 const passwords = new PasswordService();
 
 async function main() {
+  const appEnv = process.env.APP_ENV || 'development';
+  const allowDemoSeed = process.env.ALLOW_DEMO_SEED === 'true';
+
+  // SECURITY GUARD: Demo seed data must NEVER execute in production unless an explicit
+  // ALLOW_DEMO_SEED=true override has been intentionally provided.
+  if (appEnv === 'production' && !allowDemoSeed) {
+    throw new Error(
+      'SECURITY VIOLATION: Attempted to run demo seed script in production environment without explicit ALLOW_DEMO_SEED=true override. Aborting immediately.',
+    );
+  }
+
+  if (appEnv !== 'development' && appEnv !== 'test' && !allowDemoSeed) {
+    throw new Error(
+      `Demo seeding is restricted to development or test environments. Current environment: "${appEnv}". Set ALLOW_DEMO_SEED=true to override.`,
+    );
+  }
+
   console.log('Seeding Ledgerline database...');
 
   // 1. Seed global permissions
@@ -30,6 +47,11 @@ async function main() {
   // 2. Seed Users
   const defaultPasswordHash = await passwords.hash('Password1234!');
 
+  // SECURITY ARCHITECTURE RULE:
+  // Demo accounts must NEVER be granted platform Super Admin privileges.
+  // An organisation OWNER role is tenant-scoped and completely distinct from Platform Super Admin.
+  // Platform Super Admins have global cross-tenant administrative control and must ONLY be
+  // created through explicit, authenticated deployment scripts (e.g. scripts/bootstrap-super-admin.ts).
   const ownerUser = await prisma.user.upsert({
     where: { email: 'owner@democonsulting.com' },
     create: {
@@ -40,11 +62,11 @@ async function main() {
       emailVerified: true,
       emailVerifiedAt: new Date(),
       status: UserStatus.ACTIVE,
-      isSuperAdmin: true,
+      isSuperAdmin: false,
     },
     update: {
       passwordHash: defaultPasswordHash,
-      isSuperAdmin: true,
+      isSuperAdmin: false,
     },
   });
 

@@ -271,11 +271,34 @@ export class AdminService {
       throw new DomainException('NOT_FOUND', 'User not found');
     }
 
+    if (user.isSuperAdmin && status !== UserStatus.ACTIVE) {
+      const otherActiveSuperAdmins = await this.prisma.user.count({
+        where: {
+          isSuperAdmin: true,
+          status: UserStatus.ACTIVE,
+          id: { not: id },
+        },
+      });
+      if (otherActiveSuperAdmins === 0) {
+        throw new DomainException(
+          'CANNOT_SUSPEND_LAST_SUPER_ADMIN',
+          'Cannot suspend or disable the last active platform super administrator',
+        );
+      }
+    }
+
     const updated = await this.prisma.transaction(async (tx) => {
       const result = await tx.user.update({
         where: { id },
         data: { status },
       });
+
+      if (status !== UserStatus.ACTIVE) {
+        await tx.session.updateMany({
+          where: { userId: id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+      }
 
       await this.audit.record(tx, actor, {
         organizationId: null,
@@ -303,6 +326,22 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new DomainException('NOT_FOUND', 'User not found');
+    }
+
+    if (!isSuperAdmin && user.isSuperAdmin) {
+      const otherActiveSuperAdmins = await this.prisma.user.count({
+        where: {
+          isSuperAdmin: true,
+          status: UserStatus.ACTIVE,
+          id: { not: id },
+        },
+      });
+      if (otherActiveSuperAdmins === 0) {
+        throw new DomainException(
+          'CANNOT_REMOVE_LAST_SUPER_ADMIN',
+          'Cannot remove platform super administrator privileges from the last active super admin',
+        );
+      }
     }
 
     const updated = await this.prisma.transaction(async (tx) => {

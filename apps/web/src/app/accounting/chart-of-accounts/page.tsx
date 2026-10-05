@@ -578,11 +578,43 @@ export default function ChartOfAccountsPage() {
                   </div>
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Parent Account (Optional)</label>
+                    <select
+                      className="form-select"
+                      value={(formData as any).parentAccountId || ''}
+                      onChange={(e) => setFormData({ ...formData, [('parentAccountId' as any)]: e.target.value })}
+                    >
+                      <option value="">None (Top-Level Account)</option>
+                      {accounts
+                        .filter((a) => a.id !== editingAccount?.id)
+                        .map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.code} – {a.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Status</label>
+                    <select
+                      className="form-select"
+                      value={(formData as any).status || 'ACTIVE'}
+                      onChange={(e) => setFormData({ ...formData, [('status' as any)]: e.target.value })}
+                    >
+                      <option value="ACTIVE">Active</option>
+                      <option value="ARCHIVED">Archived</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">Description (Optional)</label>
                   <textarea
                     className="form-textarea"
-                    rows={3}
+                    rows={2}
                     placeholder="Brief description or purpose of this nominal account..."
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -600,7 +632,7 @@ export default function ChartOfAccountsPage() {
                     Allow Manual Journal Posting
                   </label>
                   <p style={{ fontSize: '0.725rem', color: '#6B7280', marginTop: '0.25rem', marginLeft: '1.4rem' }}>
-                    When disabled, this account is restricted from manual journal entry adjustments (e.g. system control accounts).
+                    When disabled, this account is restricted from manual journal entry adjustments (e.g. control accounts).
                   </p>
                 </div>
               </div>

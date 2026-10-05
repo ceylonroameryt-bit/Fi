@@ -55,6 +55,23 @@ export class ContactsService {
   }
 
   async createContact(organizationId: string, dto: CreateContactDto, actor: Actor) {
+    if (dto.receivableAccountId) {
+      const rec = await this.prisma.account.findFirst({
+        where: { id: dto.receivableAccountId, organizationId },
+      });
+      if (!rec) {
+        throw new DomainException('ACCOUNT_NOT_FOUND', 'Receivable account does not belong to this organisation');
+      }
+    }
+    if (dto.payableAccountId) {
+      const pay = await this.prisma.account.findFirst({
+        where: { id: dto.payableAccountId, organizationId },
+      });
+      if (!pay) {
+        throw new DomainException('ACCOUNT_NOT_FOUND', 'Payable account does not belong to this organisation');
+      }
+    }
+
     return this.prisma.transaction(async (tx) => {
       const contact = await tx.contact.create({
         data: {
@@ -96,6 +113,23 @@ export class ContactsService {
 
   async updateContact(organizationId: string, contactId: string, dto: UpdateContactDto, actor: Actor) {
     const existing = await this.getContact(organizationId, contactId);
+
+    if (dto.receivableAccountId) {
+      const rec = await this.prisma.account.findFirst({
+        where: { id: dto.receivableAccountId, organizationId },
+      });
+      if (!rec) {
+        throw new DomainException('ACCOUNT_NOT_FOUND', 'Receivable account does not belong to this organisation');
+      }
+    }
+    if (dto.payableAccountId) {
+      const pay = await this.prisma.account.findFirst({
+        where: { id: dto.payableAccountId, organizationId },
+      });
+      if (!pay) {
+        throw new DomainException('ACCOUNT_NOT_FOUND', 'Payable account does not belong to this organisation');
+      }
+    }
 
     return this.prisma.transaction(async (tx) => {
       const updated = await tx.contact.update({

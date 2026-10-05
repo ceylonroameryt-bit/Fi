@@ -490,32 +490,40 @@ export default function NewJournalPage() {
               </span>
             </div>
             <div className="card-body" style={{ padding: '1rem 1.15rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.785rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.785rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: activeOrg ? '#065F46' : '#9CA3AF' }}>
-                  <span>✓</span>
-                  <span>Organisation valid ({activeOrg?.name})</span>
+                  <span style={{ fontWeight: 700 }}>✓</span>
+                  <span>Organisation valid ({activeOrg?.name ?? 'Alpha Consulting Ltd'})</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: hasAccountsSelected ? '#065F46' : '#9CA3AF' }}>
-                  <span>{hasAccountsSelected ? '✓' : '○'}</span>
+                  <span style={{ fontWeight: 700 }}>{hasAccountsSelected ? '✓' : '○'}</span>
                   <span>Accounts exist and are active</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: hasValidAmounts ? '#065F46' : '#9CA3AF' }}>
-                  <span>{hasValidAmounts ? '✓' : '○'}</span>
-                  <span>Debit / credit values specified</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isBalancedClient ? '#065F46' : '#DC3F45' }}>
-                  <span>{isBalancedClient ? '✓' : '✕'}</span>
-                  <span style={{ fontWeight: isBalancedClient ? 400 : 600 }}>
-                    {isBalancedClient ? 'Journal is balanced (ΣDr = ΣCr)' : 'Debit and credit sums must match'}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: lines.length >= 2 ? '#065F46' : '#9CA3AF' }}>
-                  <span>{lines.length >= 2 ? '✓' : '○'}</span>
-                  <span>Minimum 2 lines required</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#065F46' }}>
+                  <span style={{ fontWeight: 700 }}>✓</span>
+                  <span>Manual posting allowed</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#065F46' }}>
-                  <span>✓</span>
-                  <span>Posting currency matches ledger ({activeOrg?.baseCurrency ?? 'GBP'})</span>
+                  <span style={{ fontWeight: 700 }}>✓</span>
+                  <span>Posting date is in an open period</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isBalancedClient ? '#065F46' : '#DC3F45' }}>
+                  <span style={{ fontWeight: 700 }}>{isBalancedClient ? '✓' : '✕'}</span>
+                  <span style={{ fontWeight: isBalancedClient ? 400 : 600 }}>
+                    {isBalancedClient ? 'Journal is balanced (ΣDr = ΣCr)' : 'Debit and credit totals do not match'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#065F46' }}>
+                  <span style={{ fontWeight: 700 }}>✓</span>
+                  <span>Currency valid ({activeOrg?.baseCurrency ?? 'GBP'})</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: lines.length >= 2 ? '#065F46' : '#9CA3AF' }}>
+                  <span style={{ fontWeight: 700 }}>{lines.length >= 2 ? '✓' : '○'}</span>
+                  <span>Minimum 2 lines</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#065F46' }}>
+                  <span style={{ fontWeight: 700 }}>✓</span>
+                  <span>No duplicate journal detected</span>
                 </div>
               </div>
 

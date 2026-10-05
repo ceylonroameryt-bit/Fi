@@ -300,8 +300,8 @@ export class JournalsService {
       lines: original.lines.map((l) => ({
         accountId: l.accountId,
         description: l.description ?? undefined,
-        debit: Number(l.debit),
-        credit: Number(l.credit),
+        debit: new Prisma.Decimal(l.debit).toNumber(),
+        credit: new Prisma.Decimal(l.credit).toNumber(),
       })),
     };
 

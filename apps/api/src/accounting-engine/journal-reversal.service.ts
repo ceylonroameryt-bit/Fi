@@ -90,12 +90,23 @@ export class JournalReversalService {
         orgContext.permissions,
       );
 
-      // 4. Validate accounts are active and valid
+      // 4. Validate accounts exist and belong strictly to this organisation.
+      // ACCOUNTING ARCHITECTURE RULE:
+      // A historical transaction must remain reversible even if an account used by the original
+      // posted journal was archived after posting. Normal NEW manual postings block archived
+      // accounts, but an exact historical REVERSAL of an existing posted journal is ALLOWED
+      // to maintain double-entry auditability and allow correcting historical errors.
       for (const line of original.lines) {
-        if (!line.account.isActive) {
+        if (!line.account) {
           throw new DomainException(
-            'ACCOUNT_INACTIVE',
-            `Cannot reverse journal: Account ${line.account.code} (${line.account.name}) is archived`,
+            'ACCOUNT_NOT_FOUND',
+            `Account reference for line ${line.lineNumber} is missing or corrupted`,
+          );
+        }
+        if (line.account.organizationId !== organizationId) {
+          throw new DomainException(
+            'ORGANIZATION_ACCESS_DENIED',
+            `Account ${line.account.code} belongs to another organisation`,
           );
         }
       }

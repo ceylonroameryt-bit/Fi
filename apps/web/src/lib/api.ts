@@ -1,11 +1,16 @@
-const rawBase =
-  process.env.NEXT_PUBLIC_API_URL?.trim() ||
-  (typeof window !== 'undefined' &&
-  window.location.hostname !== 'localhost' &&
-  window.location.hostname !== '127.0.0.1'
-    ? 'https://fi-46xw.onrender.com/api/v1'
-    : '/api/v1');
-const API_BASE = rawBase.endsWith('/api/v1') ? rawBase : `${rawBase.replace(/\/$/, '')}/api/v1`;
+export function getApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (envUrl) {
+    return envUrl.endsWith('/api/v1') ? envUrl : `${envUrl.replace(/\/$/, '')}/api/v1`;
+  }
+  // In the browser, use same-origin relative proxy routed through Next.js rewrites
+  if (typeof window !== 'undefined') {
+    return '/api/v1';
+  }
+  return process.env.API_URL || 'http://localhost:4000/api/v1';
+}
+
+export const API_BASE = getApiBaseUrl();
 
 export class ApiError extends Error {
   constructor(
@@ -21,12 +26,13 @@ export class ApiError extends Error {
 
 interface RequestOptions extends RequestInit {
   orgId?: string | null;
+  _isRetry?: boolean;
 }
 
 export function resolveEndpoint(endpoint: string, activeOrgId?: string | null): string {
   let clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
-  if (activeOrgId && !clean.startsWith('/organizations') && !clean.startsWith('/auth') && !clean.startsWith('/health')) {
+  if (activeOrgId && !clean.startsWith('/organizations') && !clean.startsWith('/auth') && !clean.startsWith('/health') && !clean.startsWith('/admin')) {
     if (clean.startsWith('/accounts')) {
       clean = `/organizations/${activeOrgId}${clean}`;
     } else if (clean.startsWith('/journals')) {
@@ -61,30 +67,93 @@ export function resolveEndpoint(endpoint: string, activeOrgId?: string | null): 
   return clean;
 }
 
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
+  return match ? decodeURIComponent(match[3]) : null;
+}
+
+// Track in-flight refresh requests to prevent multiple duplicate refresh calls
+let isRefreshing = false;
+let refreshSubscribers: ((success: boolean) => void)[] = [];
+
+function notifyRefreshSubscribers(success: boolean) {
+  refreshSubscribers.forEach((cb) => cb(success));
+  refreshSubscribers = [];
+}
+
+async function refreshAccessToken(): Promise<boolean> {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function apiRequest<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
   const activeOrgId = options.orgId ?? (typeof window !== 'undefined' ? localStorage.getItem('active_org_id') : null);
   const resolvedPath = resolveEndpoint(endpoint, activeOrgId);
-  const url = `${API_BASE}${resolvedPath}`;
+  const url = `${getApiBaseUrl()}${resolvedPath}`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   if (activeOrgId) {
     headers['x-organization-id'] = activeOrgId;
+  }
+
+  // Attach CSRF token on state-changing requests
+  const method = (options.method || 'GET').toUpperCase();
+  const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+  if (isMutation) {
+    const csrfToken = getCookie('csrf_token') || getCookie('XSRF-TOKEN');
+    if (csrfToken) {
+      headers['x-csrf-token'] = csrfToken;
+    }
   }
 
   const res = await fetch(url, {
     ...options,
     headers,
-    credentials: 'omit',
+    credentials: 'include', // Automatically send and receive HttpOnly cookies
   });
+
+  // Handle transparent access-token refresh on HTTP 401
+  if (
+    res.status === 401 &&
+    !options._isRetry &&
+    !endpoint.includes('/auth/login') &&
+    !endpoint.includes('/auth/refresh') &&
+    !endpoint.includes('/auth/register')
+  ) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      const success = await refreshAccessToken();
+      isRefreshing = false;
+      notifyRefreshSubscribers(success);
+
+      if (success) {
+        return apiRequest<T>(endpoint, { ...options, _isRetry: true });
+      }
+    } else {
+      const waitPromise = new Promise<boolean>((resolve) => {
+        refreshSubscribers.push(resolve);
+      });
+      const success = await waitPromise;
+      if (success) {
+        return apiRequest<T>(endpoint, { ...options, _isRetry: true });
+      }
+    }
+  }
 
   const contentType = res.headers.get('content-type');
   const isJson = contentType && contentType.includes('application/json');

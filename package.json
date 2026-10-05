@@ -13,6 +13,7 @@
     "db:deploy": "npm run prisma:deploy --workspace apps/api",
     "db:seed": "npm run prisma:seed --workspace apps/api",
     "db:reset": "npm run prisma:reset --workspace apps/api",
+    "admin:bootstrap": "npm run admin:bootstrap --workspace apps/api",
     "dev": "concurrently -k -n api,web -c blue,green \"npm run start:dev --workspace apps/api\" \"npm run dev --workspace apps/web\"",
     "dev:api": "npm run start:dev --workspace apps/api",
     "dev:web": "npm run dev --workspace apps/web",

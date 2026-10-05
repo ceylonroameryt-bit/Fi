@@ -94,20 +94,39 @@ export default function AuditLogsPage() {
 
       {/* Filter Bar */}
       <div className="card" style={{ marginBottom: '1.25rem' }}>
-        <div className="card-body" style={{ padding: '0.85rem 1.25rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="card-body" style={{ padding: '0.85rem 1.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder="Search user, action, or entity ID..."
+                placeholder="Search by action, user, or reference..."
                 className="form-input"
-                style={{ width: '280px', paddingLeft: '2rem' }}
+                style={{ width: '260px', paddingLeft: '2rem' }}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
               <span style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', fontSize: '0.8rem' }}>🔍</span>
             </div>
 
+            {/* Action Type filter */}
+            <select
+              className="form-select"
+              style={{ width: 'auto' }}
+              value={selectedEventType}
+              onChange={(e) => setSelectedEventType(e.target.value)}
+            >
+              <option value="ALL">All Actions</option>
+              <option value="journal.validate">Journal Validated</option>
+              <option value="journal.create">Journal Created</option>
+              <option value="account.create">Account Created</option>
+              <option value="account.archive">Account Archived</option>
+              <option value="financial_year.create">Financial Year Created</option>
+              <option value="period.lock">Period Locked</option>
+              <option value="user.invite">User Invited</option>
+              <option value="role.change">Role Changed</option>
+            </select>
+
+            {/* Entity Type filter */}
             <select
               className="form-select"
               style={{ width: 'auto' }}
@@ -122,10 +141,23 @@ export default function AuditLogsPage() {
               <option value="ORGANIZATION">Organisation</option>
               <option value="USER">User / Member</option>
             </select>
+
+            {/* Date Range filter */}
+            <select
+              className="form-select"
+              style={{ width: 'auto' }}
+              defaultValue="ALL_TIME"
+            >
+              <option value="ALL_TIME">All Time</option>
+              <option value="TODAY">Today</option>
+              <option value="LAST_7_DAYS">Last 7 Days</option>
+              <option value="THIS_MONTH">This Month</option>
+              <option value="THIS_FY">Current FY (2026/27)</option>
+            </select>
           </div>
 
           <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
-            Showing <strong>{filteredLogs.length}</strong> events
+            Showing <strong>{filteredLogs.length}</strong> of <strong>{total}</strong> audit entries
           </div>
         </div>
       </div>
@@ -136,12 +168,12 @@ export default function AuditLogsPage() {
           <table className="table">
             <thead>
               <tr>
-                <th style={{ width: '170px' }}>Date & Time</th>
-                <th>Actor / User</th>
+                <th style={{ width: '160px' }}>Date & Time</th>
+                <th>User</th>
                 <th>Action</th>
                 <th>Entity</th>
-                <th>Reference / ID</th>
-                <th>IP Address</th>
+                <th>Reference</th>
+                <th>Organisation</th>
                 <th className="text-right" style={{ width: '80px' }}>Details</th>
               </tr>
             </thead>
@@ -198,7 +230,7 @@ export default function AuditLogsPage() {
                           </div>
                         ) : (
                           <span style={{ fontSize: '0.75rem', color: '#6B7280', fontStyle: 'italic' }}>
-                            System Process
+                            System
                           </span>
                         )}
                       </td>
@@ -211,10 +243,10 @@ export default function AuditLogsPage() {
                         <span className={`badge ${entityBadgeClass}`}>{log.entityType}</span>
                       </td>
                       <td className="font-mono" style={{ fontSize: '0.75rem', color: '#6B7280' }}>
-                        {log.entityId ? log.entityId.slice(0, 12) + '...' : '—'}
+                        {log.entityId ? log.entityId.slice(0, 10) + '...' : '—'}
                       </td>
-                      <td className="font-mono" style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
-                        {log.ipAddress || '127.0.0.1'}
+                      <td style={{ fontSize: '0.775rem', color: '#4B5563', fontWeight: 500 }}>
+                        {activeOrg?.name ?? 'Alpha Consulting Ltd'}
                       </td>
                       <td className="text-right">
                         <button
@@ -349,9 +381,13 @@ export default function AuditLogsPage() {
               )}
             </div>
 
-            <div className="drawer-footer">
-              <button onClick={() => setSelectedLog(null)} className="btn btn-secondary">
-                Close
+            <div className="drawer-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.72rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span>🔒</span>
+                <span>Immutable Record • Editing not permitted</span>
+              </span>
+              <button onClick={() => setSelectedLog(null)} className="btn btn-secondary btn-sm">
+                Close Details
               </button>
             </div>
           </div>

@@ -32,7 +32,7 @@ export interface LedgerEntryView {
   accountType: AccountType;
   debit: string;
   credit: string;
-  runningBalance: string;
+  runningBalance: string | null;
   source: string;
 }
 
@@ -119,7 +119,7 @@ export class GeneralLedgerService {
       this.prisma.journalLine.count({ where }),
     ]);
 
-    // Format lines
+    // Format lines with exact decimal arithmetic
     const entries: LedgerEntryView[] = lines.map((l) => ({
       id: l.id,
       date: toIsoDate(l.journalEntry.journalDate),
@@ -133,9 +133,9 @@ export class GeneralLedgerService {
       accountCode: l.account.code,
       accountName: l.account.name,
       accountType: l.account.accountType,
-      debit: Number(l.debit).toFixed(2),
-      credit: Number(l.credit).toFixed(2),
-      runningBalance: '0.00', // When querying multiple accounts, account-specific ledger calculates running balance
+      debit: this.money.toDecimal(l.debit).toFixed(2),
+      credit: this.money.toDecimal(l.credit).toFixed(2),
+      runningBalance: null, // In multi-account view, do not display misleading zero balance
       source: l.journalEntry.sourceType,
     }));
 
@@ -298,7 +298,7 @@ export class GeneralLedgerService {
 
     const rows: string[] = [];
     const timestamp = new Date().toISOString();
-    rows.push(`"Organisation","${org?.name ?? 'LedgerPro'}"`);
+    rows.push(`"Organisation","${org?.name ?? 'Ledgerline'}"`);
     rows.push(`"Report","General Ledger"`);
     rows.push(`"Generated At","${timestamp}"`);
     rows.push(`"Currency","${org?.baseCurrency ?? 'GBP'}"`);

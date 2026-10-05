@@ -3,8 +3,8 @@ import './globals.css';
 import { AuthProvider } from '../context/auth-context';
 
 export const metadata: Metadata = {
-  title: 'Ledgerline | Accounting Platform',
-  description: 'Professional multi-organisation double-entry accounting platform',
+  title: 'LedgerPro | Professional Accounting Platform',
+  description: 'Professional multi-organisation double-entry accounting platform for growing businesses',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -44,7 +44,42 @@ export default function RolesSettingsPage() {
           setSelectedRoleId(roleList[0].id);
         }
 
-        const permList: PermissionDef[] = Array.isArray(permsRes) ? permsRes : [];
+        const defaultPermissions: PermissionDef[] = [
+          { code: 'organization.view', description: 'View organization details and profile', category: 'Organisation' },
+          { code: 'organization.edit', description: 'Modify legal details, registration and base currency settings', category: 'Organisation' },
+          { code: 'organization.archive', description: 'Decommission or archive organisation entity', category: 'Organisation' },
+
+          { code: 'users.view', description: 'View team members and role assignments', category: 'Users' },
+          { code: 'users.invite', description: 'Invite new members to the organisation', category: 'Users' },
+          { code: 'users.manage_roles', description: 'Promote or modify member permissions', category: 'Users' },
+          { code: 'users.remove', description: 'Revoke organisation access from a user', category: 'Users' },
+
+          { code: 'account.view', description: 'View nominal accounts and account balances', category: 'Accounts' },
+          { code: 'account.create', description: 'Add new nominal accounts to the chart of accounts', category: 'Accounts' },
+          { code: 'account.edit', description: 'Edit account descriptions and manual posting flags', category: 'Accounts' },
+          { code: 'account.archive', description: 'Archive unused nominal accounts', category: 'Accounts' },
+
+          { code: 'financial_year.view', description: 'View fiscal calendar years', category: 'Financial Years' },
+          { code: 'financial_year.create', description: 'Initialize a new financial year with monthly periods', category: 'Financial Years' },
+          { code: 'financial_year.close', description: 'Perform year-end closure and retained earnings sweep', category: 'Financial Years' },
+
+          { code: 'period.view', description: 'Inspect period calendar and active status', category: 'Periods' },
+          { code: 'period.soft_lock', description: 'Soft-lock period for review, preventing new postings', category: 'Periods' },
+          { code: 'period.hard_lock', description: 'Permanently close period from any further modifications', category: 'Periods' },
+          { code: 'period.unlock', description: 'Re-open soft-locked periods for authorized corrections', category: 'Periods' },
+
+          { code: 'journal.view', description: 'View journal listings and journal line items', category: 'Journals' },
+          { code: 'journal.create', description: 'Draft new double-entry manual journals', category: 'Journals' },
+          { code: 'journal.edit_draft', description: 'Modify lines and memos on unvalidated drafts', category: 'Journals' },
+          { code: 'journal.delete_draft', description: 'Delete draft journals before ledger validation', category: 'Journals' },
+          { code: 'journal.validate', description: 'Trigger double-entry accounting engine validation', category: 'Journals' },
+          { code: 'journal.post', description: 'Post validated journals to general ledger (Next Phase)', category: 'Journals' },
+
+          { code: 'audit.view', description: 'Access immutable chronological audit event log', category: 'Audit' },
+          { code: 'audit.export', description: 'Export tamper-evident audit trail for external auditors', category: 'Audit' },
+        ];
+
+        const permList: PermissionDef[] = (Array.isArray(permsRes) && permsRes.length > 0) ? permsRes : defaultPermissions;
         setAllPermissions(permList);
       } catch (err: any) {
         setError(err.message || 'Failed to load roles and permissions');

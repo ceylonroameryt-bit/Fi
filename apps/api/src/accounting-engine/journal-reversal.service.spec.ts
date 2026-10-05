@@ -79,8 +79,8 @@ describe('JournalReversalService (Phase 10)', () => {
       journalType: 'GENERAL',
       postingDate: new Date('2026-04-01'),
       lines: [
-        { lineNumber: 1, accountId: 'acc-bank', description: 'Bank', debit: 1000, credit: 0, account: { id: 'acc-bank', code: '1010', name: 'Bank', isActive: true } },
-        { lineNumber: 2, accountId: 'acc-capital', description: 'Capital', debit: 0, credit: 1000, account: { id: 'acc-capital', code: '3010', name: 'Capital', isActive: true } },
+        { lineNumber: 1, accountId: 'acc-bank', description: 'Bank', debit: 1000, credit: 0, account: { id: 'acc-bank', organizationId: 'org-123', code: '1010', name: 'Bank', isActive: true } },
+        { lineNumber: 2, accountId: 'acc-capital', description: 'Capital', debit: 0, credit: 1000, account: { id: 'acc-capital', organizationId: 'org-123', code: '3010', name: 'Capital', isActive: true } },
       ],
     });
 
@@ -166,5 +166,99 @@ describe('JournalReversalService (Phase 10)', () => {
     await expect(
       service.reverseJournal('org-123', 'journal-orig', {}, mockOrgContext, mockActor),
     ).rejects.toThrow('has already been reversed');
+  });
+
+  it('allows reversal when an account from the original journal is archived', async () => {
+    prisma.journalEntry.findFirst.mockResolvedValue({
+      id: 'journal-orig',
+      organizationId: 'org-123',
+      journalNumber: 'JE-2026-000001',
+      status: JournalStatus.POSTED,
+      currency: 'GBP',
+      journalType: 'GENERAL',
+      postingDate: new Date('2026-04-01'),
+      lines: [
+        {
+          lineNumber: 1,
+          accountId: 'acc-archived',
+          description: 'Archived Expense',
+          debit: 500,
+          credit: 0,
+          account: { id: 'acc-archived', organizationId: 'org-123', code: '6090', name: 'Archived Expense', isActive: false },
+        },
+        {
+          lineNumber: 2,
+          accountId: 'acc-bank',
+          description: 'Bank Account',
+          debit: 0,
+          credit: 500,
+          account: { id: 'acc-bank', organizationId: 'org-123', code: '1010', name: 'Bank', isActive: true },
+        },
+      ],
+    });
+
+    prisma.journalEntry.create.mockResolvedValue({
+      id: 'journal-rev',
+      journalNumber: 'JE-2026-000002',
+      status: JournalStatus.POSTED,
+      reversalOfJournalId: 'journal-orig',
+      postingDate: new Date('2026-04-10'),
+    });
+
+    prisma.journalEntry.update.mockResolvedValue({
+      id: 'journal-orig',
+      journalNumber: 'JE-2026-000001',
+      status: JournalStatus.REVERSED,
+      reversedByJournalId: 'journal-rev',
+    });
+
+    const result = await service.reverseJournal(
+      'org-123',
+      'journal-orig',
+      { reversalDate: '2026-04-10', reason: 'Reversing archived account journal' },
+      mockOrgContext,
+      mockActor,
+    );
+
+    expect(result.originalJournal.status).toBe(JournalStatus.REVERSED);
+    expect(result.reversalJournal.status).toBe(JournalStatus.POSTED);
+
+    const createCall = prisma.journalEntry.create.mock.calls[0][0];
+    expect(createCall.data.lines.create[0].credit).toBe(500);
+    expect(createCall.data.lines.create[0].debit).toBe(0);
+    expect(createCall.data.lines.create[1].debit).toBe(500);
+    expect(createCall.data.lines.create[1].credit).toBe(0);
+  });
+
+  it('rejects reversal if an account belongs to a different organisation', async () => {
+    prisma.journalEntry.findFirst.mockResolvedValue({
+      id: 'journal-orig',
+      organizationId: 'org-123',
+      journalNumber: 'JE-2026-000001',
+      status: JournalStatus.POSTED,
+      currency: 'GBP',
+      journalType: 'GENERAL',
+      postingDate: new Date('2026-04-01'),
+      lines: [
+        {
+          lineNumber: 1,
+          accountId: 'acc-foreign',
+          debit: 100,
+          credit: 0,
+          account: { id: 'acc-foreign', organizationId: 'org-456', code: '1010', name: 'Other Org Account', isActive: true },
+        },
+        {
+          lineNumber: 2,
+          accountId: 'acc-bank',
+          debit: 0,
+          credit: 100,
+          account: { id: 'acc-bank', organizationId: 'org-123', code: '1020', name: 'Bank', isActive: true },
+        },
+      ],
+    });
+
+    await expect(
+      service.reverseJournal('org-123', 'journal-orig', {}, mockOrgContext, mockActor),
+    ).rejects.toThrow('belongs to another organisation');
   });
 });

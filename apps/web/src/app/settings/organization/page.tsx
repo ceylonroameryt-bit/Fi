@@ -126,8 +126,8 @@ export default function OrganizationSettingsPage() {
               <h3 className="card-title">Business Information</h3>
             </div>
             <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Company Registration Number</label>
                   <input
                     type="text"
@@ -138,8 +138,8 @@ export default function OrganizationSettingsPage() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Tax / VAT Registration Number</label>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Tax / VAT Number</label>
                   <input
                     type="text"
                     className="form-input font-mono"
@@ -150,22 +150,35 @@ export default function OrganizationSettingsPage() {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Registered Office Address</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Country Jurisdiction</label>
+                  <input
+                    type="text"
+                    disabled
+                    className="form-input"
+                    value={`${formData.country} (United Kingdom)`}
+                    style={{ backgroundColor: '#F8FAFC', color: '#4B5563', cursor: 'not-allowed', fontWeight: 600 }}
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Registered Office Address</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Section 3: Financial & Accounting Settings (With Sensitive Locks) */}
+          {/* Section 3: Financial Settings */}
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div className="card-header">
-              <h3 className="card-title">Financial & Accounting Controls</h3>
+              <h3 className="card-title">Financial Settings</h3>
             </div>
             <div className="card-body">
               {/* Caution Callout */}
@@ -184,40 +197,27 @@ export default function OrganizationSettingsPage() {
                 <span style={{ fontSize: '1.1rem' }}>⚠️</span>
                 <div>
                   <strong style={{ fontSize: '0.825rem', color: '#92400E', display: 'block' }}>
-                    Critical Accounting Anchor Controls
+                    Financial Anchor: Base Currency
                   </strong>
                   <p style={{ fontSize: '0.775rem', color: '#92400E', margin: '0.2rem 0 0 0', lineHeight: 1.4 }}>
-                    Base currency and jurisdiction anchor the nominal ledger and foreign exchange revaluation. These cannot be altered casually once journal entries are recorded.
+                    Base currency establishes the reporting anchor for all nominal accounts and tax revaluations. Once financial activity is recorded, modifying base currency requires administrative audit reconciliation.
                   </p>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Base Currency (Immutable)</label>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Base Currency (Ledger Default)</label>
                   <input
                     type="text"
                     disabled
                     className="form-input font-mono"
-                    value={`${formData.baseCurrency} — British Pound Sterling`}
-                    style={{ backgroundColor: '#F8FAFC', color: '#4B5563', cursor: 'not-allowed', fontWeight: 600 }}
+                    value={`${formData.baseCurrency} — British Pound Sterling (£)`}
+                    style={{ backgroundColor: '#F8FAFC', color: '#172033', cursor: 'not-allowed', fontWeight: 600 }}
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Country Jurisdiction</label>
-                  <input
-                    type="text"
-                    disabled
-                    className="form-input"
-                    value={`${formData.country} (United Kingdom)`}
-                    style={{ backgroundColor: '#F8FAFC', color: '#4B5563', cursor: 'not-allowed', fontWeight: 600 }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
+                <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Operating Timezone</label>
                   <select
                     className="form-select"
@@ -231,9 +231,19 @@ export default function OrganizationSettingsPage() {
                     <option value="Europe/Paris">Europe/Paris (CET / CEST)</option>
                   </select>
                 </div>
+              </div>
+            </div>
+          </div>
 
-                <div className="form-group">
-                  <label className="form-label">Financial Year Starting Month</label>
+          {/* Section 4: Accounting Settings */}
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <div className="card-header">
+              <h3 className="card-title">Accounting Settings</h3>
+            </div>
+            <div className="card-body">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Financial Year Start</label>
                   <select
                     className="form-select"
                     value={formData.fiscalYearStart}
@@ -244,6 +254,17 @@ export default function OrganizationSettingsPage() {
                     <option value="July">July (01 Jul – 30 Jun)</option>
                     <option value="October">October (01 Oct – 30 Sep)</option>
                   </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Double-Entry Enforcement</label>
+                  <input
+                    type="text"
+                    disabled
+                    className="form-input"
+                    value="Strict Balanced Postings (ΣDr = ΣCr)"
+                    style={{ backgroundColor: '#F8FAFC', color: '#065F46', cursor: 'not-allowed', fontWeight: 600 }}
+                  />
                 </div>
               </div>
             </div>
