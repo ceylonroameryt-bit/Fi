@@ -99,6 +99,14 @@ If setting up manually:
   FRONTEND_URL=https://YOUR_VERCEL_APP.vercel.app
   ```
 
+> [!IMPORTANT]
+> **Live Secret Rotation Procedure (Operational Deployment Action)**:
+> - Generate new distinct cryptographic secrets (min 64 chars):
+>   `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
+> - Set distinct `JWT_SECRET` and `SESSION_SECRET` in your host's environment settings (Render / Railway / Docker).
+> - Rotating secrets immediately invalidates all active sessions, requiring users to log in with fresh credentials.
+> - Never use default or development secrets in production; the API enforces startup failure if weak or identical secrets are detected.
+
 ---
 
 ### Option B: Railway

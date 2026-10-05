@@ -8,6 +8,22 @@ import { AuditEvents } from '../audit/audit-events';
 import { MailService } from '../auth/mail.service';
 import type { InviteMemberDto, UpdateMemberRoleDto } from './dto/member.dto';
 
+const safeUserSelect = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  status: true,
+  lastLoginAt: true,
+};
+
+const safeRoleSelect = {
+  id: true,
+  name: true,
+  systemKey: true,
+  isSystemRole: true,
+};
+
 @Injectable()
 export class OrganizationMembersService {
   constructor(
@@ -92,7 +108,7 @@ export class OrganizationMembersService {
             removedAt: null,
             joinedAt: new Date(),
           },
-          include: { user: true, role: true },
+          include: { user: { select: safeUserSelect }, role: { select: safeRoleSelect } },
         });
       } else {
         m = await tx.organizationMember.create({
@@ -104,7 +120,7 @@ export class OrganizationMembersService {
             invitedById: actor.userId,
             joinedAt: new Date(),
           },
-          include: { user: true, role: true },
+          include: { user: { select: safeUserSelect }, role: { select: safeRoleSelect } },
         });
       }
 
@@ -158,7 +174,7 @@ export class OrganizationMembersService {
       const m = await tx.organizationMember.update({
         where: { id: memberId },
         data: { roleId: dto.roleId },
-        include: { user: true, role: true },
+        include: { user: { select: safeUserSelect }, role: { select: safeRoleSelect } },
       });
 
       await this.audit.record(tx, actor, {

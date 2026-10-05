@@ -50,6 +50,7 @@ export class AuthGuard implements CanActivate {
           user: {
             select: {
               id: true,
+              email: true,
               status: true,
               isSuperAdmin: true,
             },
@@ -62,15 +63,24 @@ export class AuthGuard implements CanActivate {
         throw new DomainException('AUTH_SESSION_EXPIRED', 'Session has expired or been revoked');
       }
 
-      if (session.user.status === 'DISABLED' || session.user.status === 'SUSPENDED') {
+      // Authoritative session ownership validation:
+      // Require the JWT subject to match the authoritative session owner in the database.
+      if (!payload.sub || payload.sub !== session.userId || payload.sub !== session.user.id) {
         if (isPublic) return true;
-        throw new DomainException('AUTH_ACCOUNT_DISABLED', 'Account is suspended or disabled');
+        throw new DomainException('AUTH_INVALID_TOKEN', 'Token subject does not match authoritative session owner');
       }
 
+      // Reject inactive, suspended, or disabled users
+      if (session.user.status !== 'ACTIVE') {
+        if (isPublic) return true;
+        throw new DomainException('AUTH_ACCOUNT_DISABLED', 'Account is inactive, suspended, or disabled');
+      }
+
+      // Derive identity strictly from trusted database records, never trusting user-controlled token claims
       const authContext: AuthContext = {
-        userId: payload.sub,
-        sessionId: payload.sid,
-        email: payload.email,
+        userId: session.user.id,
+        sessionId: session.id,
+        email: session.user.email,
       };
 
       request.auth = authContext;

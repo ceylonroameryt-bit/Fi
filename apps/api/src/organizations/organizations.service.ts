@@ -149,6 +149,10 @@ export class OrganizationsService {
   }
 
   async updateOrganization(organizationId: string, dto: UpdateOrganizationDto, actor: Actor) {
+    if (actor.userId) {
+      await this.validateOrganizationAccess(organizationId, actor.userId);
+    }
+
     const org = await this.prisma.organization.findUnique({ where: { id: organizationId } });
     if (!org) throw new DomainException('ORGANIZATION_ACCESS_DENIED', 'Organisation not found');
 
@@ -174,6 +178,10 @@ export class OrganizationsService {
   }
 
   async archiveOrganization(organizationId: string, actor: Actor) {
+    if (actor.userId) {
+      await this.validateOrganizationAccess(organizationId, actor.userId);
+    }
+
     const org = await this.prisma.organization.findUnique({ where: { id: organizationId } });
     if (!org) throw new DomainException('ORGANIZATION_ACCESS_DENIED', 'Organisation not found');
 

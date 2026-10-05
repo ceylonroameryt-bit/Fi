@@ -8,6 +8,18 @@ const booleanString = z
 export const KNOWN_DEV_JWT_SECRET = 'jwt_super_secret_production_key_ledgerline_2026_secure';
 export const KNOWN_DEV_SESSION_SECRET = 'session_super_secret_cookie_signing_key_ledgerline_2026';
 
+export const KNOWN_INSECURE_SECRETS = new Set([
+  'jwt_super_secret_production_key_ledgerline_2026_secure',
+  'session_super_secret_cookie_signing_key_ledgerline_2026',
+  'ledgerline_jwt_production_secret_key_change_me_before_production_deployment',
+  'ledgerline_prod_secret',
+  'secret',
+  'super_secret_minimum_32_characters_random_string_123',
+  'another_secret_minimum_32_characters_different_456',
+  'test-secret-at-least-32-characters-long',
+  'default_insecure_jwt_secret_must_be_changed',
+]);
+
 const envSchema = z
   .object({
     APP_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -37,23 +49,43 @@ const envSchema = z
     // 1. JWT_SECRET validations
     if (isProd) {
       if (!env.JWT_SECRET || env.JWT_SECRET.trim().length === 0) {
-        console.warn('⚠️ [SECURITY NOTICE] JWT_SECRET is not configured in production environment. Using runtime secret fallback.');
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['JWT_SECRET'],
+          message: 'JWT_SECRET is required in production and cannot be empty.',
+        });
       } else if (env.JWT_SECRET.length < 32) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['JWT_SECRET'],
           message: 'JWT_SECRET must be at least 32 characters in production.',
         });
+      } else if (KNOWN_INSECURE_SECRETS.has(env.JWT_SECRET)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['JWT_SECRET'],
+          message: 'JWT_SECRET cannot use a known development, example, or placeholder value in production.',
+        });
       }
 
       // 2. SESSION_SECRET validations
       if (!env.SESSION_SECRET || env.SESSION_SECRET.trim().length === 0) {
-        console.warn('⚠️ [SECURITY NOTICE] SESSION_SECRET is not configured in production environment. Using runtime secret fallback.');
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SESSION_SECRET'],
+          message: 'SESSION_SECRET is required in production and cannot be empty.',
+        });
       } else if (env.SESSION_SECRET.length < 32) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['SESSION_SECRET'],
           message: 'SESSION_SECRET must be at least 32 characters in production.',
+        });
+      } else if (KNOWN_INSECURE_SECRETS.has(env.SESSION_SECRET)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SESSION_SECRET'],
+          message: 'SESSION_SECRET cannot use a known development, example, or placeholder value in production.',
         });
       }
     } else {
@@ -75,8 +107,8 @@ const envSchema = z
     }
 
     // 3. Secrets must not be identical
-    const finalJwt = env.JWT_SECRET || KNOWN_DEV_JWT_SECRET;
-    const finalSession = env.SESSION_SECRET || KNOWN_DEV_SESSION_SECRET;
+    const finalJwt = env.JWT_SECRET || (isProd ? '' : KNOWN_DEV_JWT_SECRET);
+    const finalSession = env.SESSION_SECRET || (isProd ? '' : KNOWN_DEV_SESSION_SECRET);
 
     if (finalJwt && finalSession && finalJwt === finalSession) {
       ctx.addIssue({
@@ -100,14 +132,30 @@ export type AppEnv = Omit<z.infer<typeof envSchema>, 'JWT_SECRET' | 'SESSION_SEC
  * names the offending variables but NEVER prints their values.
  */
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
-  const parsed = envSchema.safeParse(source);
+  // Normalize production detection across APP_ENV and NODE_ENV consistently
+  const normalizedSource: Record<string, string | undefined> = { ...source };
+  const detectedProduction =
+    normalizedSource.APP_ENV === 'production' ||
+    normalizedSource.NODE_ENV === 'production' ||
+    process.env.APP_ENV === 'production' ||
+    process.env.NODE_ENV === 'production';
+
+  if (detectedProduction) {
+    normalizedSource.APP_ENV = 'production';
+  }
+
+  const parsed = envSchema.safeParse(normalizedSource);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`).join('\n');
     throw new Error(`Invalid environment configuration:\n${issues}`);
   }
 
   const raw = parsed.data;
-  const isProduction = raw.APP_ENV === 'production';
+  const isProduction = detectedProduction || raw.APP_ENV === 'production';
+
+  if (isProduction && (!raw.JWT_SECRET || !raw.SESSION_SECRET)) {
+    throw new Error('Invalid environment configuration: JWT_SECRET and SESSION_SECRET must be explicitly provided in production.');
+  }
 
   const jwtSecret = raw.JWT_SECRET || KNOWN_DEV_JWT_SECRET;
   const sessionSecret = raw.SESSION_SECRET || KNOWN_DEV_SESSION_SECRET;

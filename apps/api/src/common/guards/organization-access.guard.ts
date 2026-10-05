@@ -36,22 +36,51 @@ export class OrganizationAccessGuard implements CanActivate {
     }
 
     const headerOrg = request.headers['x-organization-id'];
-    const headerOrgId = Array.isArray(headerOrg) ? headerOrg[0] : headerOrg;
+    const headerOrgId =
+      typeof headerOrg === 'string'
+        ? headerOrg.trim()
+        : Array.isArray(headerOrg)
+          ? headerOrg[0]?.trim()
+          : undefined;
 
-    const rawOrg =
-      request.params?.orgId ||
-      (request.params?.id && request.baseUrl?.includes('organizations')
-        ? request.params.id
-        : headerOrgId);
+    const paramOrg = request.params?.orgId || request.params?.id;
+    const paramOrgId =
+      typeof paramOrg === 'string'
+        ? paramOrg.trim()
+        : Array.isArray(paramOrg)
+          ? paramOrg[0]?.trim()
+          : undefined;
 
-    const orgId = typeof rawOrg === 'string' ? rawOrg : Array.isArray(rawOrg) ? rawOrg[0] : undefined;
+    // Security Rule: Prevent tenant confusion / header spoofing
+    // If BOTH URL parameter and header are provided, they MUST be identical.
+    if (paramOrgId && headerOrgId && paramOrgId !== headerOrgId) {
+      throw new DomainException(
+        'CONFLICTING_ORGANIZATION_CONTEXT',
+        'Target organization in URL does not match x-organization-id header',
+      );
+    }
+
+    // Target organisation is URL parameter if present, otherwise header
+    const orgId = paramOrgId || headerOrgId;
+
+    // Check required permissions metadata
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+      REQUIRED_PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!orgId) {
-      // Not an organisation-scoped route
+      // Fail closed: If a route requires permissions, it MUST have tenant context
+      if (requiredPermissions && requiredPermissions.length > 0) {
+        throw new DomainException(
+          'ORGANIZATION_CONTEXT_REQUIRED',
+          'Organization context is required for permission-protected operations',
+        );
+      }
       return true;
     }
 
-    // Validate membership and tenant isolation
+    // Validate membership and tenant isolation authoritatively
     const orgContext = await this.organizations.validateOrganizationAccess(
       orgId,
       request.auth.userId,
@@ -59,12 +88,7 @@ export class OrganizationAccessGuard implements CanActivate {
 
     request.org = orgContext;
 
-    // Check required permissions
-    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
-      REQUIRED_PERMISSIONS_KEY,
-      [context.getHandler(), context.getClass()],
-    );
-
+    // Verify all required permissions
     if (requiredPermissions && requiredPermissions.length > 0) {
       for (const perm of requiredPermissions) {
         if (!orgContext.permissions.has(perm)) {
