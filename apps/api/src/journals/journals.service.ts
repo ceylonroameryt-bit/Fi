@@ -189,24 +189,60 @@ export class JournalsService {
     _orgContext: OrgContext,
     actor: Actor,
   ) {
-    const existing = await this.getJournal(organizationId, journalId);
-
-    // Only DRAFT or VALIDATED journals can be edited
-    if (existing.status !== JournalStatus.DRAFT && existing.status !== JournalStatus.VALIDATED) {
-      throw new DomainException(
-        'JOURNAL_INVALID_STATE',
-        `Cannot edit journal in status ${existing.status}`,
-      );
-    }
-
-    const journalDate = dto.journalDate ? parseIsoDate(dto.journalDate, 'journalDate') : existing.journalDate;
-    const postingDate = dto.postingDate
-      ? parseIsoDate(dto.postingDate, 'postingDate')
-      : dto.journalDate
-        ? journalDate
-        : existing.postingDate;
-
     await this.prisma.transaction(async (tx) => {
+      // 1. Lock row FOR UPDATE first before checking state
+      await tx.$queryRaw`
+        SELECT id, status, version FROM journal_entries
+        WHERE id = ${journalId}::uuid AND organization_id = ${organizationId}::uuid
+        FOR UPDATE
+      `;
+
+      const existing = await tx.journalEntry.findFirst({
+        where: { id: journalId, organizationId },
+        include: {
+          lines: {
+            include: { account: true },
+            orderBy: { lineNumber: 'asc' },
+          },
+        },
+      });
+
+      if (!existing) {
+        throw new DomainException('JOURNAL_NOT_FOUND', 'Journal not found');
+      }
+
+      // Check if system managed (e.g. from Invoice)
+      if (existing.sourceType === JournalSourceType.INVOICE) {
+        throw new DomainException(
+          'JOURNAL_SYSTEM_MANAGED',
+          'Invoice-generated journals cannot be modified directly. Modify the invoice instead.',
+        );
+      }
+
+      // Only DRAFT or VALIDATED journals can be edited
+      if (existing.status !== JournalStatus.DRAFT && existing.status !== JournalStatus.VALIDATED) {
+        throw new DomainException(
+          'JOURNAL_INVALID_STATE',
+          `Cannot edit journal in status ${existing.status}`,
+        );
+      }
+
+      // Genuine optimistic version check
+      if (dto.version !== undefined && dto.version !== existing.version) {
+        throw new DomainException(
+          'CONCURRENT_MODIFICATION',
+          `Journal has been modified concurrently (expected version ${dto.version}, found ${existing.version})`,
+          { expectedVersion: dto.version, currentVersion: existing.version },
+        );
+      }
+
+      const journalDate = dto.journalDate ? parseIsoDate(dto.journalDate, 'journalDate') : existing.journalDate;
+      const postingDate = dto.postingDate
+        ? parseIsoDate(dto.postingDate, 'postingDate')
+        : dto.journalDate
+          ? journalDate
+          : existing.postingDate;
+
       // If lines are updated, delete existing lines and re-create them
       if (dto.lines) {
         await tx.journalLine.deleteMany({
@@ -250,8 +286,8 @@ export class JournalsService {
         eventType: AuditEvents.JOURNAL_UPDATED,
         entityType: 'JOURNAL',
         entityId: journalId,
-        oldValues: { status: existing.status, description: existing.description },
-        newValues: { status: res.status, description: res.description },
+        oldValues: { status: existing.status, description: existing.description, version: existing.version },
+        newValues: { status: res.status, description: res.description, version: res.version },
       });
 
       return res;
@@ -261,18 +297,38 @@ export class JournalsService {
   }
 
   async deleteDraftJournal(organizationId: string, journalId: string, actor: Actor) {
-    const existing = await this.getJournal(organizationId, journalId);
+    return this.prisma.transaction(async (tx) => {
+      // 1. Lock row FOR UPDATE first before checking state
+      await tx.$queryRaw`
+        SELECT id, status FROM journal_entries
+        WHERE id = ${journalId}::uuid AND organization_id = ${organizationId}::uuid
+        FOR UPDATE
+      `;
 
-    // Only DRAFT (or VALIDATED) journals can be deleted; POSTED journals cannot be deleted.
-    if (existing.status !== JournalStatus.DRAFT && existing.status !== JournalStatus.VALIDATED) {
-      throw new DomainException(
-        'JOURNAL_INVALID_STATE',
-        `Cannot delete journal in status ${existing.status}`,
-      );
-    }
+      const existing = await tx.journalEntry.findFirst({
+        where: { id: journalId, organizationId },
+      });
 
-    await this.prisma.transaction(async (tx) => {
-      await tx.journalLine.deleteMany({ where: { journalEntryId: journalId } });
+      if (!existing) {
+        throw new DomainException('JOURNAL_NOT_FOUND', 'Journal not found');
+      }
+
+      if (existing.sourceType === JournalSourceType.INVOICE) {
+        throw new DomainException(
+          'JOURNAL_SYSTEM_MANAGED',
+          'Invoice-generated journals cannot be deleted directly.',
+        );
+      }
+
+      // Only DRAFT (or VALIDATED) journals can be deleted; POSTED journals cannot be deleted.
+      if (existing.status !== JournalStatus.DRAFT && existing.status !== JournalStatus.VALIDATED) {
+        throw new DomainException(
+          'JOURNAL_INVALID_STATE',
+          `Cannot delete journal in status ${existing.status}`,
+        );
+      }
+
+      await tx.journalLine.deleteMany({ where: { journalEntryId: journalId, organizationId } });
       await tx.journalEntry.delete({ where: { id: journalId } });
 
       await this.audit.record(tx, actor, {
@@ -282,9 +338,9 @@ export class JournalsService {
         entityId: journalId,
         oldValues: { journalNumber: existing.journalNumber, description: existing.description },
       });
-    });
 
-    return { success: true };
+      return { success: true };
+    });
   }
 
   async duplicateDraftJournal(organizationId: string, journalId: string, orgContext: OrgContext, actor: Actor) {
@@ -321,23 +377,45 @@ export class JournalsService {
     orgContext: OrgContext,
     actor: Actor,
   ): Promise<JournalValidationResult & { journal?: any }> {
-    const validationResult = await this.validator.validateJournal(journalId, orgContext);
+    return this.prisma.transaction(async (tx) => {
+      // 1. Lock row FOR UPDATE first before checking state
+      await tx.$queryRaw`
+        SELECT id, status FROM journal_entries
+        WHERE id = ${journalId}::uuid AND organization_id = ${organizationId}::uuid
+        FOR UPDATE
+      `;
 
-    if (!validationResult.isValid) {
-      await this.audit.record(null, actor, {
-        organizationId,
-        eventType: AuditEvents.JOURNAL_VALIDATION_FAILED,
-        entityType: 'JOURNAL',
-        entityId: journalId,
-        newValues: { errors: validationResult.errors, difference: validationResult.difference },
+      const existing = await tx.journalEntry.findFirst({
+        where: { id: journalId, organizationId },
       });
 
-      return validationResult;
-    }
+      if (!existing) {
+        throw new DomainException('JOURNAL_NOT_FOUND', 'Journal not found');
+      }
 
-    // Validation succeeded: Update journal state to VALIDATED
-    const updatedJournal = await this.prisma.transaction(async (tx) => {
-      const res = await tx.journalEntry.update({
+      if (existing.status !== JournalStatus.DRAFT && existing.status !== JournalStatus.VALIDATED) {
+        throw new DomainException(
+          'JOURNAL_INVALID_STATE',
+          `Cannot validate journal in status ${existing.status}`,
+        );
+      }
+
+      const validationResult = await this.validator.validateJournal(journalId, orgContext, tx);
+
+      if (!validationResult.isValid) {
+        await this.audit.record(tx, actor, {
+          organizationId,
+          eventType: AuditEvents.JOURNAL_VALIDATION_FAILED,
+          entityType: 'JOURNAL',
+          entityId: journalId,
+          newValues: { errors: validationResult.errors, difference: validationResult.difference },
+        });
+
+        return validationResult;
+      }
+
+      // Validation succeeded: Update journal state to VALIDATED
+      const updatedJournal = await tx.journalEntry.update({
         where: { id: journalId },
         data: {
           status: JournalStatus.VALIDATED,
@@ -345,6 +423,7 @@ export class JournalsService {
           validatedById: actor.userId,
           validatedAt: new Date(),
           updatedById: actor.userId,
+          version: { increment: 1 },
         },
       });
 
@@ -361,13 +440,11 @@ export class JournalsService {
         },
       });
 
-      return res;
+      return {
+        ...validationResult,
+        journal: updatedJournal,
+      };
     });
-
-    return {
-      ...validationResult,
-      journal: updatedJournal,
-    };
   }
 
   calculateJournalTotals(lines: Array<{ debit: Prisma.Decimal | number | string; credit: Prisma.Decimal | number | string }>) {
@@ -394,7 +471,7 @@ export class JournalsService {
    * Concurrency-safe sequence number generator.
    * Format: JE-YYYY-XXXXXX (e.g. JE-2026-000001)
    */
-  private async allocateJournalNumber(tx: Tx, organizationId: string, year: number): Promise<string> {
+  async allocateJournalNumber(tx: Tx, organizationId: string, year: number): Promise<string> {
     const sequenceKey = `JOURNAL_${year}`;
 
     let sequence = await tx.organizationSequence.upsert({

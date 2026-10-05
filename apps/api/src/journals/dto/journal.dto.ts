@@ -3,6 +3,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -118,4 +119,10 @@ export class UpdateJournalDto {
   @ValidateNested({ each: true })
   @Type(() => JournalLineDto)
   lines?: JournalLineDto[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  version?: number;
 }

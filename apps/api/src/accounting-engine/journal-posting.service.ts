@@ -37,10 +37,11 @@ export class JournalPostingService {
     journalId: string,
     orgContext: OrgContext,
     actor: Actor,
+    externalTx?: Tx,
   ): Promise<PostingResult> {
     this.checkPostingPermission(orgContext);
 
-    return this.prisma.transaction(async (tx) => {
+    const execute = async (tx: Tx) => {
       // 1. Lock the journal row for posting to prevent concurrent posting races
       await this.lockJournalForPosting(tx, organizationId, journalId);
 
@@ -59,11 +60,14 @@ export class JournalPostingService {
         throw new DomainException('JOURNAL_NOT_FOUND', 'Journal entry was not found in this organisation');
       }
 
-      // 3. Verify journal status & idempotency
+      // 3. Consistent lock order: lock period row FOR SHARE
+      await this.lockPeriodForPosting(tx, organizationId, journal.postingDate);
+
+      // 4. Verify journal status & idempotency
       this.checkJournalState(journal);
 
-      // 4. Critical financial re-validation immediately before posting
-      const valResult = await this.validator.validateJournal(journalId, orgContext);
+      // 5. Critical financial re-validation immediately before posting
+      const valResult = await this.validator.validateJournal(journalId, orgContext, tx);
       if (!valResult.isValid) {
         throw new DomainException(
           'POSTING_VALIDATION_FAILED',
@@ -72,10 +76,10 @@ export class JournalPostingService {
         );
       }
 
-      // 5. Accounting period check (ensure period permits posting)
-      await this.checkAccountingPeriod(organizationId, journal.postingDate, orgContext.permissions);
+      // 6. Accounting period check (ensure period permits posting)
+      await this.checkAccountingPeriod(organizationId, journal.postingDate, orgContext.permissions, tx);
 
-      // 6. Transition status to POSTED
+      // 7. Transition status to POSTED
       const now = new Date();
       const posted = await tx.journalEntry.update({
         where: { id: journalId },
@@ -85,10 +89,11 @@ export class JournalPostingService {
           postedById: actor.userId,
           postedAt: now,
           updatedById: actor.userId,
+          version: { increment: 1 },
         },
       });
 
-      // 7. Write audit log
+      // 8. Write audit log
       await this.writePostingAudit(tx, actor, organizationId, posted, valResult);
 
       return {
@@ -101,7 +106,9 @@ export class JournalPostingService {
         totalCredit: valResult.totalCredit,
         difference: valResult.difference,
       };
-    });
+    };
+
+    return externalTx ? execute(externalTx) : this.prisma.transaction(execute);
   }
 
   /**
@@ -177,8 +184,9 @@ export class JournalPostingService {
     organizationId: string,
     postingDate: Date,
     permissions: ReadonlySet<string>,
+    tx?: Tx,
   ) {
-    const periodCheck = await this.fyService.validatePostingDate(organizationId, postingDate, permissions);
+    const periodCheck = await this.fyService.validatePostingDate(organizationId, postingDate, permissions, tx);
     if (!periodCheck.isValid) {
       throw new DomainException(
         'POSTING_PERIOD_INVALID',
@@ -187,6 +195,16 @@ export class JournalPostingService {
       );
     }
     return periodCheck.period;
+  }
+
+  async lockPeriodForPosting(tx: Tx, organizationId: string, postingDate: Date): Promise<void> {
+    await tx.$queryRaw`
+      SELECT id, status FROM accounting_periods
+      WHERE organization_id = ${organizationId}::uuid
+        AND start_date <= ${postingDate}::date
+        AND end_date >= ${postingDate}::date
+      FOR SHARE
+    `;
   }
 
   async lockJournalForPosting(tx: Tx, organizationId: string, journalId: string): Promise<void> {

@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import {
   AccountSubtype,
   InvoiceStatus,
+  JournalSourceType,
+  JournalStatus,
   JournalType,
   Prisma,
 } from '@prisma/client';
@@ -13,6 +15,7 @@ import { AuditEvents } from '../audit/audit-events';
 import { MoneyService } from '../accounting-engine/money.service';
 import { JournalPostingService } from '../accounting-engine/journal-posting.service';
 import { JournalReversalService } from '../accounting-engine/journal-reversal.service';
+import { JournalValidationService } from '../accounting-engine/journal-validation.service';
 import { JournalsService } from '../journals/journals.service';
 import { parseIsoDate } from '../common/utils/dates';
 import type {
@@ -51,6 +54,7 @@ export class InvoicesService {
     private readonly postingService: JournalPostingService,
     private readonly reversalService: JournalReversalService,
     private readonly journalsService: JournalsService,
+    private readonly validator: JournalValidationService,
   ) {}
 
   async listInvoices(organizationId: string, filter: InvoiceFilterQueryDto) {
@@ -187,15 +191,6 @@ export class InvoicesService {
     _orgContext: OrgContext,
     actor: Actor,
   ) {
-    const existing = await this.getInvoice(organizationId, invoiceId);
-
-    if (existing.status !== InvoiceStatus.DRAFT) {
-      throw new DomainException(
-        'INVOICE_INVALID_STATE',
-        `Only DRAFT invoices can be edited (current status: ${existing.status})`,
-      );
-    }
-
     if (dto.contactId) {
       const contact = await this.prisma.contact.findFirst({
         where: { id: dto.contactId, organizationId },
@@ -206,6 +201,29 @@ export class InvoicesService {
     }
 
     return this.prisma.transaction(async (tx) => {
+      // 1. Lock invoice row FOR UPDATE
+      await tx.$queryRaw`
+        SELECT id, status FROM invoices
+        WHERE id = ${invoiceId}::uuid AND organization_id = ${organizationId}::uuid
+        FOR UPDATE
+      `;
+
+      const existing = await tx.invoice.findFirst({
+        where: { id: invoiceId, organizationId },
+        include: invoiceInclude,
+      });
+
+      if (!existing) {
+        throw new DomainException('INVOICE_NOT_FOUND', 'Invoice not found in this organisation');
+      }
+
+      if (existing.status !== InvoiceStatus.DRAFT) {
+        throw new DomainException(
+          'INVOICE_INVALID_STATE',
+          `Only DRAFT invoices can be edited (current status: ${existing.status})`,
+        );
+      }
+
       let subtotal = existing.subtotal;
       let taxTotal = existing.taxTotal;
       let totalAmount = existing.totalAmount;
@@ -264,16 +282,29 @@ export class InvoicesService {
   }
 
   async deleteDraftInvoice(organizationId: string, invoiceId: string, actor: Actor) {
-    const existing = await this.getInvoice(organizationId, invoiceId);
+    return this.prisma.transaction(async (tx) => {
+      // 1. Lock invoice row FOR UPDATE
+      await tx.$queryRaw`
+        SELECT id, status FROM invoices
+        WHERE id = ${invoiceId}::uuid AND organization_id = ${organizationId}::uuid
+        FOR UPDATE
+      `;
 
-    if (existing.status !== InvoiceStatus.DRAFT) {
-      throw new DomainException(
-        'INVOICE_INVALID_STATE',
-        `Only DRAFT invoices can be deleted (current status: ${existing.status})`,
-      );
-    }
+      const existing = await tx.invoice.findFirst({
+        where: { id: invoiceId, organizationId },
+      });
 
-    await this.prisma.transaction(async (tx) => {
+      if (!existing) {
+        throw new DomainException('INVOICE_NOT_FOUND', 'Invoice not found in this organisation');
+      }
+
+      if (existing.status !== InvoiceStatus.DRAFT) {
+        throw new DomainException(
+          'INVOICE_INVALID_STATE',
+          `Only DRAFT invoices can be deleted (current status: ${existing.status})`,
+        );
+      }
+
       await tx.invoiceLine.deleteMany({ where: { invoiceId, organizationId } });
       await tx.invoice.delete({ where: { id: invoiceId } });
 
@@ -284,156 +315,217 @@ export class InvoicesService {
         entityId: invoiceId,
         oldValues: { invoiceNumber: existing.invoiceNumber },
       });
-    });
 
-    return { success: true };
+      return { success: true };
+    });
   }
 
   /**
    * Posts an approved invoice into the General Ledger.
-   * Interfaces directly with JournalPostingService as the authoritative accounting engine entry point!
+   * Atomic, fully serialized inside a single database transaction.
+   * In event of any error (validation, posting, linkage, audit), the entire operation rolls back.
    */
   async postInvoice(organizationId: string, invoiceId: string, orgContext: OrgContext, actor: Actor) {
-    const invoice = await this.getInvoice(organizationId, invoiceId);
+    this.postingService.checkPostingPermission(orgContext);
 
-    if (invoice.status === InvoiceStatus.POSTED) {
-      throw new DomainException('INVOICE_ALREADY_POSTED', 'Invoice has already been posted to General Ledger');
-    }
-    if (invoice.status === InvoiceStatus.VOIDED) {
-      throw new DomainException('INVOICE_INVALID_STATE', 'Cannot post a voided invoice');
-    }
-    if (!invoice.lines || invoice.lines.length === 0) {
-      throw new DomainException('INVOICE_NO_LINES', 'Invoice has no line items to post');
-    }
+    return this.prisma.transaction(async (tx) => {
+      // 1. Lock invoice row FOR UPDATE to prevent concurrent posting/modifications
+      await tx.$queryRaw`
+        SELECT id, status FROM invoices
+        WHERE id = ${invoiceId}::uuid AND organization_id = ${organizationId}::uuid
+        FOR UPDATE
+      `;
 
-    // 1. Identify Accounts Receivable account (customer specific or default nominal)
-    let arAccount = null;
-    if (invoice.contact.receivableAccountId) {
-      arAccount = await this.prisma.account.findFirst({
-        where: { id: invoice.contact.receivableAccountId, organizationId, isActive: true },
+      // 2. Reload invoice inside the locked transaction
+      const invoice = await tx.invoice.findFirst({
+        where: { id: invoiceId, organizationId },
+        include: invoiceInclude,
       });
-    }
-    if (!arAccount) {
-      arAccount = await this.prisma.account.findFirst({
-        where: {
-          organizationId,
-          isActive: true,
-          OR: [{ code: '1100' }, { accountSubtype: AccountSubtype.ACCOUNTS_RECEIVABLE }],
-        },
-      });
-    }
-    if (!arAccount) {
-      throw new DomainException(
-        'ACCOUNT_NOT_FOUND',
-        'Accounts Receivable nominal account (1100) not found in organisation Chart of Accounts',
-      );
-    }
 
-    // 2. Identify Tax Payable account if tax is present
-    const taxTotalDec = this.money.toDecimal(invoice.taxTotal);
-    let taxAccount = null;
-    if (taxTotalDec.greaterThan(0)) {
-      taxAccount = await this.prisma.account.findFirst({
-        where: {
-          organizationId,
-          isActive: true,
-          OR: [{ code: '2100' }, { accountSubtype: AccountSubtype.TAX_PAYABLE }],
-        },
-      });
-      if (!taxAccount) {
+      if (!invoice) {
+        throw new DomainException('INVOICE_NOT_FOUND', 'Invoice not found in this organisation');
+      }
+
+      if (invoice.status === InvoiceStatus.POSTED) {
+        throw new DomainException('INVOICE_ALREADY_POSTED', 'Invoice has already been posted to General Ledger');
+      }
+      if (invoice.status === InvoiceStatus.VOIDED) {
+        throw new DomainException('INVOICE_INVALID_STATE', 'Cannot post a voided invoice');
+      }
+      if (invoice.status !== InvoiceStatus.DRAFT) {
         throw new DomainException(
-          'ACCOUNT_NOT_FOUND',
-          'Tax Payable nominal account (2100) not found in organisation Chart of Accounts',
+          'INVOICE_INVALID_STATE',
+          `Only DRAFT invoices can be posted (current status: ${invoice.status})`,
         );
       }
-    }
+      if (!invoice.lines || invoice.lines.length === 0) {
+        throw new DomainException('INVOICE_NO_LINES', 'Invoice has no line items to post');
+      }
 
-    // 3. Construct Double-Entry Journal Lines:
-    // Debit: Accounts Receivable (full invoice total)
-    // Credit: Each line's revenue account (net line amounts)
-    // Credit: Tax Payable (tax total)
-    const journalLines: Array<{
-      accountId: string;
-      description: string;
-      debit: number;
-      credit: number;
-    }> = [];
-
-    // Line 1: Debtors Control / Accounts Receivable (DEBIT)
-    journalLines.push({
-      accountId: arAccount.id,
-      description: `Sales Invoice ${invoice.invoiceNumber} - ${invoice.contact.name}`,
-      debit: new Prisma.Decimal(invoice.totalAmount).toNumber(),
-      credit: 0,
-    });
-
-    // Lines 2..N: Revenue Accounts (CREDIT)
-    for (const line of invoice.lines) {
-      const lineSubtotal = new Prisma.Decimal(line.quantity)
-        .mul(new Prisma.Decimal(line.unitPrice))
-        .toDecimalPlaces(4, Prisma.Decimal.ROUND_HALF_UP)
-        .toNumber();
-      journalLines.push({
-        accountId: line.accountId,
-        description: line.description || `Sales: ${invoice.invoiceNumber}`,
-        debit: 0,
-        credit: lineSubtotal,
+      // 3. Database idempotency check: Ensure no journal already exists for this source invoice
+      const existingJournal = await tx.journalEntry.findFirst({
+        where: {
+          organizationId,
+          sourceType: JournalSourceType.INVOICE,
+          sourceId: invoice.id,
+        },
       });
-    }
+      if (existingJournal) {
+        throw new DomainException(
+          'INVOICE_ALREADY_POSTED',
+          `A journal entry (${existingJournal.journalNumber}) already exists for this invoice`,
+        );
+      }
 
-    // Line N+1: Tax Payable if applicable (CREDIT)
-    if (taxTotalDec.greaterThan(0) && taxAccount) {
+      // 4. Identify Accounts Receivable account (customer specific or default nominal 1100)
+      let arAccount = null;
+      if (invoice.contact.receivableAccountId) {
+        arAccount = await tx.account.findFirst({
+          where: { id: invoice.contact.receivableAccountId, organizationId, isActive: true },
+        });
+      }
+      if (!arAccount) {
+        arAccount = await tx.account.findFirst({
+          where: {
+            organizationId,
+            isActive: true,
+            OR: [{ code: '1100' }, { accountSubtype: AccountSubtype.ACCOUNTS_RECEIVABLE }],
+          },
+        });
+      }
+      if (!arAccount) {
+        throw new DomainException(
+          'ACCOUNT_NOT_FOUND',
+          'Accounts Receivable nominal account (1100) not found in organisation Chart of Accounts',
+        );
+      }
+
+      // 5. Identify Tax Payable account if tax is present
+      const taxTotalDec = this.money.toDecimal(invoice.taxTotal);
+      let taxAccount = null;
+      if (taxTotalDec.greaterThan(0)) {
+        taxAccount = await tx.account.findFirst({
+          where: {
+            organizationId,
+            isActive: true,
+            OR: [{ code: '2100' }, { accountSubtype: AccountSubtype.TAX_PAYABLE }],
+          },
+        });
+        if (!taxAccount) {
+          throw new DomainException(
+            'ACCOUNT_NOT_FOUND',
+            'Tax Payable nominal account (2100) not found in organisation Chart of Accounts',
+          );
+        }
+      }
+
+      // 6. Construct Double-Entry Journal Lines:
+      // Line 1: Debtors Control / Accounts Receivable (DEBIT)
+      const journalLines: Array<{
+        accountId: string;
+        description: string;
+        debit: Prisma.Decimal;
+        credit: Prisma.Decimal;
+      }> = [];
+
       journalLines.push({
-        accountId: taxAccount.id,
-        description: `VAT / Sales Tax on Invoice ${invoice.invoiceNumber}`,
-        debit: 0,
-        credit: taxTotalDec.toDecimalPlaces(4, Prisma.Decimal.ROUND_HALF_UP).toNumber(),
-      });
-    }
-
-    // 4. Create and validate the journal entry via JournalsService
-    const issueDateStr = invoice.issueDate.toISOString().slice(0, 10);
-    const draftJournal = await this.journalsService.createDraftJournal(
-      organizationId,
-      {
-        journalType: JournalType.SALES,
-        journalDate: issueDateStr,
-        postingDate: issueDateStr,
+        accountId: arAccount.id,
         description: `Sales Invoice ${invoice.invoiceNumber} - ${invoice.contact.name}`,
-        reference: invoice.reference ?? invoice.invoiceNumber,
-        currency: invoice.currency,
-        lines: journalLines,
-      },
-      orgContext,
-      actor,
-    );
+        debit: new Prisma.Decimal(invoice.totalAmount.toString()),
+        credit: new Prisma.Decimal('0'),
+      });
 
-    // 5. Run Journal Validation Engine
-    const validation = await this.journalsService.validateJournal(
-      organizationId,
-      draftJournal.id,
-      orgContext,
-      actor,
-    );
+      // Lines 2..N: Revenue Accounts (CREDIT)
+      for (const line of invoice.lines) {
+        const lineSubtotal = new Prisma.Decimal(line.quantity.toString())
+          .mul(new Prisma.Decimal(line.unitPrice.toString()))
+          .toDecimalPlaces(4, Prisma.Decimal.ROUND_HALF_UP);
+        journalLines.push({
+          accountId: line.accountId,
+          description: line.description || `Sales: ${invoice.invoiceNumber}`,
+          debit: new Prisma.Decimal('0'),
+          credit: lineSubtotal,
+        });
+      }
 
-    if (!validation.isValid) {
-      throw new DomainException(
-        'POSTING_VALIDATION_FAILED',
-        `Invoice journal validation failed: ${validation.errors.join('; ')}`,
+      // Line N+1: Tax Payable if applicable (CREDIT)
+      if (taxTotalDec.greaterThan(0) && taxAccount) {
+        journalLines.push({
+          accountId: taxAccount.id,
+          description: `VAT / Sales Tax on Invoice ${invoice.invoiceNumber}`,
+          debit: new Prisma.Decimal('0'),
+          credit: new Prisma.Decimal(taxTotalDec.toFixed(4)),
+        });
+      }
+
+      const year = invoice.issueDate.getUTCFullYear();
+      const journalNumber = await this.journalsService.allocateJournalNumber(tx, organizationId, year);
+
+      // 7. Create Draft Journal with sourceType = INVOICE and sourceId = invoice.id
+      const draftJournal = await tx.journalEntry.create({
+        data: {
+          organizationId,
+          journalNumber,
+          journalType: JournalType.SALES,
+          journalDate: invoice.issueDate,
+          postingDate: invoice.issueDate,
+          description: `Sales Invoice ${invoice.invoiceNumber} - ${invoice.contact.name}`,
+          reference: invoice.reference ?? invoice.invoiceNumber,
+          sourceType: JournalSourceType.INVOICE,
+          sourceId: invoice.id,
+          currency: invoice.currency,
+          status: JournalStatus.DRAFT,
+          createdById: actor.userId!,
+          lines: {
+            create: journalLines.map((l, idx) => ({
+              lineNumber: idx + 1,
+              accountId: l.accountId,
+              description: l.description,
+              debit: l.debit,
+              credit: l.credit,
+              currency: invoice.currency,
+            })),
+          },
+        },
+      });
+
+      // 8. Validate Journal inside tx
+      const validation = await this.validator.validateJournal(
+        draftJournal.id,
+        orgContext,
+        tx,
       );
-    }
 
-    // 6. Post the journal entry through the Journal Posting Engine
-    const postingResult = await this.postingService.postJournal(
-      organizationId,
-      draftJournal.id,
-      orgContext,
-      actor,
-    );
+      if (!validation.isValid) {
+        throw new DomainException(
+          'POSTING_VALIDATION_FAILED',
+          `Invoice journal validation failed: ${validation.errors.join('; ')}`,
+        );
+      }
 
-    // 7. Update Invoice: Link to posted journal and mark POSTED
-    const postedInvoice = await this.prisma.transaction(async (tx) => {
-      const updated = await tx.invoice.update({
+      // Transition to VALIDATED inside tx
+      await tx.journalEntry.update({
+        where: { id: draftJournal.id },
+        data: {
+          status: JournalStatus.VALIDATED,
+          periodId: validation.periodId,
+          validatedById: actor.userId,
+          validatedAt: new Date(),
+          updatedById: actor.userId,
+        },
+      });
+
+      // 9. Post journal inside tx
+      const postingResult = await this.postingService.postJournal(
+        organizationId,
+        draftJournal.id,
+        orgContext,
+        actor,
+        tx,
+      );
+
+      // 10. Link Invoice to Journal and transition to POSTED
+      const updatedInvoice = await tx.invoice.update({
         where: { id: invoiceId },
         data: {
           status: InvoiceStatus.POSTED,
@@ -442,37 +534,33 @@ export class InvoicesService {
           postedAt: new Date(),
           updatedById: actor.userId,
         },
-        include: {
-          contact: true,
-          journalEntry: true,
-          lines: { include: { account: true } },
-        },
+        include: invoiceInclude,
       });
 
+      // 11. Write Audit Log
       await this.audit.record(tx, actor, {
         organizationId,
         eventType: AuditEvents.INVOICE_POSTED,
         entityType: 'INVOICE',
         entityId: invoiceId,
         newValues: {
-          invoiceNumber: updated.invoiceNumber,
+          invoiceNumber: updatedInvoice.invoiceNumber,
           journalNumber: postingResult.journalNumber,
-          status: updated.status,
-          totalAmount: updated.totalAmount.toString(),
+          status: updatedInvoice.status,
+          totalAmount: updatedInvoice.totalAmount.toString(),
         },
       });
 
-      return updated;
+      return {
+        invoice: updatedInvoice,
+        postingResult,
+      };
     });
-
-    return {
-      invoice: postedInvoice,
-      postingResult,
-    };
   }
 
   /**
    * Voids a posted invoice by triggering journal reversal.
+   * Fully atomic within a single transaction.
    */
   async voidInvoice(
     organizationId: string,
@@ -481,36 +569,53 @@ export class InvoicesService {
     orgContext: OrgContext,
     actor: Actor,
   ) {
-    const invoice = await this.getInvoice(organizationId, invoiceId);
+    this.reversalService.validateReversalPermission(orgContext);
 
-    if (invoice.status === InvoiceStatus.VOIDED) {
-      throw new DomainException('INVOICE_ALREADY_VOIDED', 'Invoice has already been voided');
-    }
-    if (invoice.status !== InvoiceStatus.POSTED) {
-      throw new DomainException(
-        'INVOICE_CANNOT_VOID',
-        `Only POSTED invoices can be voided (current status: ${invoice.status})`,
+    return this.prisma.transaction(async (tx) => {
+      // 1. Lock invoice row FOR UPDATE
+      await tx.$queryRaw`
+        SELECT id, status FROM invoices
+        WHERE id = ${invoiceId}::uuid AND organization_id = ${organizationId}::uuid
+        FOR UPDATE
+      `;
+
+      const invoice = await tx.invoice.findFirst({
+        where: { id: invoiceId, organizationId },
+        include: invoiceInclude,
+      });
+
+      if (!invoice) {
+        throw new DomainException('INVOICE_NOT_FOUND', 'Invoice not found in this organisation');
+      }
+
+      if (invoice.status === InvoiceStatus.VOIDED) {
+        throw new DomainException('INVOICE_ALREADY_VOIDED', 'Invoice has already been voided');
+      }
+      if (invoice.status !== InvoiceStatus.POSTED) {
+        throw new DomainException(
+          'INVOICE_CANNOT_VOID',
+          `Only POSTED invoices can be voided (current status: ${invoice.status})`,
+        );
+      }
+
+      if (!invoice.journalEntryId) {
+        throw new DomainException('INVOICE_INVALID_STATE', 'Invoice is missing linked journal entry');
+      }
+
+      // 2. Reverse the linked journal inside the same transaction
+      const reversal = await this.reversalService.reverseJournal(
+        organizationId,
+        invoice.journalEntryId,
+        {
+          reason: dto.reason ?? `Voiding Invoice ${invoice.invoiceNumber}`,
+        },
+        orgContext,
+        actor,
+        tx,
       );
-    }
 
-    if (!invoice.journalEntryId) {
-      throw new DomainException('INVOICE_INVALID_STATE', 'Invoice is missing linked journal entry');
-    }
-
-    // 1. Reverse the linked journal via JournalReversalService
-    const reversal = await this.reversalService.reverseJournal(
-      organizationId,
-      invoice.journalEntryId,
-      {
-        reason: dto.reason ?? `Voiding Invoice ${invoice.invoiceNumber}`,
-      },
-      orgContext,
-      actor,
-    );
-
-    // 2. Update invoice status to VOIDED
-    const voided = await this.prisma.transaction(async (tx) => {
-      const updated = await tx.invoice.update({
+      // 3. Update invoice status to VOIDED
+      const voided = await tx.invoice.update({
         where: { id: invoiceId },
         data: {
           status: InvoiceStatus.VOIDED,
@@ -519,10 +624,7 @@ export class InvoicesService {
           voidedAt: new Date(),
           updatedById: actor.userId,
         },
-        include: {
-          contact: true,
-          journalEntry: true,
-        },
+        include: invoiceInclude,
       });
 
       await this.audit.record(tx, actor, {
@@ -531,20 +633,18 @@ export class InvoicesService {
         entityType: 'INVOICE',
         entityId: invoiceId,
         newValues: {
-          invoiceNumber: updated.invoiceNumber,
-          status: updated.status,
+          invoiceNumber: voided.invoiceNumber,
+          status: voided.status,
           reversalJournalNumber: reversal.reversalJournal.journalNumber,
-          voidReason: updated.voidReason,
+          voidReason: voided.voidReason,
         },
       });
 
-      return updated;
+      return {
+        invoice: voided,
+        reversal,
+      };
     });
-
-    return {
-      invoice: voided,
-      reversal,
-    };
   }
 
   private calculateInvoiceTotals(
