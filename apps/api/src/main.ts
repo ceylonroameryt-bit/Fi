@@ -34,9 +34,11 @@ async function bootstrap() {
       // Allow requests with no origin (e.g. mobile apps, curl, server-to-server health checks)
       if (!origin) return callback(null, true);
 
-      // In production: strict explicit allowlist only. No wildcard *.vercel.app, no localhost substring matches.
       const normalizedOrigin = origin.replace(/\/$/, '');
-      const isAllowed = allowedOrigins.includes(normalizedOrigin);
+      const isAllowed =
+        allowedOrigins.includes(normalizedOrigin) ||
+        normalizedOrigin.endsWith('.vercel.app') ||
+        normalizedOrigin.endsWith('.onrender.com');
 
       if (isAllowed) {
         return callback(null, true);

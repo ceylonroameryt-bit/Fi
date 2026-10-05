@@ -121,11 +121,20 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
     }
   }
 
-  const res = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include', // Automatically send and receive HttpOnly cookies
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include', // Automatically send and receive HttpOnly cookies
+    });
+  } catch (networkError: any) {
+    throw new ApiError(
+      'NETWORK_ERROR',
+      'Unable to connect to the backend server. If running in cloud production, please ensure API_URL is set in your Vercel Project Settings.',
+      0,
+    );
+  }
 
   // Handle transparent access-token refresh on HTTP 401
   if (
@@ -173,24 +182,29 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
         message = Array.isArray(data.message) ? data.message.join(', ') : data.message;
       }
     } else if (typeof data === 'string' && data.length > 0) {
-      try {
-        const parsed = JSON.parse(data);
-        if (parsed.error?.message) {
-          message = parsed.error.message;
-          code = parsed.error.code || code;
-          details = parsed.error.details;
-        } else if (parsed.message) {
-          message = Array.isArray(parsed.message) ? parsed.message.join(', ') : parsed.message;
-        }
-      } catch {
-        if (data.length < 200) {
-          message = data;
+      if (data.includes('DNS_HOSTNAME_RESOLVED_PRIVATE')) {
+        message = 'The backend API could not be reached by Vercel. In your Vercel Project Settings > Environment Variables, add API_URL pointing to your live backend (e.g. https://ledgerline-api.onrender.com) and redeploy.';
+        code = 'CONFIG_ERROR';
+      } else {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.error?.message) {
+            message = parsed.error.message;
+            code = parsed.error.code || code;
+            details = parsed.error.details;
+          } else if (parsed.message) {
+            message = Array.isArray(parsed.message) ? parsed.message.join(', ') : parsed.message;
+          }
+        } catch {
+          if (data.length < 200) {
+            message = data;
+          }
         }
       }
     }
 
     if (message === 'An error occurred' && (res.status === 502 || res.status === 503 || res.status === 504)) {
-      message = 'The backend server is starting up or temporarily unreachable. Please wait a moment and try again.';
+      message = 'The backend server is starting up (Render free tier cold start). Please wait 30-60 seconds and try again.';
     }
 
     throw new ApiError(code, message, res.status, details);
