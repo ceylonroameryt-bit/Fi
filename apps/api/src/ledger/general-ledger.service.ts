@@ -298,7 +298,7 @@ export class GeneralLedgerService {
 
     const rows: string[] = [];
     const timestamp = new Date().toISOString();
-    rows.push(`"Organisation","${org?.name ?? 'Ledgerline'}"`);
+    rows.push(`"Organisation","${org?.name ?? 'Warp Ledger'}"`);
     rows.push(`"Report","General Ledger"`);
     rows.push(`"Generated At","${timestamp}"`);
     rows.push(`"Currency","${org?.baseCurrency ?? 'GBP'}"`);

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest, ApiError } from '../../lib/api';
 import { useAuth } from '../../context/auth-context';
+import { WarpLedgerLogo } from '../../components/warp-ledger-logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -46,18 +47,9 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '1.5rem' }}>
       <div style={{ width: '100%', maxWidth: '420px', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '2rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '8px', background: 'linear-gradient(135deg, #146EF5 0%, #16A56A 100%)', color: '#fff', marginBottom: '0.75rem', boxShadow: '0 2px 8px rgba(20, 110, 245, 0.25)' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <path d="M8 10h8" />
-              <path d="M8 14h5" />
-            </svg>
-          </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#172033' }}>
-            Ledger<span style={{ color: '#146EF5' }}>Pro</span>
-          </div>
-          <p style={{ color: '#6B7280', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <WarpLedgerLogo variant="stacked" size="md" showTagline />
+          <p style={{ color: '#6B7280', fontSize: '0.8rem', marginTop: '0.65rem' }}>
             Sign in to your multi-organisation accounting workspace
           </p>
         </div>

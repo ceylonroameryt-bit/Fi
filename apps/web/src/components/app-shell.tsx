@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../context/auth-context';
+import { WarpLedgerLogo } from './warp-ledger-logo';
 import {
   LayoutDashboard,
   Landmark,
@@ -85,8 +86,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F9FC' }}>
         <div style={{ color: '#6B7280', fontSize: '0.9rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#146EF5' }}></span>
-          Loading LedgerPro workspace...
+          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#2563EB' }}></span>
+          Loading Warp Ledger workspace...
         </div>
       </div>
     );
@@ -198,18 +199,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className={`sidebar ${mobileNavOpen ? 'mobile-open' : ''}`}>
         {/* Brand Header */}
         <div className="sidebar-header">
-          <Link href="/" className="brand-badge">
-            <div className="brand-logo-mark">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                <path d="M8 9h8" />
-                <path d="M8 13h5" />
-                <circle cx="16" cy="15" r="1.5" fill="#FFFFFF" stroke="none" />
-              </svg>
-            </div>
-            <div className="brand-text">
-              Ledger<span className="brand-accent">Pro</span>
-            </div>
+          <Link href="/" style={{ textDecoration: 'none' }}>
+            <WarpLedgerLogo size="sm" />
           </Link>
 
           {/* Close button for mobile */}

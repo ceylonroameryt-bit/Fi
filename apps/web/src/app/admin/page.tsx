@@ -287,7 +287,7 @@ export default function AdminPortalPage() {
               </span>
             </div>
             <h1 style={{ fontSize: '1.65rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
-              Ledgerline Platform Governance
+              Warp Ledger Platform Governance
             </h1>
             <p style={{ margin: '0.35rem 0 0 0', color: '#94A3B8', fontSize: '0.875rem' }}>
               Multi-tenant surveillance, global identity management, and cross-organization audit trail

@@ -121,7 +121,7 @@ export class OrganizationMembersService {
 
     await this.mail.send({
       to: dto.email,
-      subject: 'You have been invited to join an organisation on Ledgerline',
+      subject: 'You have been invited to join an organisation on Warp Ledger',
       text: `You have been added as ${role.name}. Log in to view: /login`,
     });
 

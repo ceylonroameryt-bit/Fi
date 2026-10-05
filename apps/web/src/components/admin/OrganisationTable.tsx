@@ -73,7 +73,7 @@ export function OrganisationTable({
             Organizations Directory
           </h2>
           <p style={{ margin: '0.2rem 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>
-            {orgTotal} total tenants registered on this Ledgerline deployment
+            {orgTotal} total tenants registered on this Warp Ledger deployment
           </p>
         </div>
 
