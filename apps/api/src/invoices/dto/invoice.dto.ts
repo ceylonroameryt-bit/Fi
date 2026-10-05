@@ -4,16 +4,16 @@ import {
   IsArray,
   IsEnum,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
   MaxLength,
-  Min,
   ValidateNested,
 } from 'class-validator';
 import { InvoiceStatus } from '@prisma/client';
+
+import { IsDecimalAmount, ToDecimalString } from '../../common/validation/decimal.validator';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 const upper = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toUpperCase() : value);
@@ -33,21 +33,27 @@ export class InvoiceLineDto {
   @MaxLength(255)
   description: string;
 
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 4 })
-  @Min(0.0001, { message: 'quantity must be greater than 0' })
-  quantity: number = 1;
+  @ToDecimalString()
+  @IsDecimalAmount(
+    { greaterThanZero: true, maxDecimalPlaces: 4 },
+    { message: 'quantity must be a positive decimal number with at most 4 decimal places' },
+  )
+  quantity: string | number = '1';
 
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 4 })
-  @Min(0, { message: 'unitPrice cannot be negative' })
-  unitPrice: number = 0;
+  @ToDecimalString()
+  @IsDecimalAmount(
+    { min: 0, maxDecimalPlaces: 4 },
+    { message: 'unitPrice must be a non-negative decimal number with at most 4 decimal places' },
+  )
+  unitPrice: string | number = '0';
 
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 4 })
-  @Min(0)
-  taxRate?: number = 0;
+  @ToDecimalString()
+  @IsDecimalAmount(
+    { min: 0, max: 1, maxDecimalPlaces: 4 },
+    { message: 'taxRate must be a decimal between 0 and 1 with at most 4 decimal places' },
+  )
+  taxRate?: string | number = '0';
 }
 
 export class CreateInvoiceDto {

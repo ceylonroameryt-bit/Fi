@@ -104,8 +104,8 @@ export class JournalsService {
     // Currency check
     if (currency !== orgContext.baseCurrency) {
       throw new DomainException(
-        'JOURNAL_CURRENCY_INVALID',
-        `Journal currency (${currency}) does not match organisation base currency (${orgContext.baseCurrency})`,
+        'UNSUPPORTED_CURRENCY',
+        `Journal currency (${currency}) does not match organisation base currency (${orgContext.baseCurrency}). Multi-currency and FX conversion are not enabled.`,
       );
     }
 

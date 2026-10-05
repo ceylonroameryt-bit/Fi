@@ -92,12 +92,20 @@ describe('JournalReversalService (Phase 10)', () => {
       postingDate: new Date('2026-04-10'),
     });
 
-    prisma.journalEntry.update.mockResolvedValue({
-      id: 'journal-orig',
-      journalNumber: 'JE-2026-000001',
-      status: JournalStatus.REVERSED,
-      reversedByJournalId: 'journal-rev',
-    });
+    prisma.journalEntry.update
+      .mockResolvedValueOnce({
+        id: 'journal-rev',
+        journalNumber: 'JE-2026-000002',
+        status: JournalStatus.POSTED,
+        reversalOfJournalId: 'journal-orig',
+        postingDate: new Date('2026-04-10'),
+      })
+      .mockResolvedValueOnce({
+        id: 'journal-orig',
+        journalNumber: 'JE-2026-000001',
+        status: JournalStatus.REVERSED,
+        reversedByJournalId: 'journal-rev',
+      });
 
     const result = await service.reverseJournal(
       'org-123',
@@ -205,12 +213,20 @@ describe('JournalReversalService (Phase 10)', () => {
       postingDate: new Date('2026-04-10'),
     });
 
-    prisma.journalEntry.update.mockResolvedValue({
-      id: 'journal-orig',
-      journalNumber: 'JE-2026-000001',
-      status: JournalStatus.REVERSED,
-      reversedByJournalId: 'journal-rev',
-    });
+    prisma.journalEntry.update
+      .mockResolvedValueOnce({
+        id: 'journal-rev',
+        journalNumber: 'JE-2026-000002',
+        status: JournalStatus.POSTED,
+        reversalOfJournalId: 'journal-orig',
+        postingDate: new Date('2026-04-10'),
+      })
+      .mockResolvedValueOnce({
+        id: 'journal-orig',
+        journalNumber: 'JE-2026-000001',
+        status: JournalStatus.REVERSED,
+        reversedByJournalId: 'journal-rev',
+      });
 
     const result = await service.reverseJournal(
       'org-123',

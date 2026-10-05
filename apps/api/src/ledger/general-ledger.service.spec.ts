@@ -157,4 +157,65 @@ describe('GeneralLedgerService (Phase 11)', () => {
     expect(csv).toContain('"Report","General Ledger"');
     expect(csv).toContain('"Currency","GBP"');
   });
+
+  it('paginates and exports datasets larger than 10,000 rows without truncation', async () => {
+    prisma.organization.findUnique.mockResolvedValue({
+      name: 'Alpha Ltd',
+      baseCurrency: 'GBP',
+    });
+
+    const totalRecords = 10005;
+    prisma.journalLine.count.mockResolvedValue(totalRecords);
+
+    // Mock findMany returning 1,000 records per batch
+    const makeBatch = (count: number, startIndex: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        id: `line-${startIndex + i}`,
+        debit: 10,
+        credit: 0,
+        description: startIndex + i === 0 ? '=cmd|\' /C calc\'!A0' : `Entry ${startIndex + i}`,
+        account: { id: 'acc-1', code: '1000', name: 'Sales', accountType: AccountType.REVENUE },
+        journalEntry: {
+          id: `j-${startIndex + i}`,
+          journalNumber: `JE-${startIndex + i}`,
+          journalType: 'SALES',
+          sourceType: 'INVOICE',
+          status: JournalStatus.POSTED,
+          journalDate: new Date('2026-04-01'),
+          postingDate: new Date('2026-04-01'),
+          reference: 'INV-1',
+        },
+      }));
+
+    let callCount = 0;
+    prisma.journalLine.findMany.mockImplementation(() => {
+      callCount++;
+      if (callCount <= 10) {
+        return Promise.resolve(makeBatch(1000, (callCount - 1) * 1000));
+      } else if (callCount === 11) {
+        return Promise.resolve(makeBatch(5, 10000));
+      }
+      return Promise.resolve([]);
+    });
+
+    const csv = await service.exportLedgerCsv('org-123', {});
+
+    const lines = csv.split('\r\n');
+    // Header lines: 4 metadata lines, 1 blank, 1 column header = 6 lines
+    const dataLines = lines.slice(6).filter((l) => l.trim().length > 0);
+
+    // Reconcile row count: exactly 10,005 data lines exported
+    expect(dataLines).toHaveLength(totalRecords);
+
+    // Verify formula neutralization on malicious description
+    expect(dataLines[0]).toContain('"\'=cmd|\' /C calc\'!A0"');
+
+    // Reconcile debit totals: each row has 10.00 debit, total = 100,050.00
+    const totalExportedDebit = dataLines.reduce((acc, row) => {
+      const parts = row.split(',');
+      const debitStr = parts[7].replace(/"/g, '');
+      return acc + parseFloat(debitStr);
+    }, 0);
+    expect(totalExportedDebit).toBe(totalRecords * 10);
+  });
 });

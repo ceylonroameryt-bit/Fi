@@ -228,7 +228,7 @@ export class JournalReversalService {
           journalNumber: postedReversal.journalNumber,
           status: postedReversal.status,
           reversalOfJournalId: postedReversal.reversalOfJournalId,
-          postingDate: toIsoDate(postedReversal.postingDate),
+          postingDate: toIsoDate(postedReversal.postingDate ?? effectiveReversalDate),
           totalDebit: totalDr.toFixed(4),
           totalCredit: totalCr.toFixed(4),
         },

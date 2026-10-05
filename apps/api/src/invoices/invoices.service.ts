@@ -123,6 +123,13 @@ export class InvoicesService {
     const dueDate = parseIsoDate(dto.dueDate, 'dueDate');
     const currency = dto.currency || contact.currency || orgContext.baseCurrency;
 
+    if (currency !== orgContext.baseCurrency) {
+      throw new DomainException(
+        'UNSUPPORTED_CURRENCY',
+        `Currency "${currency}" is not supported. Multi-currency and FX conversion are not enabled; all transactions must be in organisation base currency (${orgContext.baseCurrency}).`,
+      );
+    }
+
     // 2. Compute line totals and invoice totals with Decimal precision
     const { calculatedLines, subtotal, taxTotal, totalAmount } = this.calculateInvoiceTotals(dto.lines);
 
@@ -188,7 +195,7 @@ export class InvoicesService {
     organizationId: string,
     invoiceId: string,
     dto: UpdateInvoiceDto,
-    _orgContext: OrgContext,
+    orgContext: OrgContext,
     actor: Actor,
   ) {
     if (dto.contactId) {
@@ -198,6 +205,13 @@ export class InvoicesService {
       if (!contact) {
         throw new DomainException('CONTACT_NOT_FOUND', 'Customer contact not found in this organisation');
       }
+    }
+
+    if (dto.currency && dto.currency !== orgContext.baseCurrency) {
+      throw new DomainException(
+        'UNSUPPORTED_CURRENCY',
+        `Currency "${dto.currency}" is not supported. Multi-currency and FX conversion are not enabled; all transactions must be in organisation base currency (${orgContext.baseCurrency}).`,
+      );
     }
 
     return this.prisma.transaction(async (tx) => {
@@ -437,14 +451,15 @@ export class InvoicesService {
 
       // Lines 2..N: Revenue Accounts (CREDIT)
       for (const line of invoice.lines) {
-        const lineSubtotal = new Prisma.Decimal(line.quantity.toString())
-          .mul(new Prisma.Decimal(line.unitPrice.toString()))
-          .toDecimalPlaces(4, Prisma.Decimal.ROUND_HALF_UP);
+        // Derive line net credit directly from persisted line amounts: lineTotal - taxAmount
+        const lineNet = new Prisma.Decimal(line.lineTotal.toString()).sub(
+          new Prisma.Decimal(line.taxAmount.toString()),
+        );
         journalLines.push({
           accountId: line.accountId,
           description: line.description || `Sales: ${invoice.invoiceNumber}`,
           debit: new Prisma.Decimal('0'),
-          credit: lineSubtotal,
+          credit: lineNet,
         });
       }
 
@@ -651,9 +666,9 @@ export class InvoicesService {
     lines: Array<{
       accountId: string;
       description: string;
-      quantity: number;
-      unitPrice: number;
-      taxRate?: number;
+      quantity?: string | number;
+      unitPrice?: string | number;
+      taxRate?: string | number;
     }>,
   ) {
     let subtotal = this.money.ZERO;
@@ -661,12 +676,15 @@ export class InvoicesService {
     let totalAmount = this.money.ZERO;
 
     const calculatedLines = lines.map((line) => {
-      const qtyDec = this.money.toDecimal(line.quantity || 1);
-      const priceDec = this.money.toDecimal(line.unitPrice || 0);
-      const taxRateDec = this.money.toDecimal(line.taxRate || 0);
+      const qtyDec = this.money.round(line.quantity ?? 1, 4);
+      const priceDec = this.money.round(line.unitPrice ?? 0, 4);
+      const taxRateDec = this.money.round(line.taxRate ?? 0, 4);
 
-      const lineNet = qtyDec.mul(priceDec);
-      const lineTax = lineNet.mul(taxRateDec);
+      // Line net = quantity * unitPrice rounded to 4 decimal places
+      const lineNet = this.money.round(qtyDec.mul(priceDec), 4);
+      // Line tax = lineNet * taxRate rounded to 4 decimal places
+      const lineTax = this.money.round(lineNet.mul(taxRateDec), 4);
+      // Line total = lineNet + lineTax (exact 4 decimal places)
       const lineTotal = lineNet.add(lineTax);
 
       subtotal = subtotal.add(lineNet);
@@ -676,19 +694,19 @@ export class InvoicesService {
       return {
         accountId: line.accountId,
         description: line.description,
-        quantity: new Prisma.Decimal(qtyDec.toString()),
-        unitPrice: new Prisma.Decimal(priceDec.toString()),
-        taxRate: new Prisma.Decimal(taxRateDec.toString()),
-        taxAmount: new Prisma.Decimal(lineTax.toString()),
-        lineTotal: new Prisma.Decimal(lineTotal.toString()),
+        quantity: qtyDec,
+        unitPrice: priceDec,
+        taxRate: taxRateDec,
+        taxAmount: lineTax,
+        lineTotal,
       };
     });
 
     return {
       calculatedLines,
-      subtotal: new Prisma.Decimal(subtotal.toString()),
-      taxTotal: new Prisma.Decimal(taxTotal.toString()),
-      totalAmount: new Prisma.Decimal(totalAmount.toString()),
+      subtotal,
+      taxTotal,
+      totalAmount,
     };
   }
 
