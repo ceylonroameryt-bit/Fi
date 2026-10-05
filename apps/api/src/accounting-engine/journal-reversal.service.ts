@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JournalSourceType, JournalStatus } from '@prisma/client';
+import { JournalSourceType, JournalStatus, Prisma } from '@prisma/client';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
 import type { Actor, OrgContext } from '../common/types/request-context.types';
@@ -51,18 +51,27 @@ export class JournalReversalService {
     dto: ReverseJournalDto,
     orgContext: OrgContext,
     actor: Actor,
+    externalTx?: Tx,
   ): Promise<ReversalResult> {
     this.validateReversalPermission(orgContext);
 
-    return this.prisma.transaction(async (tx) => {
-      // 1. Lock original journal row to prevent race conditions
+    const execute = async (tx: Tx) => {
+      // 1. Determine effective reversal date
+      const effectiveReversalDate = dto.reversalDate
+        ? parseIsoDate(dto.reversalDate, 'reversalDate')
+        : new Date();
+
+      // 2. Consistent lock order: lock period row FOR SHARE
+      await this.lockPeriodForReversal(tx, organizationId, effectiveReversalDate);
+
+      // 3. Lock original journal row to prevent race conditions
       await tx.$queryRaw`
         SELECT id, status FROM journal_entries
         WHERE id = ${journalId}::uuid AND organization_id = ${organizationId}::uuid
         FOR UPDATE
       `;
 
-      // 2. Fetch original journal with all lines & accounts
+      // 4. Fetch original journal with all lines & accounts
       const original = await tx.journalEntry.findFirst({
         where: { id: journalId, organizationId },
         include: {
@@ -79,18 +88,15 @@ export class JournalReversalService {
 
       this.validateOriginalJournal(original);
 
-      // 3. Determine and validate reversal date & accounting period
-      const effectiveReversalDate = dto.reversalDate
-        ? parseIsoDate(dto.reversalDate, 'reversalDate')
-        : new Date();
-
+      // 5. Validate reversal date & accounting period
       const period = await this.validateReversalDate(
         organizationId,
         effectiveReversalDate,
         orgContext.permissions,
+        tx,
       );
 
-      // 4. Validate accounts exist and belong strictly to this organisation.
+      // 6. Validate accounts exist and belong strictly to this organisation.
       // ACCOUNTING ARCHITECTURE RULE:
       // A historical transaction must remain reversible even if an account used by the original
       // posted journal was archived after posting. Normal NEW manual postings block archived
@@ -119,7 +125,7 @@ export class JournalReversalService {
       const reversalYear = effectiveReversalDate.getFullYear();
       const reversalNumber = await this.allocateJournalNumber(tx, organizationId, reversalYear);
 
-      // 7. Create reversal journal in POSTED status
+      // 7. Create reversal journal in DRAFT status with lines, then transition to POSTED
       const now = new Date();
       const reversalJournal = await tx.journalEntry.create({
         data: {
@@ -127,7 +133,7 @@ export class JournalReversalService {
           journalNumber: reversalNumber,
           journalType: original.journalType,
           sourceType: JournalSourceType.MANUAL,
-          status: JournalStatus.POSTED,
+          status: JournalStatus.DRAFT,
           journalDate: effectiveReversalDate,
           postingDate: effectiveReversalDate,
           periodId: period?.id ?? null,
@@ -139,8 +145,6 @@ export class JournalReversalService {
           updatedById: actor.userId,
           validatedById: actor.userId,
           validatedAt: now,
-          postedById: actor.userId,
-          postedAt: now,
           lines: {
             create: reversalLines.map((line) => ({
               lineNumber: line.lineNumber,
@@ -154,13 +158,24 @@ export class JournalReversalService {
         },
       });
 
+      // Transition to POSTED status (deferred balance constraint verifies double-entry balance)
+      const postedReversal = await tx.journalEntry.update({
+        where: { id: reversalJournal.id },
+        data: {
+          status: JournalStatus.POSTED,
+          postedById: actor.userId,
+          postedAt: now,
+        },
+      });
+
       // 8. Mark original journal as REVERSED and link to reversal
       const updatedOriginal = await tx.journalEntry.update({
         where: { id: original.id },
         data: {
           status: JournalStatus.REVERSED,
-          reversedByJournalId: reversalJournal.id,
+          reversedByJournalId: postedReversal.id,
           updatedById: actor.userId,
+          version: { increment: 1 },
         },
       });
 
@@ -177,9 +192,9 @@ export class JournalReversalService {
         organizationId,
         eventType: AuditEvents.JOURNAL_REVERSAL_CREATED,
         entityType: 'JOURNAL',
-        entityId: reversalJournal.id,
+        entityId: postedReversal.id,
         newValues: {
-          journalNumber: reversalJournal.journalNumber,
+          journalNumber: postedReversal.journalNumber,
           reversalOfJournalId: original.id,
           reversalOfJournalNumber: original.journalNumber,
           totalDebit: totalDr.toFixed(4),
@@ -196,8 +211,8 @@ export class JournalReversalService {
         oldValues: { status: original.status },
         newValues: {
           status: JournalStatus.REVERSED,
-          reversedByJournalId: reversalJournal.id,
-          reversedByJournalNumber: reversalJournal.journalNumber,
+          reversedByJournalId: postedReversal.id,
+          reversedByJournalNumber: postedReversal.journalNumber,
         },
       });
 
@@ -209,16 +224,18 @@ export class JournalReversalService {
           reversedByJournalId: updatedOriginal.reversedByJournalId,
         },
         reversalJournal: {
-          id: reversalJournal.id,
-          journalNumber: reversalJournal.journalNumber,
-          status: reversalJournal.status,
-          reversalOfJournalId: reversalJournal.reversalOfJournalId,
-          postingDate: toIsoDate(reversalJournal.postingDate),
+          id: postedReversal.id,
+          journalNumber: postedReversal.journalNumber,
+          status: postedReversal.status,
+          reversalOfJournalId: postedReversal.reversalOfJournalId,
+          postingDate: toIsoDate(postedReversal.postingDate ?? effectiveReversalDate),
           totalDebit: totalDr.toFixed(4),
           totalCredit: totalCr.toFixed(4),
         },
       };
-    });
+    };
+
+    return externalTx ? execute(externalTx) : this.prisma.transaction(execute);
   }
 
   /**
@@ -290,7 +307,7 @@ export class JournalReversalService {
     }
   }
 
-  validateOriginalJournal(journal: { status: JournalStatus; reversedByJournalId?: string | null; journalNumber: string; lines: any[] }): void {
+  validateOriginalJournal(journal: { status: JournalStatus; reversedByJournalId?: string | null; journalNumber: string; lines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: Prisma.Decimal; credit: Prisma.Decimal }> }): void {
     if (journal.reversedByJournalId || journal.status === JournalStatus.REVERSED) {
       throw new DomainException(
         'JOURNAL_ALREADY_REVERSED',
@@ -310,12 +327,23 @@ export class JournalReversalService {
     }
   }
 
+  async lockPeriodForReversal(tx: Tx, organizationId: string, reversalDate: Date): Promise<void> {
+    await tx.$queryRaw`
+      SELECT id, status FROM accounting_periods
+      WHERE organization_id = ${organizationId}::uuid
+        AND start_date <= ${reversalDate}::date
+        AND end_date >= ${reversalDate}::date
+      FOR SHARE
+    `;
+  }
+
   async validateReversalDate(
     organizationId: string,
     date: Date,
     permissions: ReadonlySet<string>,
+    tx?: Tx,
   ) {
-    const periodCheck = await this.fyService.validatePostingDate(organizationId, date, permissions);
+    const periodCheck = await this.fyService.validatePostingDate(organizationId, date, permissions, tx);
     if (!periodCheck.isValid) {
       throw new DomainException(
         'REVERSAL_PERIOD_INVALID',
@@ -330,7 +358,7 @@ export class JournalReversalService {
    * Generates opposite lines: Original Debit -> Reversal Credit, Original Credit -> Reversal Debit.
    */
   generateReversalLines(
-    originalLines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: any; credit: any }>,
+    originalLines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: Prisma.Decimal; credit: Prisma.Decimal }>,
     reason: string,
   ) {
     return originalLines.map((line) => ({

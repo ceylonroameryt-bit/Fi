@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { AccountType, JournalStatus } from '@prisma/client';
+import { AccountType, JournalStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { MoneyService } from '../accounting-engine/money.service';
 import { parseIsoDate, toIsoDate } from '../common/utils/dates';
+import { toCsvRow } from '../common/utils/csv';
 
 export interface TrialBalanceFilterDto {
   asOfDate?: string;
@@ -97,8 +98,8 @@ export class TrialBalanceService {
     });
 
     // 3. Aggregate totals per account
-    const debitByAccount = new Map<string, any>();
-    const creditByAccount = new Map<string, any>();
+    const debitByAccount = new Map<string, Prisma.Decimal>();
+    const creditByAccount = new Map<string, Prisma.Decimal>();
 
     for (const l of lines) {
       const currentDr = debitByAccount.get(l.accountId) ?? this.money.ZERO;
@@ -110,6 +111,8 @@ export class TrialBalanceService {
 
     let overallDebitBalance = this.money.ZERO;
     let overallCreditBalance = this.money.ZERO;
+    let underlyingDebitTotal = this.money.ZERO;
+    let underlyingCreditTotal = this.money.ZERO;
 
     const accountRows: TrialBalanceAccountRow[] = [];
 
@@ -144,8 +147,15 @@ export class TrialBalanceService {
         }
       }
 
-      overallDebitBalance = overallDebitBalance.add(debitBal);
-      overallCreditBalance = overallCreditBalance.add(creditBal);
+      // Displayed values rounded to DISPLAY_SCALE (2)
+      const displayDrBal = this.money.round(debitBal, 2);
+      const displayCrBal = this.money.round(creditBal, 2);
+
+      // Reconcile displayed totals directly with displayed row amounts
+      overallDebitBalance = overallDebitBalance.add(displayDrBal);
+      overallCreditBalance = overallCreditBalance.add(displayCrBal);
+      underlyingDebitTotal = underlyingDebitTotal.add(debitBal);
+      underlyingCreditTotal = underlyingCreditTotal.add(creditBal);
 
       accountRows.push({
         accountId: acc.id,
@@ -153,15 +163,15 @@ export class TrialBalanceService {
         accountName: acc.name,
         accountType: acc.accountType,
         normalBalance: isDrNormal ? 'DEBIT' : 'CREDIT',
-        grossDebit: sumDr.toFixed(2),
-        grossCredit: sumCr.toFixed(2),
-        debitBalance: debitBal.toFixed(2),
-        creditBalance: creditBal.toFixed(2),
+        grossDebit: this.money.round(sumDr, 2).toFixed(2),
+        grossCredit: this.money.round(sumCr, 2).toFixed(2),
+        debitBalance: displayDrBal.toFixed(2),
+        creditBalance: displayCrBal.toFixed(2),
       });
     }
 
     const difference = overallDebitBalance.sub(overallCreditBalance);
-    const isBalanced = difference.isZero();
+    const isBalanced = underlyingDebitTotal.sub(underlyingCreditTotal).isZero();
 
     return {
       organizationId,
@@ -194,24 +204,24 @@ export class TrialBalanceService {
 
     const rows: string[] = [];
     const timestamp = new Date().toISOString();
-    rows.push(`"Organisation","${tb.organizationName}"`);
-    rows.push(`"Report","Trial Balance"`);
-    rows.push(`"As of Date","${tb.asOfDate}"`);
-    rows.push(`"Generated At","${timestamp}"`);
-    rows.push(`"Currency","${tb.baseCurrency}"`);
-    rows.push(`"Status","${tb.isBalanced ? 'Balanced' : 'Unbalanced'}"`);
+    rows.push(toCsvRow(['Organisation', tb.organizationName]));
+    rows.push(toCsvRow(['Report', 'Trial Balance']));
+    rows.push(toCsvRow(['As of Date', tb.asOfDate]));
+    rows.push(toCsvRow(['Generated At', timestamp]));
+    rows.push(toCsvRow(['Currency', tb.baseCurrency]));
+    rows.push(toCsvRow(['Status', tb.isBalanced ? 'Balanced' : 'Unbalanced']));
     rows.push('');
-    rows.push('"Code","Account Name","Type","Debit Balance","Credit Balance"');
+    rows.push(toCsvRow(['Code', 'Account Name', 'Type', 'Debit Balance', 'Credit Balance']));
 
     for (const a of tb.accounts) {
       rows.push(
-        `"${a.accountCode}","${a.accountName.replace(/"/g, '""')}","${a.accountType}","${a.debitBalance}","${a.creditBalance}"`,
+        toCsvRow([a.accountCode, a.accountName, a.accountType, a.debitBalance, a.creditBalance]),
       );
     }
 
     rows.push('');
-    rows.push(`"TOTAL","","","${tb.totalDebit}","${tb.totalCredit}"`);
-    rows.push(`"DIFFERENCE","","","${tb.difference}",""`);
+    rows.push(toCsvRow(['TOTAL', '', '', tb.totalDebit, tb.totalCredit]));
+    rows.push(toCsvRow(['DIFFERENCE', '', '', tb.difference, '']));
 
     return rows.join('\r\n');
   }

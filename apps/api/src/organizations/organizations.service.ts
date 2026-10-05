@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MemberStatus, OrganizationStatus } from '@prisma/client';
+import { MemberStatus, OrganizationStatus, Organization, Role } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
 import type { Actor, OrgContext } from '../common/types/request-context.types';
@@ -149,6 +149,10 @@ export class OrganizationsService {
   }
 
   async updateOrganization(organizationId: string, dto: UpdateOrganizationDto, actor: Actor) {
+    if (actor.userId) {
+      await this.validateOrganizationAccess(organizationId, actor.userId);
+    }
+
     const org = await this.prisma.organization.findUnique({ where: { id: organizationId } });
     if (!org) throw new DomainException('ORGANIZATION_ACCESS_DENIED', 'Organisation not found');
 
@@ -174,6 +178,10 @@ export class OrganizationsService {
   }
 
   async archiveOrganization(organizationId: string, actor: Actor) {
+    if (actor.userId) {
+      await this.validateOrganizationAccess(organizationId, actor.userId);
+    }
+
     const org = await this.prisma.organization.findUnique({ where: { id: organizationId } });
     if (!org) throw new DomainException('ORGANIZATION_ACCESS_DENIED', 'Organisation not found');
 
@@ -227,7 +235,7 @@ export class OrganizationsService {
    * 4. Resolves permissions
    * Throws ORGANIZATION_ACCESS_DENIED or ORGANIZATION_INACTIVE on any failure.
    */
-  async validateOrganizationAccess(organizationId: string, userId: string): Promise<OrgContext & { organization: any; role: any }> {
+  async validateOrganizationAccess(organizationId: string, userId: string): Promise<OrgContext & { organization: Organization; role: Role }> {
     const member = await this.prisma.organizationMember.findUnique({
       where: {
         organizationId_userId: {

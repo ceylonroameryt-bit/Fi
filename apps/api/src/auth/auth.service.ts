@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserStatus, UserTokenType } from '@prisma/client';
+import { MemberStatus, UserStatus, UserTokenType } from '@prisma/client';
 import { APP_CONFIG } from '../config/config.module';
 import type { AppEnv } from '../config/env';
 import { PrismaService } from '../database/prisma.service';
@@ -11,7 +11,7 @@ import { AuditEvents } from '../audit/audit-events';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
 import { MailService } from './mail.service';
-import type { LoginDto, RegisterDto, ResetPasswordDto } from './dto/auth.dto';
+import type { AcceptInvitationDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto/auth.dto';
 
 export interface AccessTokenPayload {
   sub: string;
@@ -298,14 +298,19 @@ export class AuthService {
     const passwordHash = await this.passwords.hash(dto.password);
 
     await this.prisma.transaction(async (tx) => {
+      // Atomic single-use test-and-set to prevent concurrent race conditions
+      const updateResult = await tx.userToken.updateMany({
+        where: { id: record.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      if (updateResult.count === 0) {
+        throw new DomainException('AUTH_TOKEN_INVALID', 'Password reset token has already been used');
+      }
+
       await tx.user.update({
         where: { id: record.userId },
         data: { passwordHash, failedLoginAttempts: 0, lockedUntil: null },
-      });
-
-      await tx.userToken.update({
-        where: { id: record.id },
-        data: { usedAt: new Date() },
       });
 
       // Revoke all existing sessions for security
@@ -339,14 +344,19 @@ export class AuthService {
     }
 
     await this.prisma.transaction(async (tx) => {
+      // Atomic single-use test-and-set to prevent concurrent race conditions
+      const updateResult = await tx.userToken.updateMany({
+        where: { id: record.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      if (updateResult.count === 0) {
+        throw new DomainException('AUTH_TOKEN_INVALID', 'Verification token has already been used');
+      }
+
       await tx.user.update({
         where: { id: record.userId },
         data: { emailVerified: true, emailVerifiedAt: new Date() },
-      });
-
-      await tx.userToken.update({
-        where: { id: record.id },
-        data: { usedAt: new Date() },
       });
 
       await this.audit.record(tx, actor, {
@@ -356,6 +366,68 @@ export class AuthService {
         entityId: record.userId,
       });
     });
+  }
+
+  async acceptInvitation(dto: AcceptInvitationDto, actor: Actor | null): Promise<SessionResult> {
+    this.passwords.assertStrong(dto.password);
+    const tokenHash = this.tokens.hash(dto.token);
+
+    const record = await this.prisma.userToken.findFirst({
+      where: {
+        type: UserTokenType.INVITATION,
+        tokenHash,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: { user: true },
+    });
+
+    if (!record) {
+      throw new DomainException('AUTH_TOKEN_INVALID', 'Invalid or expired invitation token');
+    }
+
+    const passwordHash = await this.passwords.hash(dto.password);
+
+    await this.prisma.transaction(async (tx) => {
+      // Atomic single-use test-and-set to prevent concurrent race conditions
+      const updateResult = await tx.userToken.updateMany({
+        where: { id: record.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      if (updateResult.count === 0) {
+        throw new DomainException('AUTH_TOKEN_INVALID', 'Invitation token has already been used');
+      }
+
+      await tx.user.update({
+        where: { id: record.userId },
+        data: {
+          passwordHash,
+          status: UserStatus.ACTIVE,
+          emailVerified: true,
+          emailVerifiedAt: new Date(),
+          firstName: dto.firstName?.trim() || record.user.firstName,
+          lastName: dto.lastName?.trim() || record.user.lastName,
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+        },
+      });
+
+      // Activate all pending memberships for this user
+      await tx.organizationMember.updateMany({
+        where: { userId: record.userId, status: MemberStatus.INVITED },
+        data: { status: MemberStatus.ACTIVE, joinedAt: new Date() },
+      });
+
+      await this.audit.record(tx, actor, {
+        organizationId: null,
+        eventType: AuditEvents.USER_INVITED,
+        entityType: 'USER',
+        entityId: record.userId,
+      });
+    });
+
+    return this.createSession(record.userId, actor);
   }
 
   async getCurrentUser(userId: string) {

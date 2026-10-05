@@ -4,11 +4,21 @@ import { currentRequestContext } from '../context/request-context';
 type Level = 'debug' | 'info' | 'warn' | 'error';
 const LEVEL_ORDER: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
 
-const SENSITIVE_KEY = /pass(word)?|secret|token|authorization|cookie|hash/i;
+const SENSITIVE_KEY = /pass(word)?|secret|token|authorization|cookie|hash|credential|api_?key|private|cert/i;
+
+function redactString(str: string): string {
+  // Redact token/secret/code query parameters from URLs or strings
+  let out = str.replace(/([?&](token|code|secret|apiKey|password)=)[^&\s]+/gi, '$1[REDACTED]');
+  // Redact raw JWT tokens
+  out = out.replace(/\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[JWT_REDACTED]');
+  return out;
+}
 
 /** Removes values of sensitive-looking keys so they never reach log storage. */
 export function redact(value: unknown, depth = 0): unknown {
-  if (depth > 5 || value === null || typeof value !== 'object') return value;
+  if (depth > 5 || value === null) return value;
+  if (typeof value === 'string') return redactString(value);
+  if (typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map((v) => redact(v, depth + 1));
   const out: Record<string, unknown> = {};
   for (const [key, v] of Object.entries(value as Record<string, unknown>)) {

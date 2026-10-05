@@ -3,8 +3,8 @@ import {
   ArrayMinSize,
   IsArray,
   IsEnum,
+  IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -14,6 +14,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { JournalType } from '@prisma/client';
+
+import { IsDecimalAmount, ToDecimalString } from '../../common/validation/decimal.validator';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 const upper = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toUpperCase() : value);
@@ -33,15 +35,19 @@ export class JournalLineDto {
   @MaxLength(255)
   description?: string;
 
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 4 })
-  @Min(0, { message: 'debit cannot be negative' })
-  debit: number = 0;
+  @ToDecimalString()
+  @IsDecimalAmount(
+    { min: 0, maxDecimalPlaces: 4 },
+    { message: 'debit must be a non-negative decimal with at most 4 decimal places' },
+  )
+  debit: string | number = '0';
 
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 4 })
-  @Min(0, { message: 'credit cannot be negative' })
-  credit: number = 0;
+  @ToDecimalString()
+  @IsDecimalAmount(
+    { min: 0, maxDecimalPlaces: 4 },
+    { message: 'credit must be a non-negative decimal with at most 4 decimal places' },
+  )
+  credit: string | number = '0';
 }
 
 export class CreateJournalDto {
@@ -118,4 +124,10 @@ export class UpdateJournalDto {
   @ValidateNested({ each: true })
   @Type(() => JournalLineDto)
   lines?: JournalLineDto[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  version?: number;
 }

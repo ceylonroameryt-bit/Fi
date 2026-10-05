@@ -5,7 +5,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Public, CurrentAuth, CurrentActor } from '../common/decorators';
 import type { Actor, AppRequest, AuthContext } from '../common/types/request-context.types';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, RequestPasswordResetDto, ResetPasswordDto, VerifyEmailDto } from './dto/auth.dto';
+import { AcceptInvitationDto, LoginDto, RegisterDto, RequestPasswordResetDto, ResetPasswordDto, VerifyEmailDto } from './dto/auth.dto';
 import { DomainException } from '../common/errors/domain.exception';
 import { APP_CONFIG } from '../config/config.module';
 import type { AppEnv } from '../config/env';
@@ -130,6 +130,24 @@ export class AuthController {
   async verifyEmail(@Body() dto: VerifyEmailDto, @CurrentActor() actor: Actor) {
     await this.auth.verifyEmail(dto.token, actor);
     return { success: true };
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('accept-invitation')
+  @HttpCode(HttpStatus.OK)
+  async acceptInvitation(
+    @Body() dto: AcceptInvitationDto,
+    @CurrentActor() actor: Actor,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const session = await this.auth.acceptInvitation(dto, actor);
+    this.setAuthCookies(res, session.accessToken, session.refreshToken);
+    return {
+      user: session.user,
+      expiresInSeconds: session.expiresInSeconds,
+      accessToken: session.accessToken,
+    };
   }
 
   @Get('me')

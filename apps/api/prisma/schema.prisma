@@ -27,6 +27,7 @@ enum UserStatus {
 enum UserTokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
+  INVITATION
 }
 
 enum OrganizationStatus {
@@ -459,7 +460,7 @@ model JournalEntry {
   updatedBy         User?             @relation("JournalUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   validatedBy       User?             @relation("JournalValidatedBy", fields: [validatedById], references: [id], onDelete: SetNull)
   postedBy          User?             @relation("JournalPostedBy", fields: [postedById], references: [id], onDelete: Restrict)
-  reversedByJournal JournalEntry?     @relation("JournalReversal", fields: [reversedByJournalId], references: [id], onDelete: Restrict)
+  reversedByJournal JournalEntry?     @relation("JournalReversal", fields: [organizationId, reversedByJournalId], references: [organizationId, id], onDelete: Restrict)
   reverses          JournalEntry?     @relation("JournalReversal")
   lines             JournalLine[]
   invoice           Invoice?          @relation("InvoiceJournal")
@@ -467,6 +468,7 @@ model JournalEntry {
   @@unique([organizationId, journalNumber])
   @@unique([organizationId, idempotencyKey])
   @@unique([organizationId, id])
+  @@unique([organizationId, reversedByJournalId])
   @@index([organizationId, status])
   @@index([organizationId, postingDate])
   @@index([organizationId, createdAt])
@@ -617,12 +619,13 @@ model Invoice {
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   contact      Contact       @relation(fields: [organizationId, contactId], references: [organizationId, id], onDelete: Restrict)
-  journalEntry JournalEntry? @relation("InvoiceJournal", fields: [journalEntryId], references: [id], onDelete: Restrict)
+  journalEntry JournalEntry? @relation("InvoiceJournal", fields: [organizationId, journalEntryId], references: [organizationId, id], onDelete: Restrict)
   createdBy    User          @relation("InvoiceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   lines        InvoiceLine[]
 
   @@unique([organizationId, invoiceNumber])
   @@unique([organizationId, id])
+  @@unique([organizationId, journalEntryId])
   @@index([organizationId, status])
   @@index([organizationId, contactId])
   @@index([organizationId, issueDate])

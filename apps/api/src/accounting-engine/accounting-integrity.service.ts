@@ -11,7 +11,7 @@ export interface IntegrityCheckResult {
   passed: boolean;
   severity: 'CRITICAL' | 'WARNING';
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 export interface AccountingIntegritySummary {

@@ -19,7 +19,7 @@ export class CreateAccountDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
-  @Matches(/^[0-9A-Za-z][0-9A-Za-z.\-]{0,19}$/, {
+  @Matches(/^[0-9A-Za-z][0-9A-Za-z.-]{0,19}$/, {
     message: 'code must start with an alphanumeric character and contain only letters, numbers, dots, and hyphens',
   })
   code: string;

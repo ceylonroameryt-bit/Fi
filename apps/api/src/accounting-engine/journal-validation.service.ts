@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { JournalStatus } from '@prisma/client';
-import { PrismaService } from '../database/prisma.service';
+import { JournalSourceType, JournalStatus } from '@prisma/client';
+import { PrismaService, Tx } from '../database/prisma.service';
 import { MoneyService } from './money.service';
 import { FinancialYearsService } from '../financial-years/financial-years.service';
 import type { OrgContext } from '../common/types/request-context.types';
@@ -40,8 +40,10 @@ export class JournalValidationService {
   async validateJournal(
     journalId: string,
     orgContext: OrgContext,
+    tx?: Tx,
   ): Promise<JournalValidationResult> {
-    const journal = await this.prisma.journalEntry.findFirst({
+    const client = tx ?? this.prisma;
+    const journal = await client.journalEntry.findFirst({
       where: {
         id: journalId,
         organizationId: orgContext.organizationId,
@@ -163,8 +165,9 @@ export class JournalValidationService {
         issues.push({ lineIndex: index, accountId: line.accountId, message: `Account ${line.account.code} is archived`, code: 'ACCOUNT_ARCHIVED' });
       }
 
-      // Rule 10: Manual posting allowed
-      if (!line.account.allowManualPosting) {
+      // Rule 10: Manual posting allowed (only applies to manual journals; system journals like invoices may post to AR/Tax nominals)
+      const isManualJournal = !journal.sourceType || journal.sourceType === JournalSourceType.MANUAL;
+      if (isManualJournal && !line.account.allowManualPosting) {
         errors.push(`Line ${line.lineNumber}: Account ${line.account.code} (${line.account.name}) does not allow manual postings`);
         issues.push({ lineIndex: index, accountId: line.accountId, message: `Account ${line.account.code} manual posting disabled`, code: 'ACCOUNT_MANUAL_POSTING_DISABLED' });
       }
@@ -188,6 +191,7 @@ export class JournalValidationService {
       orgContext.organizationId,
       journal.postingDate,
       orgContext.permissions,
+      tx,
     );
 
     if (!periodCheck.isValid) {

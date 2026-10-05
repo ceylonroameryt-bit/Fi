@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, Length, MaxLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 const normaliseEmail = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toLowerCase() : value);
@@ -58,4 +58,26 @@ export class VerifyEmailDto {
   @IsString()
   @Length(20, 200)
   token: string;
+}
+
+export class AcceptInvitationDto {
+  @IsString()
+  @Length(20, 200)
+  token: string;
+
+  @IsString()
+  @Length(8, 128)
+  password: string;
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @Length(1, 100)
+  firstName?: string;
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @Length(1, 100)
+  lastName?: string;
 }

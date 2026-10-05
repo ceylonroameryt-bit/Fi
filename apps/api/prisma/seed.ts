@@ -315,7 +315,8 @@ async function main() {
 
   if (!existingJ1) {
     const postTime1 = new Date(Date.UTC(2026, 3, 1, 10, 0, 0));
-    await prisma.journalEntry.create({
+    // Create as DRAFT first (trigger only fires when status is POSTED/REVERSED)
+    const j1 = await prisma.journalEntry.create({
       data: {
         organizationId: org.id,
         journalNumber: 'JE-2026-000001',
@@ -326,13 +327,9 @@ async function main() {
         reference: 'CAP-2026-01',
         sourceType: JournalSourceType.MANUAL,
         currency: 'GBP',
-        status: JournalStatus.POSTED,
+        status: JournalStatus.DRAFT,
         periodId: aprilPeriod?.id,
         createdById: ownerUser.id,
-        validatedById: accountantUser.id,
-        validatedAt: new Date(Date.UTC(2026, 3, 1, 9, 30, 0)),
-        postedById: accountantUser.id,
-        postedAt: postTime1,
         lines: {
           create: [
             {
@@ -355,6 +352,23 @@ async function main() {
         },
       },
     });
+    // Now promote to POSTED (trigger allows this path: DRAFT -> VALIDATED -> POSTED)
+    await prisma.journalEntry.update({
+      where: { id: j1.id },
+      data: {
+        status: JournalStatus.VALIDATED,
+        validatedById: accountantUser.id,
+        validatedAt: new Date(Date.UTC(2026, 3, 1, 9, 30, 0)),
+      },
+    });
+    await prisma.journalEntry.update({
+      where: { id: j1.id },
+      data: {
+        status: JournalStatus.POSTED,
+        postedById: accountantUser.id,
+        postedAt: postTime1,
+      },
+    });
   }
 
   // Journal 2: JE-2026-000002 (POSTED)
@@ -364,7 +378,7 @@ async function main() {
 
   if (!existingJ2) {
     const postTime2 = new Date(Date.UTC(2026, 3, 5, 11, 0, 0));
-    await prisma.journalEntry.create({
+    const j2 = await prisma.journalEntry.create({
       data: {
         organizationId: org.id,
         journalNumber: 'JE-2026-000002',
@@ -375,13 +389,9 @@ async function main() {
         reference: 'RENT-APR26',
         sourceType: JournalSourceType.MANUAL,
         currency: 'GBP',
-        status: JournalStatus.POSTED,
+        status: JournalStatus.DRAFT,
         periodId: aprilPeriod?.id,
         createdById: accountantUser.id,
-        validatedById: accountantUser.id,
-        validatedAt: new Date(Date.UTC(2026, 3, 5, 10, 45, 0)),
-        postedById: accountantUser.id,
-        postedAt: postTime2,
         lines: {
           create: [
             {
@@ -402,6 +412,22 @@ async function main() {
             },
           ],
         },
+      },
+    });
+    await prisma.journalEntry.update({
+      where: { id: j2.id },
+      data: {
+        status: JournalStatus.VALIDATED,
+        validatedById: accountantUser.id,
+        validatedAt: new Date(Date.UTC(2026, 3, 5, 10, 45, 0)),
+      },
+    });
+    await prisma.journalEntry.update({
+      where: { id: j2.id },
+      data: {
+        status: JournalStatus.POSTED,
+        postedById: accountantUser.id,
+        postedAt: postTime2,
       },
     });
   }

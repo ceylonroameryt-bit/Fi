@@ -146,7 +146,7 @@ export default function JournalsPage() {
               ) : filteredJournals.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748b' }}>
-                    No manual journals found. Click "+ New Manual Journal" to create an entry.
+                    No manual journals found. Click &quot;+ New Manual Journal&quot; to create an entry.
                   </td>
                 </tr>
               ) : (

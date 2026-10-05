@@ -63,7 +63,8 @@ describe('AccountingIntegrityService (Phase 13)', () => {
     const result = await service.checkPostedJournalBalance('org-123');
 
     expect(result.passed).toBe(false);
-    expect(result.details[0].diff).toBe('100.0000');
+    const details = result.details as Array<{ diff: string }>;
+    expect(details[0].diff).toBe('100.0000');
   });
 
   it('detects cross-tenant account leakage', async () => {

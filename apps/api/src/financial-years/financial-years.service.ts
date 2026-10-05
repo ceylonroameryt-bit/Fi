@@ -222,12 +222,13 @@ export class FinancialYearsService {
   }
 
   async softLockPeriod(organizationId: string, periodId: string, actor: Actor) {
-    const period = await this.prisma.accountingPeriod.findFirst({
-      where: { id: periodId, organizationId },
-    });
-    if (!period) throw new DomainException('PERIOD_NOT_FOUND', 'Accounting period not found');
-
     const updated = await this.prisma.transaction(async (tx) => {
+      await this.lockPeriodForStateChange(tx, organizationId, periodId);
+      const period = await tx.accountingPeriod.findFirst({
+        where: { id: periodId, organizationId },
+      });
+      if (!period) throw new DomainException('PERIOD_NOT_FOUND', 'Accounting period not found');
+
       const res = await tx.accountingPeriod.update({
         where: { id: periodId },
         data: {
@@ -253,12 +254,13 @@ export class FinancialYearsService {
   }
 
   async hardLockPeriod(organizationId: string, periodId: string, actor: Actor) {
-    const period = await this.prisma.accountingPeriod.findFirst({
-      where: { id: periodId, organizationId },
-    });
-    if (!period) throw new DomainException('PERIOD_NOT_FOUND', 'Accounting period not found');
-
     const updated = await this.prisma.transaction(async (tx) => {
+      await this.lockPeriodForStateChange(tx, organizationId, periodId);
+      const period = await tx.accountingPeriod.findFirst({
+        where: { id: periodId, organizationId },
+      });
+      if (!period) throw new DomainException('PERIOD_NOT_FOUND', 'Accounting period not found');
+
       const res = await tx.accountingPeriod.update({
         where: { id: periodId },
         data: {
@@ -284,12 +286,13 @@ export class FinancialYearsService {
   }
 
   async unlockPeriod(organizationId: string, periodId: string, actor: Actor) {
-    const period = await this.prisma.accountingPeriod.findFirst({
-      where: { id: periodId, organizationId },
-    });
-    if (!period) throw new DomainException('PERIOD_NOT_FOUND', 'Accounting period not found');
-
     const updated = await this.prisma.transaction(async (tx) => {
+      await this.lockPeriodForStateChange(tx, organizationId, periodId);
+      const period = await tx.accountingPeriod.findFirst({
+        where: { id: periodId, organizationId },
+      });
+      if (!period) throw new DomainException('PERIOD_NOT_FOUND', 'Accounting period not found');
+
       const res = await tx.accountingPeriod.update({
         where: { id: periodId },
         data: {
@@ -315,10 +318,22 @@ export class FinancialYearsService {
   }
 
   /**
+   * Locks period row FOR UPDATE during period status transitions.
+   */
+  async lockPeriodForStateChange(tx: Tx, organizationId: string, periodId: string): Promise<void> {
+    await tx.$queryRaw`
+      SELECT id, status FROM accounting_periods
+      WHERE id = ${periodId}::uuid AND organization_id = ${organizationId}::uuid
+      FOR UPDATE
+    `;
+  }
+
+  /**
    * Finds the period matching a given calendar date for an organisation.
    */
-  async getPeriodForDate(organizationId: string, date: Date) {
-    return this.prisma.accountingPeriod.findFirst({
+  async getPeriodForDate(organizationId: string, date: Date, tx?: Tx) {
+    const client = tx ?? this.prisma;
+    return client.accountingPeriod.findFirst({
       where: {
         organizationId,
         startDate: { lte: date },
@@ -331,18 +346,33 @@ export class FinancialYearsService {
   /**
    * Validates posting date rules:
    * - Must match an existing accounting period
+   * - Financial year must not be CLOSED
    * - If OPEN -> ok
    * - If SOFT_LOCKED -> requires user to have 'period.lock' permission (accounting supervisor/accountant)
    * - If HARD_LOCKED -> always rejected
    */
-  async validatePostingDate(organizationId: string, postingDate: Date, userPermissions?: ReadonlySet<string>) {
-    const period = await this.getPeriodForDate(organizationId, postingDate);
+  async validatePostingDate(
+    organizationId: string,
+    postingDate: Date,
+    userPermissions?: ReadonlySet<string>,
+    tx?: Tx,
+  ) {
+    const period = await this.getPeriodForDate(organizationId, postingDate, tx);
     if (!period) {
       return {
         isValid: false,
         error: `Posting date ${toIsoDate(postingDate)} does not belong to any accounting period`,
         errorCode: 'PERIOD_NOT_FOUND' as const,
         period: null,
+      };
+    }
+
+    if (period.financialYear && period.financialYear.status === FinancialYearStatus.CLOSED) {
+      return {
+        isValid: false,
+        error: `Financial year "${period.financialYear.name}" is closed. No posting or journal modifications are permitted.`,
+        errorCode: 'FINANCIAL_YEAR_CLOSED' as const,
+        period,
       };
     }
 

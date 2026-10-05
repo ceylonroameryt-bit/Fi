@@ -4,6 +4,7 @@ import { PrismaService } from '../database/prisma.service';
 import { MoneyService } from '../accounting-engine/money.service';
 import { DomainException } from '../common/errors/domain.exception';
 import { parseIsoDate, toIsoDate } from '../common/utils/dates';
+import { toCsvRow } from '../common/utils/csv';
 
 export interface LedgerFilterDto {
   accountId?: string;
@@ -99,6 +100,7 @@ export class GeneralLedgerService {
           { journalEntry: { postingDate: 'desc' } },
           { journalEntry: { journalNumber: 'desc' } },
           { lineNumber: 'asc' },
+          { id: 'asc' },
         ],
         include: {
           account: true,
@@ -298,41 +300,96 @@ export class GeneralLedgerService {
 
     const rows: string[] = [];
     const timestamp = new Date().toISOString();
-    rows.push(`"Organisation","${org?.name ?? 'Warp Ledger'}"`);
-    rows.push(`"Report","General Ledger"`);
-    rows.push(`"Generated At","${timestamp}"`);
-    rows.push(`"Currency","${org?.baseCurrency ?? 'GBP'}"`);
+    rows.push(toCsvRow(['Organisation', org?.name ?? 'Warp Ledger']));
+    rows.push(toCsvRow(['Report', 'General Ledger']));
+    rows.push(toCsvRow(['Generated At', timestamp]));
+    rows.push(toCsvRow(['Currency', org?.baseCurrency ?? 'GBP']));
     rows.push('');
 
     if (result) {
       // Account specific export
-      rows.push(`"Account","${result.account.code} - ${result.account.name} (${result.account.type})"`);
-      rows.push(`"Normal Balance","${result.account.normalBalance}"`);
-      rows.push(`"Opening Balance","${result.openingBalance}"`);
-      rows.push(`"Total Debits","${result.totalDebits}"`);
-      rows.push(`"Total Credits","${result.totalCredits}"`);
-      rows.push(`"Closing Balance","${result.closingBalance}"`);
+      rows.push(toCsvRow(['Account', `${result.account.code} - ${result.account.name} (${result.account.type})`]));
+      rows.push(toCsvRow(['Normal Balance', result.account.normalBalance]));
+      rows.push(toCsvRow(['Opening Balance', result.openingBalance]));
+      rows.push(toCsvRow(['Total Debits', result.totalDebits]));
+      rows.push(toCsvRow(['Total Credits', result.totalCredits]));
+      rows.push(toCsvRow(['Closing Balance', result.closingBalance]));
       rows.push('');
-      rows.push('"Date","Posting Date","Journal Number","Reference","Description","Debit","Credit","Running Balance"');
+      rows.push(
+        toCsvRow([
+          'Date',
+          'Posting Date',
+          'Journal Number',
+          'Reference',
+          'Description',
+          'Debit',
+          'Credit',
+          'Running Balance',
+        ]),
+      );
 
       for (const t of result.transactions) {
         rows.push(
-          `"${t.date}","${t.postingDate}","${t.journalNumber}","${t.reference ?? ''}","${t.description.replace(/"/g, '""')}","${t.debit}","${t.credit}","${t.runningBalance}"`,
+          toCsvRow([
+            t.date,
+            t.postingDate,
+            t.journalNumber,
+            t.reference ?? '',
+            t.description,
+            t.debit,
+            t.credit,
+            t.runningBalance,
+          ]),
         );
       }
     } else {
-      // All accounts export
-      const allResult = await this.getGeneralLedger(organizationId, {
-        ...filter,
-        page: 1,
-        pageSize: 10000,
-      });
+      // All accounts export: stream/paginate all matching records in batches without 10,000 truncation
+      rows.push(
+        toCsvRow([
+          'Date',
+          'Posting Date',
+          'Journal Number',
+          'Reference',
+          'Account Code',
+          'Account Name',
+          'Description',
+          'Debit',
+          'Credit',
+        ]),
+      );
 
-      rows.push('"Date","Posting Date","Journal Number","Reference","Account Code","Account Name","Description","Debit","Credit"');
-      for (const e of allResult.entries) {
-        rows.push(
-          `"${e.date}","${e.postingDate}","${e.journalNumber}","${e.reference ?? ''}","${e.accountCode}","${e.accountName.replace(/"/g, '""')}","${e.description.replace(/"/g, '""')}","${e.debit}","${e.credit}"`,
-        );
+      const BATCH_SIZE = 1000;
+      let currentPage = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batchResult = await this.getGeneralLedger(organizationId, {
+          ...filter,
+          page: currentPage,
+          pageSize: BATCH_SIZE,
+        });
+
+        for (const e of batchResult.entries) {
+          rows.push(
+            toCsvRow([
+              e.date,
+              e.postingDate,
+              e.journalNumber,
+              e.reference ?? '',
+              e.accountCode,
+              e.accountName,
+              e.description,
+              e.debit,
+              e.credit,
+            ]),
+          );
+        }
+
+        if (batchResult.entries.length < BATCH_SIZE || currentPage * BATCH_SIZE >= batchResult.total) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
       }
     }
 

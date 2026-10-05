@@ -20,7 +20,10 @@ module.exports = tseslint.config(
     },
   },
   {
-    files: ['prisma/**/*.ts', 'test/**/*.ts'],
-    rules: { 'no-console': 'off' },
+    files: ['prisma/**/*.ts', 'test/**/*.ts', '**/*.spec.ts'],
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
   },
 );

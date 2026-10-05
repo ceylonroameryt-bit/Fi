@@ -18,31 +18,31 @@ export class OrganizationsController {
     return this.organizations.createOrganization(dto, actor);
   }
 
-  @Get(':id')
-  getOne(@Param('id', ParseUUIDPipe) id: string, @CurrentAuth() auth: AuthContext) {
+  @Get(':orgId')
+  getOne(@Param('orgId', ParseUUIDPipe) id: string, @CurrentAuth() auth: AuthContext) {
     return this.organizations.getOrganization(id, auth.userId);
   }
 
-  @Patch(':id')
+  @Patch(':orgId')
   @RequirePermission('organization.edit')
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('orgId', ParseUUIDPipe) id: string,
     @Body() dto: UpdateOrganizationDto,
     @CurrentActor() actor: Actor,
   ) {
     return this.organizations.updateOrganization(id, dto, actor);
   }
 
-  @Post(':id/archive')
+  @Post(':orgId/archive')
   @RequirePermission('organization.archive')
-  archive(@Param('id', ParseUUIDPipe) id: string, @CurrentActor() actor: Actor) {
+  archive(@Param('orgId', ParseUUIDPipe) id: string, @CurrentActor() actor: Actor) {
     return this.organizations.archiveOrganization(id, actor);
   }
 
-  @Post(':id/switch')
+  @Post(':orgId/switch')
   @HttpCode(HttpStatus.OK)
   switchOrg(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('orgId', ParseUUIDPipe) id: string,
     @CurrentAuth() auth: AuthContext,
     @CurrentActor() actor: Actor,
   ) {

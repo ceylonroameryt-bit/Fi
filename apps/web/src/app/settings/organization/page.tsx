@@ -11,9 +11,12 @@ export default function OrganizationSettingsPage() {
     name: '',
     legalName: '',
     registrationNumber: '',
-    taxId: '',
+    taxNumber: '',
     country: 'GB',
-    address: '10 Finsbury Square, London, EC2A 1AF',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    postcode: '',
     baseCurrency: 'GBP',
     timezone: 'Europe/London',
     fiscalYearStart: 'April',
@@ -23,20 +26,39 @@ export default function OrganizationSettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeOrg) {
-      setFormData({
-        name: activeOrg.name || '',
-        legalName: activeOrg.legalName || '',
-        registrationNumber: (activeOrg as any).registrationNumber || '',
-        taxId: (activeOrg as any).taxId || '',
-        country: activeOrg.country || 'GB',
-        address: (activeOrg as any).address || '10 Finsbury Square, London, EC2A 1AF',
-        baseCurrency: activeOrg.baseCurrency || 'GBP',
-        timezone: activeOrg.timezone || 'Europe/London',
-        fiscalYearStart: 'April',
-      });
+    let isCancelled = false;
+    async function loadOrgDetails() {
+      if (!activeOrg) return;
+      try {
+        setError(null);
+        const org = await apiRequest<any>(`/organizations/${activeOrg.id}`);
+        if (isCancelled) return;
+        setFormData({
+          name: org.name || '',
+          legalName: org.legalName || '',
+          registrationNumber: org.registrationNumber || '',
+          taxNumber: org.taxNumber || '',
+          country: org.country || 'GB',
+          addressLine1: org.addressLine1 || '',
+          addressLine2: org.addressLine2 || '',
+          city: org.city || '',
+          postcode: org.postcode || '',
+          baseCurrency: org.baseCurrency || 'GBP',
+          timezone: org.timezone || 'Europe/London',
+          fiscalYearStart: org.financialYearStartMonth === 1 ? 'January' : org.financialYearStartMonth === 7 ? 'July' : org.financialYearStartMonth === 10 ? 'October' : 'April',
+        });
+      } catch (err: any) {
+        if (!isCancelled) {
+          setError(err.message || 'Failed to load organization settings');
+        }
+      }
     }
-  }, [activeOrg]);
+
+    loadOrgDetails();
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeOrg?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +74,11 @@ export default function OrganizationSettingsPage() {
           name: formData.name.trim(),
           legalName: formData.legalName.trim() || null,
           registrationNumber: formData.registrationNumber.trim() || null,
-          taxId: formData.taxId.trim() || null,
+          taxNumber: formData.taxNumber.trim() || null,
+          addressLine1: formData.addressLine1.trim() || null,
+          addressLine2: formData.addressLine2.trim() || null,
+          city: formData.city.trim() || null,
+          postcode: formData.postcode.trim() || null,
           timezone: formData.timezone,
         }),
       });
@@ -144,13 +170,59 @@ export default function OrganizationSettingsPage() {
                     type="text"
                     className="form-input font-mono"
                     placeholder="e.g. GB 987 6543 21"
-                    value={formData.taxId}
-                    onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                    value={formData.taxNumber}
+                    onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Address Line 1</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. 12 High Street"
+                    value={formData.addressLine1}
+                    onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Address Line 2</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Suite 4B"
+                    value={formData.addressLine2}
+                    onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">City</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. London"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Postcode</label>
+                  <input
+                    type="text"
+                    className="form-input font-mono"
+                    placeholder="e.g. EC1A 1BB"
+                    value={formData.postcode}
+                    onChange={(e) => setFormData({ ...formData, postcode: e.target.value })}
+                  />
+                </div>
+
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Country Jurisdiction</label>
                   <input
@@ -159,16 +231,6 @@ export default function OrganizationSettingsPage() {
                     className="form-input"
                     value={`${formData.country} (United Kingdom)`}
                     style={{ backgroundColor: '#F8FAFC', color: '#4B5563', cursor: 'not-allowed', fontWeight: 600 }}
-                  />
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Registered Office Address</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   />
                 </div>
               </div>
