@@ -27,6 +27,7 @@ enum UserStatus {
 enum UserTokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
+  INVITATION
 }
 
 enum OrganizationStatus {

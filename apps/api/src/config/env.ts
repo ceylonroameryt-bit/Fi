@@ -42,6 +42,13 @@ const envSchema = z
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(300),
     AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(10),
+    MAIL_PROVIDER: z.enum(['none', 'test', 'smtp', 'console']).default('none'),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional().default(587),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_SECURE: booleanString,
+    MAIL_FROM: z.string().email().optional().default('noreply@warpledger.com'),
   })
   .superRefine((env, ctx) => {
     const isProd = env.APP_ENV === 'production';

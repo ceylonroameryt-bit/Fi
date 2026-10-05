@@ -1,11 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { MemberStatus, SystemRoleKey, UserStatus } from '@prisma/client';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { createHmac, randomBytes } from 'node:crypto';
+import { MemberStatus, SystemRoleKey, UserStatus, UserTokenType } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
 import type { Actor } from '../common/types/request-context.types';
 import { AuditService } from '../audit/audit.service';
 import { AuditEvents } from '../audit/audit-events';
 import { MailService } from '../auth/mail.service';
+import { TokenService } from '../auth/token.service';
+import { APP_CONFIG } from '../config/config.module';
+import type { AppEnv } from '../config/env';
 import type { InviteMemberDto, UpdateMemberRoleDto } from './dto/member.dto';
 
 const safeUserSelect = {
@@ -30,6 +34,8 @@ export class OrganizationMembersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly mail: MailService,
+    @Optional() private readonly tokens?: TokenService,
+    @Optional() @Inject(APP_CONFIG) private readonly config?: AppEnv,
   ) {}
 
   async listMembers(organizationId: string) {
@@ -71,8 +77,9 @@ export class OrganizationMembersService {
       throw new DomainException('ROLE_NOT_FOUND', 'The specified role does not exist in this organisation');
     }
 
-    // 2. Find or create user as INVITED
+    // 2. Find or create user
     let user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const isNewUser = !user || user.status === UserStatus.INVITED || !user.passwordHash;
     if (!user) {
       user = await this.prisma.user.create({
         data: {
@@ -97,6 +104,8 @@ export class OrganizationMembersService {
       throw new DomainException('MEMBER_ALREADY_EXISTS', 'This user is already an active member of this organisation');
     }
 
+    const memberStatus = isNewUser ? MemberStatus.INVITED : MemberStatus.ACTIVE;
+
     const member = await this.prisma.transaction(async (tx) => {
       let m;
       if (existingMember) {
@@ -104,9 +113,9 @@ export class OrganizationMembersService {
           where: { id: existingMember.id },
           data: {
             roleId: dto.roleId,
-            status: MemberStatus.ACTIVE,
+            status: memberStatus,
             removedAt: null,
-            joinedAt: new Date(),
+            joinedAt: isNewUser ? null : new Date(),
           },
           include: { user: { select: safeUserSelect }, role: { select: safeRoleSelect } },
         });
@@ -116,9 +125,9 @@ export class OrganizationMembersService {
             organizationId,
             userId: user.id,
             roleId: dto.roleId,
-            status: MemberStatus.ACTIVE,
+            status: memberStatus,
             invitedById: actor.userId,
-            joinedAt: new Date(),
+            joinedAt: isNewUser ? null : new Date(),
           },
           include: { user: { select: safeUserSelect }, role: { select: safeRoleSelect } },
         });
@@ -135,11 +144,41 @@ export class OrganizationMembersService {
       return m;
     });
 
-    await this.mail.send({
-      to: dto.email,
-      subject: 'You have been invited to join an organisation on Warp Ledger',
-      text: `You have been added as ${role.name}. Log in to view: /login`,
-    });
+    const tokenService = this.tokens || {
+      generate: () => randomBytes(32).toString('base64url'),
+      hash: (tok: string) => createHmac('sha256', this.config?.SESSION_SECRET || 'fallback-session-secret-32-chars-long').update(tok).digest('hex'),
+    };
+    const frontendUrl = this.config?.FRONTEND_URL || 'http://localhost:3000';
+
+    if (isNewUser) {
+      const invitationRaw = tokenService.generate();
+      const tokenHash = tokenService.hash(invitationRaw);
+
+      if (this.prisma.userToken?.create) {
+        await this.prisma.userToken.create({
+          data: {
+            userId: user.id,
+            type: UserTokenType.INVITATION,
+            tokenHash,
+            expiresAt: new Date(Date.now() + 7 * 86_400_000),
+          },
+        });
+      }
+
+      await this.mail.send({
+        to: dto.email,
+        subject: 'You have been invited to join an organisation on Warp Ledger',
+        text: `You have been invited as ${role.name}. Click the link to complete account setup:`,
+        link: `${frontendUrl}/accept-invitation?token=${invitationRaw}`,
+      });
+    } else {
+      await this.mail.send({
+        to: dto.email,
+        subject: 'You have been invited to join an organisation on Warp Ledger',
+        text: `You have been added to the organisation as ${role.name}. Log in to view: ${frontendUrl}/login`,
+        link: `${frontendUrl}/login`,
+      });
+    }
 
     return member;
   }

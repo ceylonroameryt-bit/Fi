@@ -42,16 +42,20 @@ export default function UsersSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const canManageUsers = hasPermission('users.manage') || hasPermission('user:manage') || true;
+  const canManageUsers = hasPermission('users.manage') || hasPermission('user:manage');
 
   const loadData = async () => {
     if (!activeOrg) return;
+    const orgId = activeOrg.id;
     try {
       setLoading(true);
+      setError(null);
       const [membersData, rolesData] = await Promise.all([
-        apiRequest<Member[]>('/organization-members').catch(() => []),
-        apiRequest<Role[]>('/roles').catch(() => []),
+        apiRequest<Member[]>(`/organizations/${orgId}/members`),
+        apiRequest<Role[]>(`/organizations/${orgId}/roles`),
       ]);
+      // Prevent stale response from overwriting newer activeOrg
+      if (activeOrg.id !== orgId) return;
       setMembers(Array.isArray(membersData) ? membersData : []);
       setRoles(Array.isArray(rolesData) ? rolesData : []);
       if (rolesData.length > 0 && !inviteRoleId) {
@@ -59,25 +63,34 @@ export default function UsersSettingsPage() {
         setInviteRoleId(defaultRole.id);
       }
     } catch (err: any) {
+      if (activeOrg.id !== orgId) return;
       setError(err.message || 'Failed to load team members');
+      setMembers([]);
+      setRoles([]);
     } finally {
-      setLoading(false);
+      if (activeOrg.id === orgId) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
+    // Clear state on activeOrg change to prevent showing stale tenant data
+    setMembers([]);
+    setError(null);
+    setSuccess(null);
     loadData();
-  }, [activeOrg]);
+  }, [activeOrg?.id]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail || !inviteRoleId) return;
+    if (!activeOrg || !inviteEmail || !inviteRoleId) return;
     setInviteLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      await apiRequest('/organization-members/invite', {
+      await apiRequest(`/organizations/${activeOrg.id}/members`, {
         method: 'POST',
         body: JSON.stringify({
           email: inviteEmail.trim(),
@@ -97,9 +110,10 @@ export default function UsersSettingsPage() {
   };
 
   const handleRoleChange = async (memberId: string, newRoleId: string) => {
+    if (!activeOrg) return;
     try {
       setError(null);
-      await apiRequest(`/organization-members/${memberId}/role`, {
+      await apiRequest(`/organizations/${activeOrg.id}/members/${memberId}`, {
         method: 'PATCH',
         body: JSON.stringify({ roleId: newRoleId }),
       });
@@ -111,6 +125,7 @@ export default function UsersSettingsPage() {
   };
 
   const handleRemoveMember = async (member: Member) => {
+    if (!activeOrg) return;
     if (member.role.systemKey === 'OWNER') {
       alert('Organisation Owner cannot be removed.');
       return;
@@ -118,7 +133,7 @@ export default function UsersSettingsPage() {
     if (!confirm(`Are you sure you want to remove ${member.user.email} from ${activeOrg?.name}?`)) return;
     try {
       setError(null);
-      await apiRequest(`/organization-members/${member.id}`, {
+      await apiRequest(`/organizations/${activeOrg.id}/members/${member.id}`, {
         method: 'DELETE',
       });
       setSuccess(`${member.user.email} removed from organisation.`);

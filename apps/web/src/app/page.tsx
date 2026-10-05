@@ -92,23 +92,38 @@ export default function DashboardPage() {
   const [journals, setJournals] = useState<JournalEntry[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Clear tenant-scoped state immediately upon organization switch
+    setFinancialYears([]);
+    setSelectedYearId('');
+    setPeriods([]);
+    setAccounts([]);
+    setJournals([]);
+    setAuditLogs([]);
+    setDashboardError(null);
+
     async function loadDashboardData() {
       if (!activeOrg) return;
+      const orgId = activeOrg.id;
       try {
         setLoading(true);
+        setDashboardError(null);
         const [fysRes, periodsRes, accountsRes, journalsRes, auditRes] = await Promise.all([
-          apiRequest<any>('/financial-years').catch(() => []),
-          apiRequest<any>('/accounting-periods').catch(() => []),
-          apiRequest<any>('/accounts').catch(() => []),
-          apiRequest<any>('/journals').catch(() => ({ items: [] })),
-          apiRequest<any>('/audit-logs').catch(() => ({ items: [] })),
+          apiRequest<any>('/financial-years'),
+          apiRequest<any>('/accounting-periods'),
+          apiRequest<any>('/accounts'),
+          apiRequest<any>('/journals'),
+          apiRequest<any>('/audit-logs'),
         ]);
+
+        // Stale tenant response guard
+        if (activeOrg.id !== orgId) return;
 
         const fyList: FinancialYear[] = Array.isArray(fysRes) ? fysRes : (fysRes?.items || []);
         setFinancialYears(fyList);
-        if (fyList.length > 0 && !selectedYearId) {
+        if (fyList.length > 0) {
           const current = fyList.find((fy) => !fy.isClosed) || fyList[0];
           setSelectedYearId(current.id);
         }
@@ -124,15 +139,18 @@ export default function DashboardPage() {
 
         const auditList: AuditLogItem[] = Array.isArray(auditRes) ? auditRes : (auditRes?.items || []);
         setAuditLogs(auditList);
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
+      } catch (err: any) {
+        if (activeOrg.id !== orgId) return;
+        setDashboardError(err.message || 'Failed to load dashboard data');
       } finally {
-        setLoading(false);
+        if (activeOrg.id === orgId) {
+          setLoading(false);
+        }
       }
     }
 
     loadDashboardData();
-  }, [activeOrg]);
+  }, [activeOrg?.id]);
 
   const activeFY = financialYears.find((fy) => fy.id === selectedYearId) || financialYears[0];
 
@@ -219,6 +237,12 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {dashboardError && (
+        <div className="alert alert-danger" style={{ marginBottom: '1.5rem' }}>
+          {dashboardError}
+        </div>
+      )}
 
       {/* 4 Summary KPI Cards (Large tabular numerals, minimal colour, immediate recognition) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>

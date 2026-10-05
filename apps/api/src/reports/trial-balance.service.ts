@@ -111,6 +111,8 @@ export class TrialBalanceService {
 
     let overallDebitBalance = this.money.ZERO;
     let overallCreditBalance = this.money.ZERO;
+    let underlyingDebitTotal = this.money.ZERO;
+    let underlyingCreditTotal = this.money.ZERO;
 
     const accountRows: TrialBalanceAccountRow[] = [];
 
@@ -152,6 +154,8 @@ export class TrialBalanceService {
       // Reconcile displayed totals directly with displayed row amounts
       overallDebitBalance = overallDebitBalance.add(displayDrBal);
       overallCreditBalance = overallCreditBalance.add(displayCrBal);
+      underlyingDebitTotal = underlyingDebitTotal.add(debitBal);
+      underlyingCreditTotal = underlyingCreditTotal.add(creditBal);
 
       accountRows.push({
         accountId: acc.id,
@@ -167,7 +171,7 @@ export class TrialBalanceService {
     }
 
     const difference = overallDebitBalance.sub(overallCreditBalance);
-    const isBalanced = difference.isZero();
+    const isBalanced = underlyingDebitTotal.sub(underlyingCreditTotal).isZero();
 
     return {
       organizationId,

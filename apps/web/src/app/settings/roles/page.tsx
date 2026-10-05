@@ -31,13 +31,16 @@ export default function RolesSettingsPage() {
   useEffect(() => {
     async function loadRolesAndPermissions() {
       if (!activeOrg) return;
+      const orgId = activeOrg.id;
       try {
         setLoading(true);
+        setError(null);
         const [rolesRes, permsRes] = await Promise.all([
-          apiRequest<Role[]>('/roles').catch(() => []),
-          apiRequest<PermissionDef[]>('/roles/permissions').catch(() => []),
+          apiRequest<Role[]>(`/organizations/${orgId}/roles`),
+          apiRequest<PermissionDef[]>(`/organizations/${orgId}/roles/permissions`),
         ]);
 
+        if (activeOrg.id !== orgId) return;
         const roleList: Role[] = Array.isArray(rolesRes) ? rolesRes : [];
         setRoles(roleList);
         if (roleList.length > 0 && !selectedRoleId) {
