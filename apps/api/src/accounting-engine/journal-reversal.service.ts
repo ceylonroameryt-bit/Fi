@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JournalSourceType, JournalStatus } from '@prisma/client';
+import { JournalSourceType, JournalStatus, Prisma } from '@prisma/client';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
 import type { Actor, OrgContext } from '../common/types/request-context.types';
@@ -307,7 +307,7 @@ export class JournalReversalService {
     }
   }
 
-  validateOriginalJournal(journal: { status: JournalStatus; reversedByJournalId?: string | null; journalNumber: string; lines: unknown[] }): void {
+  validateOriginalJournal(journal: { status: JournalStatus; reversedByJournalId?: string | null; journalNumber: string; lines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: Prisma.Decimal; credit: Prisma.Decimal }> }): void {
     if (journal.reversedByJournalId || journal.status === JournalStatus.REVERSED) {
       throw new DomainException(
         'JOURNAL_ALREADY_REVERSED',
@@ -358,7 +358,7 @@ export class JournalReversalService {
    * Generates opposite lines: Original Debit -> Reversal Credit, Original Credit -> Reversal Debit.
    */
   generateReversalLines(
-    originalLines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: unknown; credit: unknown }>,
+    originalLines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: Prisma.Decimal; credit: Prisma.Decimal }>,
     reason: string,
   ) {
     return originalLines.map((line) => ({

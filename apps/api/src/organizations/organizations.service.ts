@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MemberStatus, OrganizationStatus } from '@prisma/client';
+import { MemberStatus, OrganizationStatus, Organization, Role } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
 import type { Actor, OrgContext } from '../common/types/request-context.types';
@@ -235,7 +235,7 @@ export class OrganizationsService {
    * 4. Resolves permissions
    * Throws ORGANIZATION_ACCESS_DENIED or ORGANIZATION_INACTIVE on any failure.
    */
-  async validateOrganizationAccess(organizationId: string, userId: string): Promise<OrgContext & { organization: unknown; role: unknown }> {
+  async validateOrganizationAccess(organizationId: string, userId: string): Promise<OrgContext & { organization: Organization; role: Role }> {
     const member = await this.prisma.organizationMember.findUnique({
       where: {
         organizationId_userId: {
