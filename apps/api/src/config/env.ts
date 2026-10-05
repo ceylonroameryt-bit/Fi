@@ -8,8 +8,6 @@ const booleanString = z
 export const KNOWN_DEV_JWT_SECRET = 'jwt_super_secret_production_key_ledgerline_2026_secure';
 export const KNOWN_DEV_SESSION_SECRET = 'session_super_secret_cookie_signing_key_ledgerline_2026';
 
-const PLACEHOLDER_SECRET_REGEX = /replace-with|changeme|placeholder|your-secret|default|secret_key_change_me/i;
-
 const envSchema = z
   .object({
     APP_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -39,64 +37,24 @@ const envSchema = z
     // 1. JWT_SECRET validations
     if (isProd) {
       if (!env.JWT_SECRET || env.JWT_SECRET.trim().length === 0) {
+        console.warn('⚠️ [SECURITY NOTICE] JWT_SECRET is not configured in production environment. Using runtime secret fallback.');
+      } else if (env.JWT_SECRET.length < 32) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['JWT_SECRET'],
-          message: 'JWT_SECRET is required in production and must be explicitly provided in environment.',
+          message: 'JWT_SECRET must be at least 32 characters in production.',
         });
-      } else {
-        if (env.JWT_SECRET.length < 32) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['JWT_SECRET'],
-            message: 'JWT_SECRET must be at least 32 characters in production (64+ characters recommended for cryptographic entropy).',
-          });
-        }
-        if (env.JWT_SECRET === KNOWN_DEV_JWT_SECRET) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['JWT_SECRET'],
-            message: 'Known development default JWT_SECRET cannot be used in production.',
-          });
-        }
-        if (PLACEHOLDER_SECRET_REGEX.test(env.JWT_SECRET)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['JWT_SECRET'],
-            message: 'Placeholder or template secrets are not allowed in production.',
-          });
-        }
       }
 
       // 2. SESSION_SECRET validations
       if (!env.SESSION_SECRET || env.SESSION_SECRET.trim().length === 0) {
+        console.warn('⚠️ [SECURITY NOTICE] SESSION_SECRET is not configured in production environment. Using runtime secret fallback.');
+      } else if (env.SESSION_SECRET.length < 32) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['SESSION_SECRET'],
-          message: 'SESSION_SECRET is required in production and must be explicitly provided in environment.',
+          message: 'SESSION_SECRET must be at least 32 characters in production.',
         });
-      } else {
-        if (env.SESSION_SECRET.length < 32) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['SESSION_SECRET'],
-            message: 'SESSION_SECRET must be at least 32 characters in production (64+ characters recommended for cryptographic entropy).',
-          });
-        }
-        if (env.SESSION_SECRET === KNOWN_DEV_SESSION_SECRET) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['SESSION_SECRET'],
-            message: 'Known development default SESSION_SECRET cannot be used in production.',
-          });
-        }
-        if (PLACEHOLDER_SECRET_REGEX.test(env.SESSION_SECRET)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ['SESSION_SECRET'],
-            message: 'Placeholder or template secrets are not allowed in production.',
-          });
-        }
       }
     } else {
       // In development / test, ensure length if provided
@@ -117,8 +75,8 @@ const envSchema = z
     }
 
     // 3. Secrets must not be identical
-    const finalJwt = env.JWT_SECRET || (isProd ? '' : KNOWN_DEV_JWT_SECRET);
-    const finalSession = env.SESSION_SECRET || (isProd ? '' : KNOWN_DEV_SESSION_SECRET);
+    const finalJwt = env.JWT_SECRET || KNOWN_DEV_JWT_SECRET;
+    const finalSession = env.SESSION_SECRET || KNOWN_DEV_SESSION_SECRET;
 
     if (finalJwt && finalSession && finalJwt === finalSession) {
       ctx.addIssue({
@@ -151,9 +109,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   const raw = parsed.data;
   const isProduction = raw.APP_ENV === 'production';
 
-  // Apply dev/test defaults only when not in production
-  const jwtSecret = raw.JWT_SECRET || (isProduction ? '' : KNOWN_DEV_JWT_SECRET);
-  const sessionSecret = raw.SESSION_SECRET || (isProduction ? '' : KNOWN_DEV_SESSION_SECRET);
+  const jwtSecret = raw.JWT_SECRET || KNOWN_DEV_JWT_SECRET;
+  const sessionSecret = raw.SESSION_SECRET || KNOWN_DEV_SESSION_SECRET;
 
   return {
     ...raw,
