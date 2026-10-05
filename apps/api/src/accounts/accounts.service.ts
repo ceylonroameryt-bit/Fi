@@ -235,14 +235,16 @@ export class AccountsService {
     });
 
     // Build tree
-    const map = new Map<string, any>();
+    type AccountNode = (typeof accounts)[number] & { children: AccountNode[] };
+    const map = new Map<string, AccountNode>();
     accounts.forEach((a) => map.set(a.id, { ...a, children: [] }));
 
-    const roots: any[] = [];
+    const roots: AccountNode[] = [];
     accounts.forEach((a) => {
       const node = map.get(a.id);
+      if (!node) return;
       if (a.parentAccountId && map.has(a.parentAccountId)) {
-        map.get(a.parentAccountId).children.push(node);
+        map.get(a.parentAccountId)?.children.push(node);
       } else {
         roots.push(node);
       }

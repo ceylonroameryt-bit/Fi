@@ -376,7 +376,7 @@ export class JournalsService {
     journalId: string,
     orgContext: OrgContext,
     actor: Actor,
-  ): Promise<JournalValidationResult & { journal?: any }> {
+  ): Promise<JournalValidationResult & { journal?: unknown }> {
     return this.prisma.transaction(async (tx) => {
       // 1. Lock row FOR UPDATE first before checking state
       await tx.$queryRaw`

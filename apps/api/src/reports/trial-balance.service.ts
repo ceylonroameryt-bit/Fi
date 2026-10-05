@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AccountType, JournalStatus } from '@prisma/client';
+import { AccountType, JournalStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { MoneyService } from '../accounting-engine/money.service';
 import { parseIsoDate, toIsoDate } from '../common/utils/dates';
@@ -98,8 +98,8 @@ export class TrialBalanceService {
     });
 
     // 3. Aggregate totals per account
-    const debitByAccount = new Map<string, any>();
-    const creditByAccount = new Map<string, any>();
+    const debitByAccount = new Map<string, Prisma.Decimal>();
+    const creditByAccount = new Map<string, Prisma.Decimal>();
 
     for (const l of lines) {
       const currentDr = debitByAccount.get(l.accountId) ?? this.money.ZERO;

@@ -307,7 +307,7 @@ export class JournalReversalService {
     }
   }
 
-  validateOriginalJournal(journal: { status: JournalStatus; reversedByJournalId?: string | null; journalNumber: string; lines: any[] }): void {
+  validateOriginalJournal(journal: { status: JournalStatus; reversedByJournalId?: string | null; journalNumber: string; lines: unknown[] }): void {
     if (journal.reversedByJournalId || journal.status === JournalStatus.REVERSED) {
       throw new DomainException(
         'JOURNAL_ALREADY_REVERSED',
@@ -358,7 +358,7 @@ export class JournalReversalService {
    * Generates opposite lines: Original Debit -> Reversal Credit, Original Credit -> Reversal Debit.
    */
   generateReversalLines(
-    originalLines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: any; credit: any }>,
+    originalLines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: unknown; credit: unknown }>,
     reason: string,
   ) {
     return originalLines.map((line) => ({

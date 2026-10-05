@@ -17,7 +17,7 @@ describe('Chart of Accounts Rules', () => {
     const validCodes = ['1000', '1010', '1010.1', '2000-A', 'A100'];
     const invalidCodes = ['-100', '.1000', '', '1000!'];
 
-    const pattern = /^[0-9A-Za-z][0-9A-Za-z.\-]{0,19}$/;
+    const pattern = /^[0-9A-Za-z][0-9A-Za-z.-]{0,19}$/;
     validCodes.forEach((code) => expect(pattern.test(code)).toBe(true));
     invalidCodes.forEach((code) => expect(pattern.test(code)).toBe(false));
   });

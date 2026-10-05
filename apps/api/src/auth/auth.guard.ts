@@ -85,7 +85,7 @@ export class AuthGuard implements CanActivate {
 
       request.auth = authContext;
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isPublic) return true;
       if (err instanceof DomainException) throw err;
       throw new DomainException('AUTH_SESSION_EXPIRED', 'Token is expired or invalid');

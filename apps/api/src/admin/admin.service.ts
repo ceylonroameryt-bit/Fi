@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OrganizationStatus, UserStatus } from '@prisma/client';
+import { OrganizationStatus, UserStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditEvents } from '../audit/audit-events';
@@ -90,14 +90,14 @@ export class AdminService {
     const pageSize = query.pageSize ?? 20;
     const skip = (page - 1) * pageSize;
 
-    const where: any = {};
+    const where: Prisma.OrganizationWhereInput = {};
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
         { legalName: { contains: query.search, mode: 'insensitive' } },
       ];
     }
-    if (query.status && Object.values(OrganizationStatus).includes(query.status as any)) {
+    if (query.status && Object.values(OrganizationStatus).includes(query.status as OrganizationStatus)) {
       where.status = query.status as OrganizationStatus;
     }
 
@@ -216,7 +216,7 @@ export class AdminService {
     const pageSize = query.pageSize ?? 20;
     const skip = (page - 1) * pageSize;
 
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
     if (query.search) {
       where.OR = [
         { email: { contains: query.search, mode: 'insensitive' } },
@@ -224,7 +224,7 @@ export class AdminService {
         { lastName: { contains: query.search, mode: 'insensitive' } },
       ];
     }
-    if (query.status && Object.values(UserStatus).includes(query.status as any)) {
+    if (query.status && Object.values(UserStatus).includes(query.status as UserStatus)) {
       where.status = query.status as UserStatus;
     }
 
@@ -409,7 +409,7 @@ export class AdminService {
     const pageSize = query.pageSize ?? 30;
     const skip = (page - 1) * pageSize;
 
-    const where: any = {};
+    const where: Prisma.AuditLogWhereInput = {};
     if (query.search) {
       where.OR = [
         { eventType: { contains: query.search, mode: 'insensitive' } },

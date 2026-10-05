@@ -11,7 +11,7 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
 
-# Install all dependencies
+# Install all dependencies with reproducible lockfile
 RUN npm ci
 
 # Copy API source and schema
@@ -32,18 +32,21 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-RUN apk add --no-cache openssl dumb-init libc6-compat
+RUN apk add --no-cache openssl dumb-init libc6-compat wget
 
 ENV NODE_ENV=production
+ENV APP_ENV=production
 ENV PORT=4000
 
 # Copy necessary production assets
-COPY --from=builder /app/package.json /app/package-lock.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=builder /app/apps/api/package.json ./apps/api/
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder --chown=node:node /app/package.json /app/package-lock.json ./
+COPY --from=builder --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder --chown=node:node /app/apps/api/package.json ./apps/api/
+COPY --from=builder --chown=node:node /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=node:node /app/apps/api/prisma ./apps/api/prisma
+
+USER node
 
 EXPOSE 4000
 

@@ -235,7 +235,7 @@ export class OrganizationsService {
    * 4. Resolves permissions
    * Throws ORGANIZATION_ACCESS_DENIED or ORGANIZATION_INACTIVE on any failure.
    */
-  async validateOrganizationAccess(organizationId: string, userId: string): Promise<OrgContext & { organization: any; role: any }> {
+  async validateOrganizationAccess(organizationId: string, userId: string): Promise<OrgContext & { organization: unknown; role: unknown }> {
     const member = await this.prisma.organizationMember.findUnique({
       where: {
         organizationId_userId: {

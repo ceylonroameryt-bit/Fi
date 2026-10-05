@@ -72,7 +72,7 @@ export class JournalPostingService {
         throw new DomainException(
           'POSTING_VALIDATION_FAILED',
           `Cannot post journal: ${valResult.errors.join('; ')}`,
-          { errors: valResult.errors, issues: valResult.issues as any },
+          { errors: valResult.errors, issues: valResult.issues as unknown as Record<string, unknown>[] },
         );
       }
 
