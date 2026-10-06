@@ -10,7 +10,7 @@ const nextConfig = {
     const isLocalhost = !rawApiUrl || rawApiUrl.includes('localhost') || rawApiUrl.includes('127.0.0.1');
 
     if (isCloudEnv && isLocalhost) {
-      rawApiUrl = 'https://ledgerline-api.onrender.com';
+      rawApiUrl = 'https://fi-46xw.onrender.com';
     } else if (!rawApiUrl) {
       rawApiUrl = 'http://localhost:4000';
     }

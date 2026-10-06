@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: ledgerline-api
+    name: Fi
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run prisma:generate --workspace apps/api && npm run build --workspace apps/api
+    buildCommand: npm install --include=dev && npm run prisma:generate --workspace apps/api && npm run build --workspace apps/api
     startCommand: npm run prisma:deploy --workspace apps/api && node apps/api/dist/main.js
     healthCheckPath: /api/v1/health
     envVars:
