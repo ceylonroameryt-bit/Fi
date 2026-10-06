@@ -1,0 +1,26 @@
+<svg width="180" height="44" viewBox="0 0 180 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bl-teal" x1="10" y1="36" x2="36" y2="8" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10B8A7" />
+      <stop offset="100%" stop-color="#18D3BE" />
+    </linearGradient>
+    <linearGradient id="bl-navy" x1="6" y1="6" x2="32" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#082B5C" />
+      <stop offset="100%" stop-color="#041F46" />
+    </linearGradient>
+  </defs>
+
+  <!-- B Mark -->
+  <g transform="translate(2, 4) scale(0.42)">
+    <rect x="14" y="14" width="18" height="72" rx="4" fill="url(#bl-navy)" />
+    <path d="M32 14 H58 C72 14 80 22 80 34 C80 44 72 50 58 50 H32 V14 Z" fill="url(#bl-navy)" />
+    <path d="M32 26 H56 C62 26 67 29 67 34 C67 39 62 42 56 42 H32 V26 Z" fill="#FFFFFF" />
+    <path d="M32 46 H62 C78 46 86 54 86 68 C86 80 76 86 60 86 H32 V46 Z" fill="url(#bl-teal)" />
+    <path d="M32 58 H58 C65 58 71 61 71 68 C71 74 65 76 58 76 H32 V58 Z" fill="#FFFFFF" />
+    <polygon points="64,38 78,22 86,30" fill="#18D3BE" />
+  </g>
+
+  <!-- Wordmark "Blynt" (Navy theme for light surfaces) -->
+  <text x="48" y="30" font-family="'Inter', -apple-system, sans-serif" font-size="26" font-weight="800" fill="#082B5C" letter-spacing="-0.04em">Blynt</text>
+  <circle cx="118" cy="27" r="3.5" fill="#10B8A7" />
+</svg>

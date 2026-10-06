@@ -1,0 +1,27 @@
+<svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blynt Official B-Mark: Deep Navy Spine + Ascending Growth Teal Facets -->
+  <defs>
+    <linearGradient id="blynt-teal-grad" x1="20" y1="80" x2="90" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10B8A7" />
+      <stop offset="100%" stop-color="#18D3BE" />
+    </linearGradient>
+    <linearGradient id="blynt-navy-grad" x1="15" y1="15" x2="80" y2="85" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#082B5C" />
+      <stop offset="100%" stop-color="#041F46" />
+    </linearGradient>
+  </defs>
+
+  <!-- Left Solid Foundation / Vertical Spine (Deep Navy) -->
+  <rect x="14" y="14" width="18" height="72" rx="4" fill="url(#blynt-navy-grad)" />
+
+  <!-- Upper Lobe of B: Financial Arch curving into center join -->
+  <path d="M32 14 H58 C72 14 80 22 80 34 C80 44 72 50 58 50 H32 V14 Z" fill="url(#blynt-navy-grad)" />
+  <path d="M32 26 H56 C62 26 67 29 67 34 C67 39 62 42 56 42 H32 V26 Z" fill="#FFFFFF" />
+
+  <!-- Lower Lobe of B: Ascending Growth Dynamic Fold (Teal Gradient) -->
+  <path d="M32 46 H62 C78 46 86 54 86 68 C86 80 76 86 60 86 H32 V46 Z" fill="url(#blynt-teal-grad)" />
+  <path d="M32 58 H58 C65 58 71 61 71 68 C71 74 65 76 58 76 H32 V58 Z" fill="#FFFFFF" />
+
+  <!-- Dynamic Upward Growth Notch (Positive Finance Vector) -->
+  <polygon points="64,38 78,22 86,30" fill="#18D3BE" />
+</svg>

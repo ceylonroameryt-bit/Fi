@@ -3,8 +3,11 @@ import './globals.css';
 import { AuthProvider } from '../context/auth-context';
 
 export const metadata: Metadata = {
-  title: 'Warp Ledger | Accounting for a Brighter Tomorrow',
-  description: 'Warp Ledger — UK accounting, tax, payroll, and business advisory platform for growing businesses',
+  title: 'Blynt — Business Finance, Simplified',
+  description: 'Blynt — Modern accounting and financial control for growing businesses. Clarity in Every Number.',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

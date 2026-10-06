@@ -1,59 +1,75 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Warp Ledger Brand Design Tokens */
-  --brand-navy: #0B2D5B;
-  --brand-royal: #2563EB;
-  --brand-gray: #E5E7EB;
+  /* Blynt Official Brand Design Tokens */
+  --blynt-navy: #082B5C;
+  --blynt-navy-deep: #041F46;
+  --blynt-teal: #10B8A7;
+  --blynt-teal-bright: #18D3BE;
+  --blynt-light-blue: #EAF5FC;
 
-  --bg-app: #F7F9FC;
+  /* Surfaces */
+  --bg-app: #F6FAFD;
+  --bg-soft: #EAF5FC;
+  --bg-card: #FFFFFF;
   --bg-surface: #FFFFFF;
   --bg-sidebar: #FFFFFF;
-  --bg-sidebar-hover: #F1F5F9;
-  --bg-sidebar-active: #EFF6FF;
+  --bg-sidebar-hover: #F1F7FC;
+  --bg-sidebar-active: #EAF5FC;
 
-  --border-subtle: #E5E7EB;
+  /* Borders */
+  --border-subtle: #E2E8F0;
   --border-strong: #CBD5E1;
-  --border-focus: #2563EB;
+  --border-focus: #10B8A7;
 
-  --text-main: #0B2D5B;
-  --text-muted: #6B7280;
+  /* Typography */
+  --text-primary: #0B1F3A;
+  --text-secondary: #64748B;
+  --text-main: #0B1F3A;
+  --text-muted: #64748B;
   --text-inverse: #FFFFFF;
 
-  --primary: #2563EB;
-  --primary-hover: #1D4ED8;
-  --primary-subtle: #EFF6FF;
+  /* Interactive Elements */
+  --primary: #082B5C;
+  --primary-hover: #041F46;
+  --primary-subtle: #EAF5FC;
 
-  --success: #16A56A;
+  --accent-teal: #10B8A7;
+  --accent-teal-hover: #0D9688;
+  --accent-teal-subtle: #E6FAF8;
+
+  /* Semantic Feedback */
+  --success: #10B981;
   --success-bg: #ECFDF5;
   --success-border: #A7F3D0;
   --success-text: #065F46;
 
-  --warning: #E7A51A;
+  --warning: #F59E0B;
   --warning-bg: #FFFBEB;
   --warning-border: #FDE68A;
   --warning-text: #92400E;
 
-  --danger: #DC3F45;
+  --danger: #E5484D;
   --danger-bg: #FEF2F2;
   --danger-border: #FECACA;
   --danger-text: #991B1B;
 
-  --purple: #7557D3;
-  --purple-bg: #F5F3FF;
-  --purple-border: #DDD6FE;
-  --purple-text: #5B21B6;
+  --info: #2563EB;
+  --info-bg: #EFF6FF;
+  --info-border: #BFDBFE;
+  --info-text: #1E40AF;
 
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
 
-  --shadow-sm: 0 1px 2px 0 rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(16, 24, 40, 0.06), 0 2px 4px -2px rgba(16, 24, 40, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(16, 24, 40, 0.08), 0 4px 6px -4px rgba(16, 24, 40, 0.03);
+  --shadow-sm: 0 1px 3px 0 rgba(4, 31, 70, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(4, 31, 70, 0.06), 0 2px 4px -2px rgba(4, 31, 70, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(4, 31, 70, 0.08), 0 4px 6px -4px rgba(4, 31, 70, 0.03);
 }
 
 * {
@@ -817,7 +833,18 @@ body {
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--primary-hover);
-  box-shadow: 0 2px 6px rgba(20, 110, 245, 0.25);
+  box-shadow: 0 4px 12px rgba(8, 43, 92, 0.2);
+}
+
+.btn-teal {
+  background-color: var(--accent-teal);
+  color: #fff;
+  border-color: var(--accent-teal);
+}
+
+.btn-teal:hover:not(:disabled) {
+  background-color: var(--accent-teal-hover);
+  box-shadow: 0 4px 12px rgba(16, 184, 167, 0.25);
 }
 
 .btn-secondary {
