@@ -23,6 +23,7 @@ import { ContactsModule } from './contacts/contacts.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
+import { StorageModule } from './common/storage/storage.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { AllExceptionsFilter } from './common/errors/all-exceptions.filter';
 
@@ -55,6 +56,7 @@ import { AllExceptionsFilter } from './common/errors/all-exceptions.filter';
     InvoicesModule,
     AdminModule,
     HealthModule,
+    StorageModule,
   ],
   providers: [
     {

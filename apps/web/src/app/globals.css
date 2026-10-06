@@ -4,42 +4,51 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Blynt Official Brand Design Tokens */
-  --blynt-navy: #082B5C;
-  --blynt-navy-deep: #041F46;
-  --blynt-teal: #10B8A7;
-  --blynt-teal-bright: #18D3BE;
+  /* Blynt Official Brand Design Tokens (Navy + Coral System) */
+  --blynt-navy: #102654;
+  --blynt-navy-deep: #081A3B;
+  --blynt-coral: #FF7D6B;
+  --blynt-coral-bright: #FF947F;
+  --blynt-coral-soft: #FFF1EE;
   --blynt-light-blue: #EAF5FC;
 
+  /* Backward-compatible aliases */
+  --blynt-teal: #FF7D6B;
+  --blynt-teal-bright: #FF947F;
+
   /* Surfaces */
-  --bg-app: #F6FAFD;
-  --bg-soft: #EAF5FC;
+  --bg-app: #F8FAFC;
+  --bg-soft: #F1F5F9;
   --bg-card: #FFFFFF;
   --bg-surface: #FFFFFF;
   --bg-sidebar: #FFFFFF;
-  --bg-sidebar-hover: #F1F7FC;
-  --bg-sidebar-active: #EAF5FC;
+  --bg-sidebar-hover: #F8FAFC;
+  --bg-sidebar-active: #FFF1EE;
 
   /* Borders */
   --border-subtle: #E2E8F0;
   --border-strong: #CBD5E1;
-  --border-focus: #10B8A7;
+  --border-focus: #FF7D6B;
 
   /* Typography */
-  --text-primary: #0B1F3A;
+  --text-primary: #102654;
   --text-secondary: #64748B;
-  --text-main: #0B1F3A;
+  --text-main: #102654;
   --text-muted: #64748B;
   --text-inverse: #FFFFFF;
 
   /* Interactive Elements */
-  --primary: #082B5C;
-  --primary-hover: #041F46;
-  --primary-subtle: #EAF5FC;
+  --primary: #102654;
+  --primary-hover: #081A3B;
+  --primary-subtle: #FFF1EE;
 
-  --accent-teal: #10B8A7;
-  --accent-teal-hover: #0D9688;
-  --accent-teal-subtle: #E6FAF8;
+  --accent-coral: #FF7D6B;
+  --accent-coral-hover: #FF6657;
+  --accent-coral-subtle: #FFF1EE;
+
+  --accent-teal: #FF7D6B;
+  --accent-teal-hover: #FF6657;
+  --accent-teal-subtle: #FFF1EE;
 
   /* Semantic Feedback */
   --success: #10B981;

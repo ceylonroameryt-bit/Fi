@@ -1,0 +1,7 @@
+BLYNT CORAL AND NAVY VECTOR LOGO
+
+Blynt-editable.svg: transparent SVG with 8 independent Bezier paths, grouped as symbol and wordmark. Gradients are editable. All five letters are outlines, so no font installation is required.
+
+Blynt-print.pdf: vector-only RGB PDF, 297 x 113.9 mm artboard approximately. No raster artwork. Open in Illustrator, ungroup/release clipping masks where needed to edit paths and gradient fills. No native Illustrator private editing data is claimed. Save As Adobe Illustrator in Illustrator to create a native .ai file.
+
+Reconstructed from the supplied PNG; minor contour and gradient differences are possible. Background texture was omitted to keep the artwork transparent. The RGB colours preserve the supplied reference; for a CMYK print workflow the printer should convert using its production ICC profile and confirm a colour proof. This is a logo asset, not a full-bleed page layout; no bleed or crop marks are included.

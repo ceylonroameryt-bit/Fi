@@ -20,6 +20,8 @@
     "admin:bootstrap": "ts-node scripts/bootstrap-super-admin.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@aws-sdk/s3-request-presigner": "^3.1146.0",
     "@nestjs/cli": "^11.0.7",
     "@nestjs/common": "^11.1.0",
     "@nestjs/core": "^11.1.0",

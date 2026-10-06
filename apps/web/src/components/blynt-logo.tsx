@@ -11,7 +11,8 @@ export interface BlyntLogoProps {
 
 /**
  * Blynt Official B-Mark Component
- * Features the solid deep navy foundation spine with dynamic ascending teal financial growth lobes.
+ * Vector geometry faithfully sourced from official brand master (Blynt-editable.svg).
+ * Palette: Navy (#102654) and Coral (#FF7D6B)
  */
 export function BlyntMark({
   size = 32,
@@ -25,63 +26,82 @@ export function BlyntMark({
   style?: React.CSSProperties;
 }) {
   const isDark = theme === 'dark';
-  const spineFill = isDark ? '#FFFFFF' : '#082B5C';
-  const upperLobeCutout = isDark ? '#041F46' : '#FFFFFF';
-  const lowerLobeCutout = isDark ? '#041F46' : '#FFFFFF';
+  const idPrefix = isDark ? 'blynt-mark-dark' : 'blynt-mark-light';
 
   return (
     <svg
       width={size}
-      height={size}
-      viewBox="0 0 100 100"
+      height={Math.round(size * 1.25)}
+      viewBox="170 470 234 295"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle', ...style }}
-      aria-label="Blynt B Logo Mark"
+      aria-label="Blynt Brand Mark"
     >
       <defs>
-        <linearGradient id={`blynt-teal-${isDark ? 'dark' : 'light'}`} x1="20" y1="80" x2="90" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#10B8A7" />
-          <stop offset="100%" stop-color="#18D3BE" />
+        <linearGradient
+          id={`${idPrefix}-coral`}
+          gradientUnits="userSpaceOnUse"
+          x1="182"
+          y1="493"
+          x2="385"
+          y2="669"
+        >
+          <stop offset="0" stopColor="#FF947F" />
+          <stop offset="1" stopColor="#FF6657" />
         </linearGradient>
-        <linearGradient id={`blynt-navy-${isDark ? 'dark' : 'light'}`} x1="15" y1="15" x2="80" y2="85" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#082B5C" />
-          <stop offset="100%" stop-color="#041F46" />
+        <linearGradient
+          id={`${idPrefix}-navy`}
+          gradientUnits="userSpaceOnUse"
+          x1="183"
+          y1="741"
+          x2="398"
+          y2="642"
+        >
+          {isDark ? (
+            <>
+              <stop offset="0" stopColor="#E2E8F0" />
+              <stop offset="1" stopColor="#FFFFFF" />
+            </>
+          ) : (
+            <>
+              <stop offset="0" stopColor="#0C214D" />
+              <stop offset="1" stopColor="#223D77" />
+            </>
+          )}
         </linearGradient>
       </defs>
 
-      {/* Left Structural Spine */}
-      <rect x="14" y="14" width="18" height="72" rx="4" fill={spineFill} />
-
-      {/* Upper Lobe (Trust / Stability) */}
+      {/* Symbol Upper Lobe (Coral) */}
       <path
-        d="M32 14 H58 C72 14 80 22 80 34 C80 44 72 50 58 50 H32 V14 Z"
-        fill={isDark ? '#FFFFFF' : 'url(#blynt-navy-light)'}
-      />
-      <path
-        d="M32 26 H56 C62 26 67 29 67 34 C67 39 62 42 56 42 H32 V26 Z"
-        fill={upperLobeCutout}
+        id="Symbol-upper"
+        fill={`url(#${idPrefix}-coral)`}
+        fillRule="evenodd"
+        d="M 195 474 L 319 474 C 361 474 396 503 396 541 C 396 561 386 580 369 592 C 342 576 312 566 278 566 L 202 566 C 183 566 172 555 172 538 L 172 496 C 172 483 181 474 195 474 Z"
       />
 
-      {/* Lower Lobe (Ascending Financial Growth - Blynt Teal) */}
+      {/* Symbol Lower Lobe - Coral section */}
       <path
-        d="M32 46 H62 C78 46 86 54 86 68 C86 80 76 86 60 86 H32 V46 Z"
-        fill={`url(#blynt-teal-${isDark ? 'dark' : 'light'})`}
-      />
-      <path
-        d="M32 58 H58 C65 58 71 61 71 68 C71 74 65 76 58 76 H32 V58 Z"
-        fill={lowerLobeCutout}
+        id="Symbol-coral-lower"
+        fill={`url(#${idPrefix}-coral)`}
+        fillRule="evenodd"
+        d="M 172 741 L 172 647 C 172 611 203 582 244 582 L 274 582 C 306 582 335 589 357 602 L 198 706 C 181 717 172 728 172 741 Z"
       />
 
-      {/* Upward Growth Arrow Vector */}
-      <polygon points="64,38 78,22 86,30" fill="#18D3BE" />
+      {/* Symbol Lower Lobe - Navy foundation curve */}
+      <path
+        id="Symbol-navy-lower"
+        fill={`url(#${idPrefix}-navy)`}
+        fillRule="evenodd"
+        d="M 357 602 C 385 618 402 643 402 673 C 402 723 359 761 305 761 L 195 761 C 180 761 172 752 172 741 C 172 728 181 717 198 706 Z"
+      />
     </svg>
   );
 }
 
 /**
- * Blynt Official Brand Logo (Wordmark + Mark + Tagline)
+ * Blynt Full Brand Logo (Vector Outlined Mark + Wordmark)
  */
 export function BlyntLogo({
   variant = 'horizontal',
@@ -94,17 +114,17 @@ export function BlyntLogo({
   const isDark = theme === 'dark';
 
   const dimensions = {
-    sm: { markSize: 24, fontSize: '1.1rem', dotSize: 3, taglineSize: '0.62rem', gap: '0.5rem' },
-    md: { markSize: 32, fontSize: '1.45rem', dotSize: 4, taglineSize: '0.72rem', gap: '0.65rem' },
-    lg: { markSize: 42, fontSize: '1.9rem', dotSize: 5, taglineSize: '0.85rem', gap: '0.8rem' },
-    xl: { markSize: 56, fontSize: '2.5rem', dotSize: 6, taglineSize: '1rem', gap: '1rem' },
+    sm: { markSize: 22, height: 28, fontSize: '1.15rem', taglineSize: '0.62rem', gap: '0.6rem' },
+    md: { markSize: 28, height: 34, fontSize: '1.45rem', taglineSize: '0.72rem', gap: '0.75rem' },
+    lg: { markSize: 36, height: 44, fontSize: '1.85rem', taglineSize: '0.82rem', gap: '0.9rem' },
+    xl: { markSize: 48, height: 58, fontSize: '2.4rem', taglineSize: '0.95rem', gap: '1.1rem' },
   }[size];
 
   if (variant === 'mark-only') {
     return <BlyntMark size={dimensions.markSize} theme={theme} className={className} style={style} />;
   }
 
-  const textColor = isDark ? '#FFFFFF' : '#082B5C';
+  const textColor = isDark ? '#FFFFFF' : '#102654';
   const taglineColor = isDark ? '#94A3B8' : '#64748B';
 
   if (variant === 'stacked') {
@@ -120,7 +140,7 @@ export function BlyntLogo({
         }}
       >
         <div style={{ marginBottom: '0.5rem' }}>
-          <BlyntMark size={dimensions.markSize * 1.3} theme={theme} />
+          <BlyntMark size={dimensions.markSize * 1.35} theme={theme} />
         </div>
         <div
           style={{
@@ -135,7 +155,7 @@ export function BlyntLogo({
           }}
         >
           <span>Blynt</span>
-          <span style={{ color: '#10B8A7', marginLeft: '1px' }}>.</span>
+          <span style={{ color: '#FF7D6B', marginLeft: '1px' }}>.</span>
         </div>
         {showTagline && (
           <div
@@ -181,7 +201,7 @@ export function BlyntLogo({
           }}
         >
           <span>Blynt</span>
-          <span style={{ color: '#10B8A7', fontSize: '1.2em', lineHeight: 0.5 }}>.</span>
+          <span style={{ color: '#FF7D6B', fontSize: '1.2em', lineHeight: 0.5 }}>.</span>
         </div>
         {showTagline && (
           <span
