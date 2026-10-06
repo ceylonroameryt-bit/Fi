@@ -21,6 +21,8 @@ COPY apps/api/prisma ./apps/api/prisma
 COPY apps/api/src ./apps/api/src
 
 # Generate Prisma Client and build NestJS
+ENV DATABASE_URL="postgresql://placeholder:5432/placeholder"
+ENV DIRECT_URL="postgresql://placeholder:5432/placeholder"
 RUN npm run prisma:generate --workspace apps/api
 RUN npm run build --workspace apps/api
 
