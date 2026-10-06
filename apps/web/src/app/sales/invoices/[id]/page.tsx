@@ -277,7 +277,7 @@ export default function InvoiceDetailPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0F172A', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
             <div>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.03em' }}>
-                {activeOrg?.name || 'Warp Ledger'}
+                {activeOrg?.name || 'Blynt'}
               </div>
               {activeOrg?.legalName && (
                 <div style={{ fontSize: '0.85rem', color: '#64748B' }}>{activeOrg.legalName}</div>

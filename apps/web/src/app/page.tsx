@@ -204,7 +204,7 @@ export default function DashboardPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">
-            Good morning, {user?.firstName ?? 'Alex'} 👋
+            Good morning, {user?.firstName ?? 'Alex'}
           </h1>
           <p className="page-subtitle">
             Here&apos;s what&apos;s happening in <strong>{activeOrg?.name ?? 'Alpha Consulting Ltd'}</strong>

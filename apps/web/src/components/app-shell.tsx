@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../context/auth-context';
-import { WarpLedgerLogo } from './warp-ledger-logo';
+import { BlyntLogo } from './blynt-logo';
 import {
   LayoutDashboard,
   Landmark,
@@ -31,6 +31,7 @@ import {
   Shield,
   LogOut,
   SlidersHorizontal,
+  Scale,
 } from 'lucide-react';
 
 interface SearchResultItem {
@@ -84,10 +85,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F9FC' }}>
-        <div style={{ color: '#6B7280', fontSize: '0.9rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#2563EB' }}></span>
-          Loading Warp Ledger workspace...
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6FAFD' }}>
+        <div style={{ color: '#082B5C', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10B8A7' }}></span>
+          Loading Blynt workspace...
         </div>
       </div>
     );
@@ -105,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         .slice(0, 2)
         .join('')
         .toUpperCase()
-    : 'AC';
+    : 'BY';
 
   const userInitials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'U';
 
@@ -123,11 +124,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const navSections: NavSection[] = [
     {
+      title: 'Home',
       items: [
         { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-        { label: 'Banking', href: '/banking', icon: Landmark, comingSoon: true },
-        { label: 'Sales', href: '/sales/invoices', icon: ReceiptText, comingSoon: true },
-        { label: 'Purchases', href: '/purchases', icon: ShoppingCart, comingSoon: true },
+      ],
+    },
+    {
+      title: 'Sales',
+      items: [
+        { label: 'Contacts', href: '/sales/contacts', icon: Users },
+        { label: 'Invoices', href: '/sales/invoices', icon: ReceiptText },
       ],
     },
     {
@@ -135,6 +141,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       items: [
         { label: 'Chart of Accounts', href: '/accounting/chart-of-accounts', icon: ListTree },
         { label: 'Journals', href: '/accounting/journals', icon: BookOpenCheck },
+        { label: 'General Ledger', href: '/accounting/general-ledger', icon: BookOpenCheck },
+        { label: 'Trial Balance', href: '/reports/trial-balance', icon: Scale },
         { label: 'Financial Years', href: '/accounting/financial-years', icon: CalendarRange },
         { label: 'Periods', href: '/accounting/periods', icon: CalendarClock },
       ],
@@ -142,7 +150,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     {
       title: 'Reports',
       items: [
-        { label: 'Financial Reports', href: '/reports', icon: BarChart3, comingSoon: true },
+        { label: 'Trial Balance', href: '/reports/trial-balance', icon: Scale },
       ],
     },
     {
@@ -152,6 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         { label: 'Users', href: '/settings/users', icon: Users },
         { label: 'Roles & Permissions', href: '/settings/roles', icon: ShieldCheck },
         { label: 'Audit Logs', href: '/settings/audit-logs', icon: ScrollText },
+        { label: 'Accounting Integrity', href: '/settings/accounting-integrity', icon: CheckCircle2 },
       ],
     },
   ];
@@ -200,7 +209,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Brand Header */}
         <div className="sidebar-header">
           <Link href="/" style={{ textDecoration: 'none' }}>
-            <WarpLedgerLogo size="sm" />
+            <BlyntLogo size="sm" />
           </Link>
 
           {/* Close button for mobile */}
