@@ -1,8 +1,8 @@
-# Ledgerline — Double-Entry Accounting Platform (Phases 1–8)
+# Blynt — Business Finance, Simplified
 
-Ledgerline is an enterprise-grade, multi-organisation double-entry accounting foundation built with **NestJS**, **Prisma**, **PostgreSQL**, and **Next.js 15 (Turbopack)**.
+Blynt is a UK-focused cloud accounting and finance SaaS built with **NestJS**, **Prisma**, **PostgreSQL**, and **Next.js 15 (Turbopack)**.
 
-This repository implements the complete accounting core spanning **Phases 1 through 8**, engineered to institutional standards of ledger immutability, mathematical precision, tenant isolation, and period integrity.
+This repository implements the double-entry accounting core, engineered to institutional standards of ledger immutability, mathematical precision, tenant isolation, and financial period integrity. Clarity in Every Number.
 
 ---
 

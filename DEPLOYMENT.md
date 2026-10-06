@@ -1,6 +1,6 @@
-# 🚀 Production Deployment & Operations Guide: Warp Ledger
+# 🚀 Production Deployment & Operations Guide: Blynt
 
-This guide provides operational instructions for deploying and running **Warp Ledger** in production using modern cloud platforms:
+This guide provides operational instructions for deploying and running **Blynt** in production using modern cloud platforms:
 - **Frontend**: [Vercel](https://vercel.com) (Next.js 15 App Router with Turbopack) or Docker container.
 - **Backend API**: [Render](https://render.com), [Railway](https://railway.app), or containerized orchestrators (NestJS + Prisma Engine).
 - **Database**: [Neon](https://neon.tech), [Supabase](https://supabase.com), or self-hosted PostgreSQL 16+.

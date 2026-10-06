@@ -88,8 +88,8 @@ export class AuthService {
 
     await this.mail.send({
       to: user.email,
-      subject: 'Verify your Warp Ledger account',
-      text: `Welcome to Warp Ledger. Verify your email with token: ${verificationRaw}`,
+      subject: 'Verify your Blynt account',
+      text: `Welcome to Blynt. Verify your email with token: ${verificationRaw}`,
       link: `${this.config.FRONTEND_URL}/verify-email?token=${verificationRaw}`,
     });
 
@@ -264,7 +264,7 @@ export class AuthService {
 
     await this.mail.send({
       to: user.email,
-      subject: 'Reset your Warp Ledger password',
+      subject: 'Reset your Blynt password',
       text: `Reset token: ${resetRaw}`,
       link: `${this.config.FRONTEND_URL}/reset-password?token=${resetRaw}`,
     });

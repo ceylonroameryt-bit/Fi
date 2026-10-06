@@ -300,7 +300,7 @@ export class GeneralLedgerService {
 
     const rows: string[] = [];
     const timestamp = new Date().toISOString();
-    rows.push(toCsvRow(['Organisation', org?.name ?? 'Warp Ledger']));
+    rows.push(toCsvRow(['Organisation', org?.name ?? 'Blynt']));
     rows.push(toCsvRow(['Report', 'General Ledger']));
     rows.push(toCsvRow(['Generated At', timestamp]));
     rows.push(toCsvRow(['Currency', org?.baseCurrency ?? 'GBP']));

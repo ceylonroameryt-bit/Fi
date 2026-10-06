@@ -31,6 +31,7 @@ const FORBIDDEN_PASSWORDS = new Set([
   'secret',
   'ledgerline',
   'ledgerpro',
+  'blynt',
   'welcome',
   'welcome123',
   'qwerty',

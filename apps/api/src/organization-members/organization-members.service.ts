@@ -167,14 +167,14 @@ export class OrganizationMembersService {
 
       await this.mail.send({
         to: dto.email,
-        subject: 'You have been invited to join an organisation on Warp Ledger',
+        subject: 'You have been invited to join an organisation on Blynt',
         text: `You have been invited as ${role.name}. Click the link to complete account setup:`,
         link: `${frontendUrl}/accept-invitation?token=${invitationRaw}`,
       });
     } else {
       await this.mail.send({
         to: dto.email,
-        subject: 'You have been invited to join an organisation on Warp Ledger',
+        subject: 'You have been invited to join an organisation on Blynt',
         text: `You have been added to the organisation as ${role.name}. Log in to view: ${frontendUrl}/login`,
         link: `${frontendUrl}/login`,
       });

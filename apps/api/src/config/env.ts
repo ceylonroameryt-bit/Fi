@@ -48,7 +48,7 @@ const envSchema = z
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
     SMTP_SECURE: booleanString,
-    MAIL_FROM: z.string().email().optional().default('noreply@warpledger.com'),
+    MAIL_FROM: z.string().email().optional().default('noreply@blynt.com'),
   })
   .superRefine((env, ctx) => {
     const isProd = env.APP_ENV === 'production';

@@ -17,7 +17,7 @@ describe('MailService (Production Safety & Transports)', () => {
     RATE_LIMIT_PER_MINUTE: 300,
     AUTH_RATE_LIMIT_PER_MINUTE: 10,
     MAIL_PROVIDER: 'test',
-    MAIL_FROM: 'noreply@warpledger.com',
+    MAIL_FROM: 'noreply@blynt.com',
     SMTP_PORT: 587,
     SMTP_SECURE: false,
     JWT_SECRET: 'a'.repeat(32),
@@ -31,14 +31,14 @@ describe('MailService (Production Safety & Transports)', () => {
     const service = new MailService(baseConfig);
     await service.send({
       to: 'user@example.com',
-      subject: 'Welcome to Warp Ledger',
+      subject: 'Welcome to Blynt',
       text: 'Hello, your account is ready.',
       link: 'http://localhost:3000/accept-invitation?token=test-token-123',
     });
 
     const mail = service.lastMailTo('user@example.com');
     expect(mail).toBeDefined();
-    expect(mail?.subject).toBe('Welcome to Warp Ledger');
+    expect(mail?.subject).toBe('Welcome to Blynt');
     expect(mail?.link).toContain('token=test-token-123');
   });
 

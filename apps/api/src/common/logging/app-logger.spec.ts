@@ -27,9 +27,9 @@ describe('AppLogger Redaction & Log Hygiene', () => {
   });
 
   it('redacts action tokens and secrets inside query string URLs', () => {
-    const url = 'https://app.warpledger.com/reset-password?token=secretActionToken456&email=user@example.com';
+    const url = 'https://app.blynt.com/reset-password?token=secretActionToken456&email=user@example.com';
     const redacted = redact(url);
-    expect(redacted).toBe('https://app.warpledger.com/reset-password?token=[REDACTED]&email=user@example.com');
+    expect(redacted).toBe('https://app.blynt.com/reset-password?token=[REDACTED]&email=user@example.com');
   });
 
   it('redacts JWT format strings', () => {

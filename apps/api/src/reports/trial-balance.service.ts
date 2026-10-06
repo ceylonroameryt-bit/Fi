@@ -175,7 +175,7 @@ export class TrialBalanceService {
 
     return {
       organizationId,
-      organizationName: org?.name ?? 'Warp Ledger',
+      organizationName: org?.name ?? 'Blynt',
       baseCurrency: org?.baseCurrency ?? 'GBP',
       asOfDate: dateFilter.asOfDate ? toIsoDate(dateFilter.asOfDate) : toIsoDate(new Date()),
       filterApplied: {
