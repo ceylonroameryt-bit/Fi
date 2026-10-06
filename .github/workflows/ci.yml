@@ -67,6 +67,9 @@ jobs:
       - name: Apply Database Migrations (PostgreSQL)
         run: npm run db:deploy
 
+      - name: Seed Database (PostgreSQL)
+        run: npm run db:seed
+
       - name: Run E2E & Integration Tests (PostgreSQL)
         run: npm run test:e2e
 
