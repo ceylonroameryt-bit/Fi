@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { apiRequest, ApiError } from '../../lib/api';
-import { WarpLedgerLogo } from '../../components/warp-ledger-logo';
+import { BlyntLogo } from '../../components/blynt-logo';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -101,16 +101,16 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '1.5rem' }}>
-      <div style={{ width: '100%', maxWidth: '420px', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '2rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6FAFD', padding: '1.5rem' }}>
+      <div style={{ width: '100%', maxWidth: '420px', backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '2.25rem 2rem', boxShadow: '0 8px 30px rgba(8, 43, 92, 0.06)' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <WarpLedgerLogo variant="stacked" size="md" showTagline />
-          <p style={{ color: '#6B7280', fontSize: '0.8rem', marginTop: '0.65rem' }}>
+          <BlyntLogo variant="stacked" size="md" showTagline />
+          <p style={{ color: '#64748B', fontSize: '0.85rem', marginTop: '0.65rem' }}>
             Email verification confirmation
           </p>
         </div>
 
-        <Suspense fallback={<div style={{ textAlign: 'center', color: '#6B7280' }}>Loading...</div>}>
+        <Suspense fallback={<div style={{ textAlign: 'center', color: '#64748B' }}>Loading...</div>}>
           <VerifyEmailContent />
         </Suspense>
       </div>
