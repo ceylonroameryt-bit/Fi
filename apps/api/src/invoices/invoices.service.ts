@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
   AccountSubtype,
+  ContactStatus,
+  ContactType,
   InvoiceStatus,
   JournalSourceType,
   JournalStatus,
@@ -118,6 +120,12 @@ export class InvoicesService {
     if (!contact) {
       throw new DomainException('CONTACT_NOT_FOUND', 'Customer contact not found in this organisation');
     }
+    if (contact.status === ContactStatus.ARCHIVED) {
+      throw new DomainException('CONTACT_ARCHIVED', 'Cannot create invoices for an archived contact');
+    }
+    if (contact.type !== ContactType.CUSTOMER && contact.type !== ContactType.BOTH) {
+      throw new DomainException('CONTACT_NOT_CUSTOMER', 'Contact is not configured as a customer');
+    }
 
     const issueDate = parseIsoDate(dto.issueDate, 'issueDate');
     const dueDate = parseIsoDate(dto.dueDate, 'dueDate');
@@ -204,6 +212,12 @@ export class InvoicesService {
       });
       if (!contact) {
         throw new DomainException('CONTACT_NOT_FOUND', 'Customer contact not found in this organisation');
+      }
+      if (contact.status === ContactStatus.ARCHIVED) {
+        throw new DomainException('CONTACT_ARCHIVED', 'Cannot assign an archived contact to an invoice');
+      }
+      if (contact.type !== ContactType.CUSTOMER && contact.type !== ContactType.BOTH) {
+        throw new DomainException('CONTACT_NOT_CUSTOMER', 'Contact is not configured as a customer');
       }
     }
 
@@ -434,12 +448,13 @@ export class InvoicesService {
       }
 
       // 6. Construct Double-Entry Journal Lines:
-      // Line 1: Debtors Control / Accounts Receivable (DEBIT)
+      // Line 1: Debtors Control / Accounts Receivable (DEBIT) - Subledger tagged with customer contactId
       const journalLines: Array<{
         accountId: string;
         description: string;
         debit: Prisma.Decimal;
         credit: Prisma.Decimal;
+        contactId?: string | null;
       }> = [];
 
       journalLines.push({
@@ -447,6 +462,7 @@ export class InvoicesService {
         description: `Sales Invoice ${invoice.invoiceNumber} - ${invoice.contact.name}`,
         debit: new Prisma.Decimal(invoice.totalAmount.toString()),
         credit: new Prisma.Decimal('0'),
+        contactId: invoice.contactId,
       });
 
       // Lines 2..N: Revenue Accounts (CREDIT)
@@ -499,6 +515,7 @@ export class InvoicesService {
               debit: l.debit,
               credit: l.credit,
               currency: invoice.currency,
+              contactId: l.contactId ?? null,
             })),
           },
         },

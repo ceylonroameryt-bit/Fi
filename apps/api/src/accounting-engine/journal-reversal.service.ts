@@ -153,6 +153,7 @@ export class JournalReversalService {
               currency: original.currency,
               debit: line.debit,
               credit: line.credit,
+              contactId: line.contactId ?? null,
             })),
           },
         },
@@ -358,7 +359,7 @@ export class JournalReversalService {
    * Generates opposite lines: Original Debit -> Reversal Credit, Original Credit -> Reversal Debit.
    */
   generateReversalLines(
-    originalLines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: Prisma.Decimal; credit: Prisma.Decimal }>,
+    originalLines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: Prisma.Decimal; credit: Prisma.Decimal; contactId?: string | null }>,
     reason: string,
   ) {
     return originalLines.map((line) => ({
@@ -368,6 +369,7 @@ export class JournalReversalService {
       // Invert debit and credit
       debit: line.credit,
       credit: line.debit,
+      contactId: line.contactId ?? null,
     }));
   }
 

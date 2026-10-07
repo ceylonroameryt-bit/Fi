@@ -28,7 +28,7 @@ function run(cmd, args, options = {}) {
 
 async function main() {
   console.log('\n======================================================');
-  console.log('       LEDGERLINE PRODUCTION HOSTING RUNNER           ');
+  console.log('          BLYNT PRODUCTION HOSTING RUNNER             ');
   console.log('======================================================\n');
 
   console.log('[host] 1/3 Checking Database & Migrations...');
@@ -75,6 +75,10 @@ async function main() {
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+
+  await new Promise((resolve) => {
+    concurrently.on('exit', resolve);
+  });
 }
 
 main().catch((err) => {
