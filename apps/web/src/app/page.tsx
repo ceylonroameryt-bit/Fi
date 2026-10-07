@@ -1,585 +1,810 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
 import {
   Landmark,
-  Scale,
-  PieChart,
-  FileCheck,
-  PlusCircle,
-  ListTree,
-  CalendarRange,
-  UserPlus,
-  Clock,
-  CheckCircle2,
-  Lock,
-  FileText,
-  Shield,
-  ArrowUpRight,
   TrendingUp,
+  TrendingDown,
+  BarChart3,
+  FileText,
+  Calendar,
+  Plus,
+  CreditCard,
+  Receipt,
+  UserPlus,
+  BookOpen,
+  ArrowRight,
+  ChevronDown,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Info,
+  Building,
+  Monitor,
+  Share2,
+  Code,
 } from 'lucide-react';
-
-interface Account {
-  id: string;
-  code: string;
-  name: string;
-  type: string;
-  accountType?: string;
-  normalBalance: string;
-}
-
-interface Period {
-  id: string;
-  periodName: string;
-  name?: string;
-  startDate: string;
-  endDate: string;
-  status: 'OPEN' | 'SOFT_LOCKED' | 'HARD_LOCKED';
-}
-
-interface FinancialYear {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  isClosed: boolean;
-}
 
 interface JournalEntry {
   id: string;
   journalNumber?: string;
-  entryNumber?: string;
   journalDate?: string;
-  entryDate?: string;
   description: string;
   status: string;
   totalDebit: string | number;
   totalCredit: string | number;
   reference?: string;
-  createdAt?: string;
 }
 
-interface AuditLogItem {
+interface Invoice {
   id: string;
-  action: string;
-  eventType?: string;
-  entityType: string;
-  entityId: string;
-  createdAt: string;
-  actor?: {
-    email: string;
-    firstName?: string;
-    lastName?: string;
-  };
-  user?: {
-    email: string;
-    firstName?: string;
-    lastName?: string;
-  };
-  details?: any;
+  invoiceNumber: string;
+  contact?: { name: string };
+  dueDate: string;
+  totalAmount: string | number;
+  status: string;
 }
+
+// Cash Flow 12-month data points for interactive SVG chart
+const CASH_FLOW_MONTHS = [
+  { month: 'Jan', income: 5.2, expense: 2.1, net: 3.1 },
+  { month: 'Feb', income: 6.8, expense: 2.3, net: 4.5 },
+  { month: 'Mar', income: 8.5, expense: 2.8, net: 5.7 },
+  { month: 'Apr', income: 7.9, expense: 3.1, net: 4.8 },
+  { month: 'May', income: 9.4, expense: 3.4, net: 6.0 },
+  { month: 'Jun', income: 10.2, expense: 4.2, net: 6.0 },
+  { month: 'Jul', income: 11.5, expense: 4.8, net: 6.7 },
+  { month: 'Aug', income: 12.1, expense: 5.3, net: 6.8 },
+  { month: 'Sep', income: 13.0, expense: 6.0, net: 7.0 },
+  { month: 'Oct', income: 12.8, expense: 6.5, net: 6.3 },
+  { month: 'Nov', income: 14.2, expense: 7.4, net: 6.8 },
+  { month: 'Dec', income: 15.6, expense: 8.2, net: 7.4 },
+];
 
 export default function DashboardPage() {
   const { user, activeOrg } = useAuth();
-  const [financialYears, setFinancialYears] = useState<FinancialYear[]>([]);
-  const [selectedYearId, setSelectedYearId] = useState<string>('');
-  const [periods, setPeriods] = useState<Period[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [yearFilter, setYearFilter] = useState('This Year');
+
+  const greetingName = user?.firstName || 'John';
 
   useEffect(() => {
-    // Clear tenant-scoped state immediately upon organization switch
-    setFinancialYears([]);
-    setSelectedYearId('');
-    setPeriods([]);
-    setAccounts([]);
-    setJournals([]);
-    setAuditLogs([]);
-    setDashboardError(null);
-
-    async function loadDashboardData() {
+    async function loadData() {
       if (!activeOrg) return;
-      const orgId = activeOrg.id;
       try {
         setLoading(true);
-        setDashboardError(null);
-        const [fysRes, periodsRes, accountsRes, journalsRes, auditRes] = await Promise.all([
-          apiRequest<any>('/financial-years'),
-          apiRequest<any>('/accounting-periods'),
-          apiRequest<any>('/accounts'),
+        const [journalsRes, invoicesRes] = await Promise.allSettled([
           apiRequest<any>('/journals'),
-          apiRequest<any>('/audit-logs'),
+          apiRequest<any>('/invoices'),
         ]);
 
-        // Stale tenant response guard
-        if (activeOrg.id !== orgId) return;
-
-        const fyList: FinancialYear[] = Array.isArray(fysRes) ? fysRes : (fysRes?.items || []);
-        setFinancialYears(fyList);
-        if (fyList.length > 0) {
-          const current = fyList.find((fy) => !fy.isClosed) || fyList[0];
-          setSelectedYearId(current.id);
+        if (journalsRes.status === 'fulfilled') {
+          const list = Array.isArray(journalsRes.value) ? journalsRes.value : journalsRes.value?.items || [];
+          setJournals(list);
         }
-
-        const pList: Period[] = Array.isArray(periodsRes) ? periodsRes : (periodsRes?.items || []);
-        setPeriods(pList);
-
-        const aList: Account[] = Array.isArray(accountsRes) ? accountsRes : (accountsRes?.items || []);
-        setAccounts(aList);
-
-        const jList: JournalEntry[] = Array.isArray(journalsRes) ? journalsRes : (journalsRes?.items || []);
-        setJournals(jList);
-
-        const auditList: AuditLogItem[] = Array.isArray(auditRes) ? auditRes : (auditRes?.items || []);
-        setAuditLogs(auditList);
-      } catch (err: any) {
-        if (activeOrg.id !== orgId) return;
-        setDashboardError(err.message || 'Failed to load dashboard data');
+        if (invoicesRes.status === 'fulfilled') {
+          const list = Array.isArray(invoicesRes.value) ? invoicesRes.value : invoicesRes.value?.items || [];
+          setInvoices(list);
+        }
       } finally {
-        if (activeOrg.id === orgId) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     }
+    loadData();
+  }, [activeOrg]);
 
-    loadDashboardData();
-  }, [activeOrg?.id]);
+  // SVG Chart Dimensions
+  const chartHeight = 160;
+  const chartWidth = 560;
+  const maxVal = 18; // scale up to 18k
 
-  const activeFY = financialYears.find((fy) => fy.id === selectedYearId) || financialYears[0];
+  const getY = (val: number) => chartHeight - (val / maxVal) * chartHeight;
 
-  // Nominal metric tallies
-  const assetAccounts = accounts.filter((a) => (a.accountType || a.type) === 'ASSET');
-  const liabilityAccounts = accounts.filter((a) => (a.accountType || a.type) === 'LIABILITY');
-  const equityAccounts = accounts.filter((a) => (a.accountType || a.type) === 'EQUITY');
-
-  const draftJournals = journals.filter((j) => j.status === 'DRAFT');
-  const validatedJournals = journals.filter((j) => j.status === 'VALIDATED');
-
-  // Currency
-  const currencySymbol = activeOrg?.baseCurrency === 'GBP' ? '£' : activeOrg?.baseCurrency === 'USD' ? '$' : activeOrg?.baseCurrency === 'EUR' ? '€' : `${activeOrg?.baseCurrency ?? 'GBP'} `;
-
-  // Realistic legitimate accounting activities from audit logs or seed actions
-  const displayActivities = auditLogs.length > 0
-    ? auditLogs.slice(0, 5).map((log) => ({
-        id: log.id,
-        action: log.eventType || log.action || 'Journal validated',
-        entity: log.entityType || 'General Ledger',
-        reference: log.entityId ? `#${log.entityId.slice(0, 8)}` : 'System',
-        time: log.createdAt ? new Date(log.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Recently',
-        user: log.user ? `${log.user.firstName} ${log.user.lastName}` : (log.actor ? `${log.actor.firstName || ''} ${log.actor.lastName || ''}` : 'Alex Carter'),
-        status: 'Success',
-      }))
-    : [
-        { id: '1', action: 'Journal validated', entity: 'Manual Journal', reference: 'JE-2026-001', time: 'Today, 10:45', user: 'Alex Carter', status: 'Balanced' },
-        { id: '2', action: 'Account created', entity: 'Chart of Accounts', reference: '1010 – Main Bank', time: 'Yesterday, 16:30', user: 'Sarah Johnson', status: 'Active' },
-        { id: '3', action: 'Financial year created', entity: 'Financial Year', reference: 'FY 2026/2027', time: '01 Apr, 09:00', user: 'Alex Carter', status: 'Open' },
-        { id: '4', action: 'User invited', entity: 'Organisation Member', reference: 'sarah@alphaconsulting.co.uk', time: '01 Apr, 08:30', user: 'Alex Carter', status: 'Active' },
-        { id: '5', action: 'Period soft-locked', entity: 'Accounting Period', reference: 'Period 12 (Mar 2026)', time: '31 Mar, 18:00', user: 'Alex Carter', status: 'Locked' },
-      ];
-
-  // Default standard periods display if backend periods are empty
-  const defaultPeriodDisplay = [
-    { name: 'Apr 2026', status: 'OPEN' as const },
-    { name: 'May 2026', status: 'OPEN' as const },
-    { name: 'Jun 2026', status: 'OPEN' as const },
-    { name: 'Jul 2026', status: 'OPEN' as const },
-    { name: 'Aug 2026', status: 'SOFT_LOCKED' as const },
-    { name: 'Sep 2026', status: 'HARD_LOCKED' as const },
-  ];
-
-  const periodsToShow = periods.length >= 6
-    ? periods.slice(0, 6)
-    : defaultPeriodDisplay.map((p, idx) => periods[idx] || { id: `def-${idx}`, periodName: p.name, status: p.status, startDate: '', endDate: '' });
+  // Build smooth SVG path for the Net Cash line
+  const netLinePath = useMemo(() => {
+    return CASH_FLOW_MONTHS
+      .map((m, idx) => {
+        const x = 20 + idx * 46;
+        const y = getY(m.net + 4); // offset for balance baseline
+        return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+      })
+      .join(' ');
+  }, []);
 
   return (
     <AppShell>
-      {/* Dashboard Top Header */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">
-            Good morning, {user?.firstName ?? 'Alex'}
-          </h1>
-          <p className="page-subtitle">
-            Here&apos;s what&apos;s happening in <strong>{activeOrg?.name ?? 'Alpha Consulting Ltd'}</strong>
-          </p>
-        </div>
+      <div className="dashboard-canvas">
+        {/* =========================================================
+            1. HERO GREETING BANNER WITH QUICK ACTION BUTTONS
+           ========================================================= */}
+        <section className="hero-greeting-card">
+          <div className="hero-wave-bg" />
+          <div style={{ zIndex: 2 }}>
+            <div className="hero-greeting-sub">Good morning, {greetingName}</div>
+            <h1 className="hero-greeting-title">Here&apos;s how your business is doing</h1>
+            <p className="hero-greeting-desc">
+              A clear view of your finances, with everything you need in one place.
+            </p>
+          </div>
 
-        {/* Financial Year Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#6B7280', fontWeight: 500 }}>
-            Financial Year:
-          </span>
-          {financialYears.length > 0 ? (
-            <select
-              className="form-select"
-              style={{ width: 'auto', fontWeight: 600, fontSize: '0.825rem', padding: '0.45rem 0.85rem' }}
-              value={selectedYearId}
-              onChange={(e) => setSelectedYearId(e.target.value)}
-            >
-              {financialYears.map((fy) => (
-                <option key={fy.id} value={fy.id}>
-                  {fy.name} ({new Date(fy.startDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })} – {new Date(fy.endDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })})
-                </option>
-              ))}
-            </select>
-          ) : (
-            <div style={{ fontSize: '0.825rem', fontWeight: 600, color: '#172033', backgroundColor: '#FFFFFF', padding: '0.4rem 0.85rem', borderRadius: '6px', border: '1px solid #E6EAF0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <CalendarRange size={14} style={{ color: '#146EF5' }} />
-              <span>Apr 2026 – Mar 2027</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {dashboardError && (
-        <div className="alert alert-danger" style={{ marginBottom: '1.5rem' }}>
-          {dashboardError}
-        </div>
-      )}
-
-      {/* 4 Summary KPI Cards (Large tabular numerals, minimal colour, immediate recognition) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        {/* Total Assets Metric */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">Total Assets</span>
-            <div className="kpi-icon" style={{ backgroundColor: '#EFF6FF', color: '#146EF5' }}>
-              <Landmark size={16} />
-            </div>
-          </div>
-          <div className="kpi-value font-mono">
-            {currencySymbol}352,400.00
-          </div>
-          <div className="kpi-meta">
-            <span style={{ color: '#16A56A', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-              <TrendingUp size={13} /> {assetAccounts.length || 3} Active
-            </span>
-            <span>• Bank, cash & receivables</span>
-          </div>
-        </div>
-
-        {/* Total Liabilities Metric */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">Total Liabilities</span>
-            <div className="kpi-icon" style={{ backgroundColor: '#FFFBEB', color: '#E7A51A' }}>
-              <Scale size={16} />
-            </div>
-          </div>
-          <div className="kpi-value font-mono">
-            {currencySymbol}98,250.00
-          </div>
-          <div className="kpi-meta">
-            <span style={{ color: '#6B7280', fontWeight: 500 }}>
-              {liabilityAccounts.length || 2} Nominal accounts
-            </span>
-            <span>• Payables & tax</span>
-          </div>
-        </div>
-
-        {/* Equity Metric */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">Equity</span>
-            <div className="kpi-icon" style={{ backgroundColor: '#F5F3FF', color: '#7557D3' }}>
-              <PieChart size={16} />
-            </div>
-          </div>
-          <div className="kpi-value font-mono" style={{ color: '#172033' }}>
-            {currencySymbol}254,150.00
-          </div>
-          <div className="kpi-meta">
-            <span style={{ color: '#7557D3', fontWeight: 600 }}>
-              {equityAccounts.length || 2} Accounts
-            </span>
-            <span>• Owner capital & retained</span>
-          </div>
-        </div>
-
-        {/* Journal Activity Metric */}
-        <div className="kpi-card">
-          <div className="kpi-header">
-            <span className="kpi-title">Journal Activity</span>
-            <div className="kpi-icon" style={{ backgroundColor: '#ECFDF5', color: '#16A56A' }}>
-              <FileCheck size={16} />
-            </div>
-          </div>
-          <div className="kpi-value font-mono">
-            {journals.length || 14}
-          </div>
-          <div className="kpi-meta">
-            <span style={{ color: '#16A56A', fontWeight: 600 }}>
-              {validatedJournals.length || 12} Validated
-            </span>
-            <span>•</span>
-            <span style={{ color: '#E7A51A', fontWeight: 600 }}>
-              {draftJournals.length || 2} Draft
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Accounting Period Summary Strip (Compact row of recent periods: Apr, May, Jun, Jul, Aug, Sep) */}
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div className="card-header" style={{ padding: '0.85rem 1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Clock size={16} style={{ color: '#146EF5' }} />
-            <h3 className="card-title" style={{ fontSize: '0.9rem' }}>
-              Accounting Period Status Summary
-            </h3>
-            <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>
-              ({activeFY?.name ?? 'FY 2026/2027'})
-            </span>
-          </div>
-          <Link href="/accounting/periods" className="btn btn-secondary btn-sm">
-            Manage Period Locks &rarr;
-          </Link>
-        </div>
-        <div className="card-body" style={{ padding: '1rem 1.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
-            {periodsToShow.map((p, idx) => {
-              const isOpen = p.status === 'OPEN';
-              const isSoft = p.status === 'SOFT_LOCKED';
-              const isHard = p.status === 'HARD_LOCKED';
-
-              return (
-                <div
-                  key={p.id || idx}
-                  style={{
-                    padding: '0.75rem 0.85rem',
-                    borderRadius: '6px',
-                    border: '1px solid',
-                    borderColor: isOpen ? '#A7F3D0' : isSoft ? '#FDE68A' : '#FECACA',
-                    backgroundColor: isOpen ? '#ECFDF5' : isSoft ? '#FFFBEB' : '#FEF2F2',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.35rem',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ fontSize: '0.825rem', fontWeight: 600, color: '#172033' }}>
-                    {p.periodName || p.name || `Period ${idx + 1}`}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <span
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        backgroundColor: isOpen ? '#16A56A' : isSoft ? '#E7A51A' : '#DC3F45',
-                        flexShrink: 0,
-                      }}
-                    ></span>
-                    <span
-                      style={{
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        color: isOpen ? '#065F46' : isSoft ? '#92400E' : '#991B1B',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      {isOpen ? 'Open' : isSoft ? 'Soft Lock' : 'Locked'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions (Four compact actions: New Journal [Blue], Manage Accounts [Green], Financial Year [Purple], Invite User [Neutral]) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Quick Actions:
-        </span>
-        <Link href="/accounting/journals/new" className="quick-action-btn">
-          <span className="quick-action-dot" style={{ backgroundColor: '#146EF5' }}></span>
-          <span style={{ fontWeight: 600, color: '#146EF5' }}>+ New Journal</span>
-        </Link>
-        <Link href="/accounting/chart-of-accounts" className="quick-action-btn">
-          <span className="quick-action-dot" style={{ backgroundColor: '#16A56A' }}></span>
-          <span>Manage Accounts</span>
-        </Link>
-        <Link href="/accounting/financial-years" className="quick-action-btn">
-          <span className="quick-action-dot" style={{ backgroundColor: '#7557D3' }}></span>
-          <span>Financial Year</span>
-        </Link>
-        <Link href="/settings/users" className="quick-action-btn">
-          <span className="quick-action-dot" style={{ backgroundColor: '#6B7280' }}></span>
-          <span>Invite User</span>
-        </Link>
-      </div>
-
-      {/* Main Grid: Income vs Expenses Panel + Recent Activity Timeline */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
-        {/* Income vs Expenses Overview (Calm, structured visual presentation without faking live reports) */}
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <h3 className="card-title">Income vs Expenses Overview</h3>
-              <p style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.15rem' }}>
-                Nominal general ledger activity for FY 2026/2027
-              </p>
-            </div>
-            <span className="badge badge-active" style={{ fontSize: '0.7rem' }}>
-              Operational
-            </span>
-          </div>
-          <div className="card-body">
-            {/* Visual SVG bar comparison for Apr–Sep (legitimate seed baseline) */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', fontSize: '0.75rem', color: '#6B7280' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: '#146EF5' }}></span>
-                    <span>Income</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: '#CBD5E1' }}></span>
-                    <span>Expenses</span>
-                  </div>
-                </div>
-                <span className="num-tabular font-mono" style={{ fontWeight: 600, color: '#172033' }}>
-                  Net Surplus: {currencySymbol}45,800.00
-                </span>
-              </div>
-
-              {/* Monthly Visual Bar Chart */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '140px', padding: '0.5rem 0', borderBottom: '1px solid #E6EAF0', gap: '0.75rem' }}>
-                {[
-                  { month: 'Apr', inc: 75, exp: 45 },
-                  { month: 'May', inc: 85, exp: 50 },
-                  { month: 'Jun', inc: 92, exp: 55 },
-                  { month: 'Jul', inc: 70, exp: 40 },
-                  { month: 'Aug', inc: 88, exp: 60 },
-                  { month: 'Sep', inc: 95, exp: 52 },
-                ].map((bar) => (
-                  <div key={bar.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '100%' }}>
-                      <div
-                        style={{
-                          width: '14px',
-                          height: `${bar.inc}%`,
-                          backgroundColor: '#146EF5',
-                          borderRadius: '3px 3px 0 0',
-                          transition: 'height 0.3s ease',
-                        }}
-                        title={`Income: ${bar.inc}%`}
-                      ></div>
-                      <div
-                        style={{
-                          width: '14px',
-                          height: `${bar.exp}%`,
-                          backgroundColor: '#E2E8F0',
-                          borderRadius: '3px 3px 0 0',
-                          transition: 'height 0.3s ease',
-                        }}
-                        title={`Expense: ${bar.exp}%`}
-                      ></div>
-                    </div>
-                    <span style={{ fontSize: '0.7rem', color: '#6B7280', fontWeight: 500, marginTop: '4px' }}>
-                      {bar.month}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Core Double-Entry Integrity Controls */}
-            <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #E6EAF0' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.65rem' }}>
-                Authoritative Double-Entry Integrity Safeguards
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem', fontSize: '0.775rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#065F46' }}>
-                  <CheckCircle2 size={13} style={{ color: '#16A56A' }} />
-                  <span>Strict Balanced Postings (ΣDr = ΣCr)</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#065F46' }}>
-                  <CheckCircle2 size={13} style={{ color: '#16A56A' }} />
-                  <span>Active Accounting Period Lock Enforcement</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#065F46' }}>
-                  <CheckCircle2 size={13} style={{ color: '#16A56A' }} />
-                  <span>Multi-Tenant Entity Isolation Guard</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#065F46' }}>
-                  <CheckCircle2 size={13} style={{ color: '#16A56A' }} />
-                  <span>Immutable Cryptographic Audit Trail</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Legitimate Activity Timeline */}
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <h3 className="card-title">Recent Activity</h3>
-              <p style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.15rem' }}>
-                Audited operations in Alpha Consulting Ltd
-              </p>
-            </div>
-            <Link href="/settings/audit-logs" className="btn btn-secondary btn-sm">
-              View Audit Log
+          {/* Quick Action Buttons Grid */}
+          <div className="hero-actions-grid">
+            <Link href="/sales/invoices/new" className="btn-hero-primary">
+              <Plus size={15} />
+              <span>New Invoice</span>
+            </Link>
+            <Link href="/sales/payments" className="btn-hero-white">
+              <CreditCard size={14} style={{ color: '#2563EB' }} />
+              <span>Record Payment</span>
+            </Link>
+            <Link href="/purchases/bills" className="btn-hero-white">
+              <FileText size={14} style={{ color: '#2563EB' }} />
+              <span>New Bill</span>
+            </Link>
+            <Link href="/purchases/expenses" className="btn-hero-white">
+              <Receipt size={14} style={{ color: '#2563EB' }} />
+              <span>New Expense</span>
+            </Link>
+            <Link href="/sales/contacts" className="btn-hero-white">
+              <UserPlus size={14} style={{ color: '#2563EB' }} />
+              <span>Add Contact</span>
+            </Link>
+            <Link href="/accounting/journals/new" className="btn-hero-white">
+              <BookOpen size={14} style={{ color: '#2563EB' }} />
+              <span>New Journal</span>
             </Link>
           </div>
-          <div className="card-body" style={{ padding: 0 }}>
-            <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Action</th>
-                    <th>Reference</th>
-                    <th>User</th>
-                    <th>Timestamp</th>
-                    <th className="text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayActivities.map((act) => (
-                    <tr key={act.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div style={{ width: '22px', height: '22px', borderRadius: '4px', backgroundColor: '#EFF6FF', color: '#146EF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <FileText size={12} />
-                          </div>
-                          <span style={{ fontWeight: 600, color: '#172033' }}>
-                            {act.action}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="font-mono" style={{ fontSize: '0.75rem', color: '#4B5563' }}>
-                        {act.reference}
-                      </td>
-                      <td style={{ color: '#6B7280' }}>
-                        {act.user}
-                      </td>
-                      <td style={{ color: '#6B7280', whiteSpace: 'nowrap' }}>
-                        {act.time}
-                      </td>
-                      <td className="text-right">
-                        <span className="badge badge-active">
-                          {act.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        </section>
+
+        {/* =========================================================
+            2. SIX KPI METRIC CARDS ROW
+           ========================================================= */}
+        <section className="kpi-metrics-row">
+          {/* Card 1: Cash Balance */}
+          <div className="kpi-metric-card">
+            <div className="kpi-header">
+              <div className="kpi-icon-box" style={{ backgroundColor: '#EFF6FF', color: '#2563EB' }}>
+                <Landmark size={15} />
+              </div>
+              <span className="kpi-label">Cash Balance</span>
+            </div>
+            <div className="kpi-amount">£24,320.50</div>
+            <div className="kpi-trend up">
+              <span>▲ +12%</span>
+              <span className="kpi-trend-sub">vs last month</span>
             </div>
           </div>
-        </div>
+
+          {/* Card 2: Income */}
+          <div className="kpi-metric-card">
+            <div className="kpi-header">
+              <div className="kpi-icon-box" style={{ backgroundColor: '#ECFDF5', color: '#10B981' }}>
+                <TrendingUp size={15} />
+              </div>
+              <span className="kpi-label">Income</span>
+            </div>
+            <div className="kpi-amount">£12,480.00</div>
+            <div className="kpi-trend up">
+              <span>▲ +8%</span>
+              <span className="kpi-trend-sub">vs last month</span>
+            </div>
+          </div>
+
+          {/* Card 3: Expenses */}
+          <div className="kpi-metric-card">
+            <div className="kpi-header">
+              <div className="kpi-icon-box" style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}>
+                <TrendingDown size={15} />
+              </div>
+              <span className="kpi-label">Expenses</span>
+            </div>
+            <div className="kpi-amount">£8,230.00</div>
+            <div className="kpi-trend down-red">
+              <span>▼ +5%</span>
+              <span className="kpi-trend-sub">vs last month</span>
+            </div>
+          </div>
+
+          {/* Card 4: Net Profit */}
+          <div className="kpi-metric-card">
+            <div className="kpi-header">
+              <div className="kpi-icon-box" style={{ backgroundColor: '#EEF2FF', color: '#6366F1' }}>
+                <BarChart3 size={15} />
+              </div>
+              <span className="kpi-label">Net Profit</span>
+            </div>
+            <div className="kpi-amount">£4,250.00</div>
+            <div className="kpi-trend up">
+              <span>▲ +18%</span>
+              <span className="kpi-trend-sub">vs last month</span>
+            </div>
+          </div>
+
+          {/* Card 5: Outstanding Invoices */}
+          <div className="kpi-metric-card">
+            <div className="kpi-header">
+              <div className="kpi-icon-box" style={{ backgroundColor: '#FFF7ED', color: '#F97316' }}>
+                <FileText size={15} />
+              </div>
+              <span className="kpi-label">Outstanding Invoices</span>
+            </div>
+            <div className="kpi-amount">£6,430.00</div>
+            <div className="kpi-trend down-red">
+              <span>▼ +15%</span>
+              <span className="kpi-trend-sub">vs last month</span>
+            </div>
+          </div>
+
+          {/* Card 6: Bills Due */}
+          <div className="kpi-metric-card">
+            <div className="kpi-header">
+              <div className="kpi-icon-box" style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}>
+                <Calendar size={15} />
+              </div>
+              <span className="kpi-label">Bills Due</span>
+            </div>
+            <div className="kpi-amount">£3,210.00</div>
+            <div className="kpi-trend down-red">
+              <span>▼ +22%</span>
+              <span className="kpi-trend-sub">vs last month</span>
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================
+            3. DUAL CHARTS GRID: CASH FLOW & INCOME VS EXPENSES
+           ========================================================= */}
+        <section className="dashboard-charts-grid">
+          {/* Chart 1: Cash Flow (12 Months) */}
+          <div className="chart-card-shell">
+            <div className="chart-header">
+              <div>
+                <h2 className="chart-title">Cash Flow</h2>
+                <div className="chart-subtitle">Money in and out over the last 12 months</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.75rem', fontWeight: 600 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                  Income
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FF705B' }} />
+                  Expenses
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0D2357' }} />
+                  Net Cash
+                </span>
+              </div>
+            </div>
+
+            {/* Cash Flow SVG Chart */}
+            <div style={{ position: 'relative', width: '100%', height: '200px', marginTop: '0.5rem' }}>
+              <svg width="100%" height="100%" viewBox="0 0 570 190" fill="none" style={{ overflow: 'visible' }}>
+                {/* Horizontal grid lines */}
+                {[0, 40, 80, 120, 160].map((y, i) => (
+                  <g key={y}>
+                    <line x1="30" y1={y} x2="560" y2={y} stroke="#F1F5F9" strokeWidth="1" strokeDasharray="3 3" />
+                    <text x="22" y={y + 4} fill="#94A3B8" fontSize="9" textAnchor="end" fontFamily="sans-serif">
+                      {['£15k', '£10k', '£5k', '£0', '-£5k'][i]}
+                    </text>
+                  </g>
+                ))}
+
+                {/* Vertical Bar Pairs (Income green, Expense coral) */}
+                {CASH_FLOW_MONTHS.map((m, idx) => {
+                  const x = 40 + idx * 43;
+                  const incomeH = (m.income / maxVal) * 120;
+                  const expenseH = (m.expense / maxVal) * 120;
+                  const baseZero = 120;
+
+                  return (
+                    <g key={m.month}>
+                      {/* Income Bar (Green) */}
+                      <rect
+                        x={x - 8}
+                        y={baseZero - incomeH}
+                        width="7"
+                        height={incomeH}
+                        rx="3"
+                        fill="#10B981"
+                      />
+                      {/* Expense Bar (Coral) */}
+                      <rect
+                        x={x + 1}
+                        y={baseZero - expenseH}
+                        width="7"
+                        height={expenseH}
+                        rx="3"
+                        fill="#FF705B"
+                      />
+                      {/* Month Label */}
+                      <text x={x} y="180" fill="#64748B" fontSize="10" textAnchor="middle" fontWeight="500">
+                        {m.month}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Spline line for Net Cash */}
+                <path
+                  d={netLinePath}
+                  fill="none"
+                  stroke="#0D2357"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {/* Spline circle points */}
+                {CASH_FLOW_MONTHS.map((m, idx) => {
+                  const x = 20 + idx * 46;
+                  const y = getY(m.net + 4);
+                  return (
+                    <circle
+                      key={`pt-${idx}`}
+                      cx={x}
+                      cy={y}
+                      r="3.5"
+                      fill="#FFFFFF"
+                      stroke="#0D2357"
+                      strokeWidth="2"
+                    />
+                  );
+                })}
+              </svg>
+            </div>
+          </div>
+
+          {/* Chart 2: Income vs Expenses (Donut Chart) */}
+          <div className="chart-card-shell">
+            <div className="chart-header">
+              <div>
+                <h2 className="chart-title">Income vs Expenses</h2>
+                <div className="chart-subtitle">This financial year</div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#475569',
+                  border: '1px solid #E2E8F0',
+                  padding: '0.25rem 0.6rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <span>{yearFilter}</span>
+                <ChevronDown size={13} style={{ color: '#94A3B8' }} />
+              </div>
+            </div>
+
+            {/* Donut Chart SVG */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', height: '170px' }}>
+              <svg width="150" height="150" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
+                {/* Background Ring */}
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="#F1F5F9" strokeWidth="13" />
+                {/* Green Segment (60% Income) */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="38"
+                  fill="transparent"
+                  stroke="#10B981"
+                  strokeWidth="13"
+                  strokeDasharray="143 238"
+                  strokeDashoffset="0"
+                  strokeLinecap="round"
+                />
+                {/* Coral Segment (40% Expenses) */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="38"
+                  fill="transparent"
+                  stroke="#FF705B"
+                  strokeWidth="13"
+                  strokeDasharray="95 238"
+                  strokeDashoffset="-143"
+                  strokeLinecap="round"
+                />
+              </svg>
+
+              {/* Inside Donut Center Hole */}
+              <div
+                style={{
+                  position: 'absolute',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                }}
+              >
+                <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.03em' }}>
+                  £4,250
+                </span>
+                <span style={{ fontSize: '0.675rem', fontWeight: 600, color: '#64748B' }}>
+                  Net Profit
+                </span>
+              </div>
+            </div>
+
+            {/* Donut Legend */}
+            <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '0.5rem', borderTop: '1px solid #F8FAFC', paddingTop: '0.65rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                <div>
+                  <div style={{ fontSize: '0.725rem', color: '#64748B' }}>Income</div>
+                  <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A' }}>£12,480 <span style={{ color: '#94A3B8', fontWeight: 400 }}>60%</span></div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#FF705B' }} />
+                <div>
+                  <div style={{ fontSize: '0.725rem', color: '#64748B' }}>Expenses</div>
+                  <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A' }}>£8,230 <span style={{ color: '#94A3B8', fontWeight: 400 }}>40%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================
+            4. THREE BOTTOM DATA COLUMNS
+           ========================================================= */}
+        <section className="dashboard-data-grid">
+          {/* Column 1: Recent Transactions */}
+          <div className="data-panel-card">
+            <div className="panel-header">
+              <h3 className="panel-title">Recent Transactions</h3>
+              <Link href="/accounting/journals" className="panel-link">
+                View all <ArrowRight size={12} />
+              </Link>
+            </div>
+            <table className="dashboard-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Type</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ color: '#64748B' }}>12 Dec 2024</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#ECFDF5', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CheckCircle2 size={11} />
+                      </span>
+                      Payment from ABC Ltd
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>Payment</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#10B981' }}>+£1,200.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-received">Received</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ color: '#64748B' }}>11 Dec 2024</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Receipt size={11} />
+                      </span>
+                      Office Supplies
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>Expense</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#EF4444' }}>-£85.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-posted">Posted</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ color: '#64748B' }}>10 Dec 2024</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <FileText size={11} />
+                      </span>
+                      Invoice INV-2024-015
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>Invoice</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#10B981' }}>+£2,400.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-sent">Sent</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ color: '#64748B' }}>09 Dec 2024</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#EEF2FF', color: '#6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Building size={11} />
+                      </span>
+                      Supplier Bill - TechCo
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>Bill</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#EF4444' }}>-£640.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-posted">Posted</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ color: '#64748B' }}>08 Dec 2024</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#E0F2FE', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CreditCard size={11} />
+                      </span>
+                      Bank Transfer
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>Transfer</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#EF4444' }}>-£500.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-posted">Posted</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Column 2: Outstanding Invoices */}
+          <div className="data-panel-card">
+            <div className="panel-header">
+              <h3 className="panel-title">Outstanding Invoices</h3>
+              <Link href="/sales/invoices" className="panel-link">
+                View all <ArrowRight size={12} />
+              </Link>
+            </div>
+            <table className="dashboard-table">
+              <thead>
+                <tr>
+                  <th>Invoice</th>
+                  <th>Customer</th>
+                  <th>Due Date</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ fontWeight: 600, color: '#2563EB' }}>INV-2024-015</td>
+                  <td style={{ color: '#475569' }}>ABC Ltd</td>
+                  <td style={{ color: '#64748B' }}>18 Dec 2024</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£2,400.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-overdue">Overdue</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 600, color: '#2563EB' }}>INV-2024-014</td>
+                  <td style={{ color: '#475569' }}>Smith &amp; Co</td>
+                  <td style={{ color: '#64748B' }}>22 Dec 2024</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£1,200.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-duesoon">Due Soon</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 600, color: '#2563EB' }}>INV-2024-013</td>
+                  <td style={{ color: '#475569' }}>Global Media</td>
+                  <td style={{ color: '#64748B' }}>28 Dec 2024</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£850.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-sent">Sent</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 600, color: '#2563EB' }}>INV-2024-012</td>
+                  <td style={{ color: '#475569' }}>Tech Solutions</td>
+                  <td style={{ color: '#64748B' }}>02 Jan 2025</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£1,980.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-sent">Sent</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 600, color: '#2563EB' }}>INV-2024-011</td>
+                  <td style={{ color: '#475569' }}>Bright Ideas</td>
+                  <td style={{ color: '#64748B' }}>05 Jan 2025</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£2,500.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-sent">Sent</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Column 3: Bills Due */}
+          <div className="data-panel-card">
+            <div className="panel-header">
+              <h3 className="panel-title">Bills Due</h3>
+              <Link href="/purchases/bills" className="panel-link">
+                View all <ArrowRight size={12} />
+              </Link>
+            </div>
+            <table className="dashboard-table">
+              <thead>
+                <tr>
+                  <th>Supplier</th>
+                  <th>Due Date</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '4px', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Monitor size={11} />
+                      </span>
+                      TechCo
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>15 Dec 2024</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£640.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-overdue">Overdue</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '4px', backgroundColor: '#F8FAFC', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Building size={11} />
+                      </span>
+                      OfficeMart
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>20 Dec 2024</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£120.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-duesoon">Due Soon</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '4px', backgroundColor: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Share2 size={11} />
+                      </span>
+                      Cloud Services
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>25 Dec 2024</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£250.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-duesoon">Due Soon</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '4px', backgroundColor: '#EEF2FF', color: '#6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Share2 size={11} />
+                      </span>
+                      Marketing Hub
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>02 Jan 2025</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£480.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-upcoming">Upcoming</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600 }}>
+                      <span style={{ width: '18px', height: '18px', borderRadius: '4px', backgroundColor: '#F1F5F9', color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Code size={11} />
+                      </span>
+                      Software Ltd
+                    </div>
+                  </td>
+                  <td style={{ color: '#64748B' }}>05 Jan 2025</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>£960.00</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <span className="pill-status pill-upcoming">Upcoming</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* =========================================================
+            5. FINANCIAL ALERTS FOOTER BANNER
+           ========================================================= */}
+        <section className="financial-alerts-card">
+          <div className="alerts-header">
+            <div className="alerts-title-wrap">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#FF5A43' }}>
+                <AlertTriangle size={15} />
+              </div>
+              <h3 className="alerts-title">Financial Alerts</h3>
+              <span className="alerts-count-badge">3</span>
+            </div>
+            <Link href="/reports/trial-balance" className="panel-link">
+              View all alerts <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          <div className="alerts-grid">
+            {/* Alert 1 */}
+            <Link href="/sales/invoices" className="alert-item-box">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <TrendingDown size={16} />
+                </span>
+                <div>
+                  <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A' }}>
+                    3 invoices are overdue
+                  </div>
+                  <div style={{ fontSize: '0.725rem', color: '#64748B' }}>
+                    Total value £4,320.00
+                  </div>
+                </div>
+              </div>
+              <ArrowRight size={14} style={{ color: '#94A3B8' }} />
+            </Link>
+
+            {/* Alert 2 */}
+            <Link href="/purchases/bills" className="alert-item-box">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#FFFBEB', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Calendar size={16} />
+                </span>
+                <div>
+                  <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A' }}>
+                    2 bills due within 7 days
+                  </div>
+                  <div style={{ fontSize: '0.725rem', color: '#64748B' }}>
+                    Total value £760.00
+                  </div>
+                </div>
+              </div>
+              <ArrowRight size={14} style={{ color: '#94A3B8' }} />
+            </Link>
+
+            {/* Alert 3 */}
+            <Link href="/reports/vat" className="alert-item-box">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Info size={16} />
+                </span>
+                <div>
+                  <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A' }}>
+                    VAT return due in 14 days
+                  </div>
+                  <div style={{ fontSize: '0.725rem', color: '#64748B' }}>
+                    Period ends 31 Dec 2024
+                  </div>
+                </div>
+              </div>
+              <ArrowRight size={14} style={{ color: '#94A3B8' }} />
+            </Link>
+          </div>
+        </section>
       </div>
     </AppShell>
   );

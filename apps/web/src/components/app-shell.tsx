@@ -7,16 +7,30 @@ import { useAuth } from '../context/auth-context';
 import { BlyntLogo } from './blynt-logo';
 import {
   LayoutDashboard,
+  Users,
+  FileText,
+  CreditCard,
+  Receipt,
+  Truck,
+  FileCheck,
+  ArrowRightLeft,
   Landmark,
-  ReceiptText,
-  ShoppingCart,
+  CheckCheck,
   ListTree,
   BookOpenCheck,
+  BookOpen,
+  Scale,
   CalendarRange,
   CalendarClock,
-  BarChart3,
+  TrendingUp,
+  Activity,
+  Clock,
+  History,
+  FileSpreadsheet,
   Building2,
-  Users,
+  Percent,
+  Settings,
+  Layers,
   ShieldCheck,
   ScrollText,
   Search,
@@ -31,7 +45,6 @@ import {
   Shield,
   LogOut,
   SlidersHorizontal,
-  Scale,
 } from 'lucide-react';
 
 interface SearchResultItem {
@@ -50,6 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -57,6 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const orgDropdownRef = useRef<HTMLDivElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
+  const currencyDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
   useEffect(() => {
@@ -73,6 +88,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (notifDropdownRef.current && !notifDropdownRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
       }
+      if (currencyDropdownRef.current && !currencyDropdownRef.current.contains(event.target as Node)) {
+        setShowCurrencyDropdown(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -85,9 +103,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6FAFD' }}>
-        <div style={{ color: '#082B5C', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10B8A7' }}></span>
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F4F7FC' }}>
+        <div style={{ color: '#0C182F', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#FF705B' }}></span>
           Loading Blynt workspace...
         </div>
       </div>
@@ -99,22 +117,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const orgInitials = activeOrg?.name
-    ? activeOrg.name
-        .split(' ')
-        .map((n) => n[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase()
-    : 'BY';
-
-  const userInitials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'U';
+  const userInitials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'JD';
+  const userName = user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'John Doe';
+  const roleTitle = activeRole?.name ?? 'Administrator';
 
   interface NavItem {
     label: string;
     href: string;
     icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
-    comingSoon?: boolean;
   }
 
   interface NavSection {
@@ -122,45 +132,71 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     items: NavItem[];
   }
 
+  // Exact navigation categories and items from the official Blynt design reference
   const navSections: NavSection[] = [
     {
-      title: 'Home',
       items: [
         { label: 'Dashboard', href: '/', icon: LayoutDashboard },
       ],
     },
     {
-      title: 'Sales',
+      title: 'SALES',
       items: [
-        { label: 'Contacts', href: '/sales/contacts', icon: Users },
-        { label: 'Invoices', href: '/sales/invoices', icon: ReceiptText },
+        { label: 'Customers', href: '/sales/contacts', icon: Users },
+        { label: 'Invoices', href: '/sales/invoices', icon: FileText },
+        { label: 'Payments', href: '/sales/payments', icon: CreditCard },
+        { label: 'Credit Notes', href: '/sales/credit-notes', icon: Receipt },
       ],
     },
     {
-      title: 'Accounting',
+      title: 'PURCHASES',
+      items: [
+        { label: 'Suppliers', href: '/purchases/suppliers', icon: Truck },
+        { label: 'Bills', href: '/purchases/bills', icon: FileCheck },
+        { label: 'Expenses', href: '/purchases/expenses', icon: CreditCard },
+        { label: 'Supplier Payments', href: '/purchases/payments', icon: ArrowRightLeft },
+      ],
+    },
+    {
+      title: 'BANKING',
+      items: [
+        { label: 'Bank Accounts', href: '/banking/accounts', icon: Landmark },
+        { label: 'Transactions', href: '/banking/transactions', icon: ArrowRightLeft },
+        { label: 'Reconciliation', href: '/banking/reconciliation', icon: CheckCheck },
+      ],
+    },
+    {
+      title: 'ACCOUNTING',
       items: [
         { label: 'Chart of Accounts', href: '/accounting/chart-of-accounts', icon: ListTree },
         { label: 'Journals', href: '/accounting/journals', icon: BookOpenCheck },
-        { label: 'General Ledger', href: '/accounting/general-ledger', icon: BookOpenCheck },
+        { label: 'General Ledger', href: '/accounting/general-ledger', icon: BookOpen },
         { label: 'Trial Balance', href: '/reports/trial-balance', icon: Scale },
         { label: 'Financial Years', href: '/accounting/financial-years', icon: CalendarRange },
-        { label: 'Periods', href: '/accounting/periods', icon: CalendarClock },
+        { label: 'Accounting Periods', href: '/accounting/periods', icon: CalendarClock },
       ],
     },
     {
-      title: 'Reports',
+      title: 'REPORTS',
       items: [
-        { label: 'Trial Balance', href: '/reports/trial-balance', icon: Scale },
+        { label: 'Profit & Loss', href: '/reports/profit-and-loss', icon: TrendingUp },
+        { label: 'Balance Sheet', href: '/reports/balance-sheet', icon: Scale },
+        { label: 'Cash Flow', href: '/reports/cash-flow', icon: Activity },
+        { label: 'AR Ageing', href: '/reports/ar-ageing', icon: Clock },
+        { label: 'AP Ageing', href: '/reports/ap-ageing', icon: History },
+        { label: 'VAT Reports', href: '/reports/vat', icon: FileSpreadsheet },
       ],
     },
     {
-      title: 'Settings',
+      title: 'SETTINGS',
       items: [
         { label: 'Organisation', href: '/settings/organization', icon: Building2 },
         { label: 'Users', href: '/settings/users', icon: Users },
-        { label: 'Roles & Permissions', href: '/settings/roles', icon: ShieldCheck },
-        { label: 'Audit Logs', href: '/settings/audit-logs', icon: ScrollText },
-        { label: 'Accounting Integrity', href: '/settings/accounting-integrity', icon: CheckCircle2 },
+        { label: 'Taxes', href: '/settings/taxes', icon: Percent },
+        { label: 'Invoice Settings', href: '/settings/invoice-settings', icon: Settings },
+        { label: 'Integrations', href: '/settings/integrations', icon: Layers },
+        { label: 'Security', href: '/settings/security', icon: ShieldCheck },
+        { label: 'Audit Log', href: '/settings/audit-logs', icon: ScrollText },
       ],
     },
   ];
@@ -168,21 +204,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Quick search directory
   const searchCatalog: SearchResultItem[] = [
     { title: 'Dashboard', category: 'Overview', href: '/' },
+    { title: 'Invoices', category: 'Sales', href: '/sales/invoices' },
+    { title: 'Customers', category: 'Sales', href: '/sales/contacts' },
     { title: 'Chart of Accounts', category: 'Accounting', href: '/accounting/chart-of-accounts' },
     { title: 'New Manual Journal', category: 'Accounting', href: '/accounting/journals/new', badge: 'Action' },
-    { title: 'Journals History', category: 'Accounting', href: '/accounting/journals' },
+    { title: 'Trial Balance', category: 'Reports', href: '/reports/trial-balance' },
     { title: 'Financial Years', category: 'Accounting', href: '/accounting/financial-years' },
     { title: 'Accounting Periods', category: 'Accounting', href: '/accounting/periods' },
-    { title: 'Organisation Settings', category: 'Settings', href: '/settings/organization' },
-    { title: 'Team Users & Access', category: 'Settings', href: '/settings/users' },
-    { title: 'Roles & Permissions Matrix', category: 'Settings', href: '/settings/roles' },
-    { title: 'System Audit Logs', category: 'Settings', href: '/settings/audit-logs' },
-    { title: '1000 – Cash', category: 'Account (Asset)', href: '/accounting/chart-of-accounts?q=1000' },
-    { title: '1010 – Main Bank Account', category: 'Account (Asset)', href: '/accounting/chart-of-accounts?q=1010' },
-    { title: '1100 – Accounts Receivable', category: 'Account (Asset)', href: '/accounting/chart-of-accounts?q=1100' },
-    { title: '2000 – Accounts Payable', category: 'Account (Liability)', href: '/accounting/chart-of-accounts?q=2000' },
-    { title: '3000 – Owner Capital', category: 'Account (Equity)', href: '/accounting/chart-of-accounts?q=3000' },
-    { title: '4000 – Sales Revenue', category: 'Account (Revenue)', href: '/accounting/chart-of-accounts?q=4000' },
+    { title: 'Audit Logs', category: 'Settings', href: '/settings/audit-logs' },
   ];
 
   const searchResults = searchQuery.trim()
@@ -191,7 +220,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.category.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : searchCatalog.slice(0, 6);
+    : searchCatalog.slice(0, 5);
 
   return (
     <div className="app-container">
@@ -204,12 +233,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Left Sidebar */}
+      {/* Left Sidebar (Dark Navy matching design) */}
       <aside className={`sidebar ${mobileNavOpen ? 'mobile-open' : ''}`}>
         {/* Brand Header */}
         <div className="sidebar-header">
-          <Link href="/" style={{ textDecoration: 'none' }}>
-            <BlyntLogo size="sm" />
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+            <BlyntLogo size="sm" theme="dark" />
           </Link>
 
           {/* Close button for mobile */}
@@ -230,31 +259,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {section.items.map((item) => {
                 const isActive =
                   pathname === item.href ||
-                  (item.href !== '/' && !item.comingSoon && pathname.startsWith(item.href));
+                  (item.href !== '/' && pathname.startsWith(item.href));
                 const Icon = item.icon;
-
-                if (item.comingSoon) {
-                  return (
-                    <div
-                      key={item.label}
-                      className="nav-link disabled"
-                      title="Coming later in next release"
-                    >
-                      <div className="nav-link-content">
-                        <Icon size={16} className="nav-link-icon" />
-                        <span>{item.label}</span>
-                      </div>
-                      <span className="sidebar-badge-soon">Later</span>
-                    </div>
-                  );
-                }
 
                 return (
                   <Link
-                    key={item.href}
+                    key={item.label}
                     href={item.href}
                     className={`nav-link ${isActive ? 'active' : ''}`}
-                    onClick={() => setMobileNavOpen(false)}
                   >
                     <div className="nav-link-content">
                       <Icon size={16} className="nav-link-icon" />
@@ -266,85 +278,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </nav>
-
-        {/* Sidebar Footer: Current Organisation */}
-        <div className="sidebar-footer" ref={orgDropdownRef}>
-          <div style={{ position: 'relative' }}>
-            <div
-              className="org-profile-card"
-              onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-              role="button"
-              tabIndex={0}
-            >
-              <div className="org-avatar">{orgInitials}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="org-name-text">
-                  {activeOrg?.name ?? 'Alpha Consulting Ltd'}
-                </div>
-                <div className="org-switch-hint">
-                  <span>{activeOrg?.baseCurrency ?? 'GBP'}</span>
-                  <span>•</span>
-                  <span className="switch-label">Switch org &rarr;</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Organisation Switcher Popover */}
-            {showOrgDropdown && (
-              <div className="org-dropdown-menu">
-                <div className="org-dropdown-header">
-                  Switch Organisation
-                </div>
-                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                  {userOrgs.map((m) => (
-                    <div
-                      key={m.organization.id}
-                      onClick={() => {
-                        switchOrg(m.organization.id);
-                        setShowOrgDropdown(false);
-                      }}
-                      className={`org-dropdown-item ${m.organization.id === activeOrg?.id ? 'active' : ''}`}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-                        <span className="org-item-avatar">
-                          {m.organization.name.slice(0, 2).toUpperCase()}
-                        </span>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#172033', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {m.organization.name}
-                          </div>
-                          <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>
-                            {m.role?.name ?? 'Member'}
-                          </div>
-                        </div>
-                      </div>
-                      <span className="badge badge-active" style={{ fontSize: '0.65rem' }}>
-                        {m.organization.baseCurrency || 'GBP'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="org-dropdown-footer">
-                  <Link
-                    href="/organizations/new"
-                    className="org-create-link"
-                    onClick={() => setShowOrgDropdown(false)}
-                  >
-                    + Create New Organisation
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
       </aside>
 
       {/* Main Content Area */}
       <div className="main-content">
-        {/* Topbar */}
+        {/* Topbar matching official screenshot */}
         <header className="topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-            {/* Mobile menu trigger button */}
+            {/* Mobile menu trigger */}
             <button
               className="mobile-hamburger-btn"
               onClick={() => setMobileNavOpen(true)}
@@ -353,19 +294,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Menu size={20} />
             </button>
 
-            {/* Global Search Bar (occupies centre-left area) */}
+            {/* Global Search Bar with ⌘ K shortcut badge */}
             <div className="topbar-search-wrap" ref={searchRef}>
               <Search size={15} className="topbar-search-icon" />
               <input
                 type="text"
                 className="topbar-search-input"
-                placeholder="Search accounts, journals, reports..."
+                placeholder="Search invoices, contacts, accounts..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
+                style={{ paddingRight: '2.5rem' }}
               />
+              <span
+                style={{
+                  position: 'absolute',
+                  right: '0.65rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  color: '#94A3B8',
+                  backgroundColor: '#F1F5F9',
+                  padding: '0.15rem 0.35rem',
+                  borderRadius: '4px',
+                  pointerEvents: 'none',
+                }}
+              >
+                ⌘ K
+              </span>
 
-              {/* Interactive Quick Search Results Dropdown */}
+              {/* Quick Search Popover */}
               {searchFocused && (
                 <div className="search-results-popover">
                   <div className="search-results-header">
@@ -412,8 +371,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* Right Topbar Actions */}
-          <div className="topbar-actions">
+          {/* Right Topbar Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
             {/* Super Admin indicator if privileged */}
             {user.isSuperAdmin && (
               <Link href="/admin" className="super-admin-pill" title="Platform Super Admin Portal">
@@ -422,48 +381,111 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             )}
 
-            {/* Quick Financial Currency Badge */}
-            <div className="topbar-currency-badge">
-              <span className="status-dot-green"></span>
-              <span style={{ color: '#6B7280' }}>Base:</span>
-              <strong style={{ color: '#172033' }}>{activeOrg?.baseCurrency ?? 'GBP'}</strong>
+            {/* Organisation Selector Pill */}
+            <div style={{ position: 'relative' }} ref={orgDropdownRef}>
+              <button
+                className="topbar-org-pill"
+                onClick={() => setShowOrgDropdown(!showOrgDropdown)}
+                aria-label="Select organization"
+              >
+                <Landmark size={15} style={{ color: '#1E293B' }} />
+                <span>{activeOrg?.name ?? 'Console Dot Dream'}</span>
+                <ChevronDown size={14} style={{ color: '#94A3B8' }} />
+              </button>
+
+              {showOrgDropdown && (
+                <div
+                  className="org-dropdown-menu"
+                  style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '240px' }}
+                >
+                  <div className="org-dropdown-header">Your Organisations</div>
+                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {userOrgs.map((m) => (
+                      <div
+                        key={m.organization.id}
+                        onClick={() => {
+                          switchOrg(m.organization.id);
+                          setShowOrgDropdown(false);
+                        }}
+                        className={`org-dropdown-item ${m.organization.id === activeOrg?.id ? 'active' : ''}`}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                          <span className="org-item-avatar">
+                            {m.organization.name.slice(0, 2).toUpperCase()}
+                          </span>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#172033', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {m.organization.name}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>
+                              {m.role?.name ?? 'Member'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="org-dropdown-footer">
+                    <Link
+                      href="/organizations/new"
+                      className="org-create-link"
+                      onClick={() => setShowOrgDropdown(false)}
+                    >
+                      + Create New Organisation
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Notifications Bell */}
+            {/* Currency Selector Pill */}
+            <div style={{ position: 'relative' }} ref={currencyDropdownRef}>
+              <button
+                className="topbar-currency-pill"
+                onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
+                title="Active currency"
+              >
+                <span>🇬🇧</span>
+                <span>{activeOrg?.baseCurrency ?? 'GBP'}</span>
+                <ChevronDown size={13} style={{ color: '#94A3B8' }} />
+              </button>
+            </div>
+
+            {/* Notifications Bell with Red Badge Count */}
             <div style={{ position: 'relative' }} ref={notifDropdownRef}>
               <button
-                className="topbar-icon-btn"
+                className="topbar-bell-btn"
                 onClick={() => setShowNotifications(!showNotifications)}
                 aria-label="View notifications"
-                title="System notifications"
+                title="Financial alerts"
               >
                 <Bell size={16} />
-                <span className="notification-indicator"></span>
+                <span className="bell-badge-count">3</span>
               </button>
 
               {showNotifications && (
-                <div className="notifications-dropdown">
+                <div className="notifications-dropdown" style={{ right: 0 }}>
                   <div className="notif-header">
-                    <span>Notifications</span>
-                    <span style={{ fontSize: '0.7rem', color: '#16A56A', fontWeight: 600 }}>Operational</span>
+                    <span>Financial Alerts</span>
+                    <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: 600 }}>Active</span>
                   </div>
                   <div className="notif-list">
                     <div className="notif-item">
-                      <div className="notif-icon green">
-                        <CheckCircle2 size={14} />
+                      <div className="notif-icon red">
+                        <AlertTriangle size={14} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div className="notif-title">Period 01 (Apr 2026) is OPEN</div>
-                        <div className="notif-time">Accounting integrity: Double-entry balanced</div>
+                        <div className="notif-title">3 invoices are overdue</div>
+                        <div className="notif-time">Total value £4,320.00</div>
                       </div>
                     </div>
                     <div className="notif-item">
                       <div className="notif-icon amber">
-                        <AlertTriangle size={14} />
+                        <Clock size={14} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div className="notif-title">Review Draft Journals</div>
-                        <div className="notif-time">2 manual journals awaiting validation</div>
+                        <div className="notif-title">2 bills due within 7 days</div>
+                        <div className="notif-time">Total value £760.00</div>
                       </div>
                     </div>
                     <div className="notif-item">
@@ -471,8 +493,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <Info size={14} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div className="notif-title">System Audit Log Active</div>
-                        <div className="notif-time">All actions cryptographically logged</div>
+                        <div className="notif-title">VAT return due in 14 days</div>
+                        <div className="notif-time">Period ends 31 Dec 2024</div>
                       </div>
                     </div>
                   </div>
@@ -480,38 +502,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Current User Profile Dropdown */}
+            {/* User Profile Card */}
             <div style={{ position: 'relative' }} ref={userDropdownRef}>
               <div
-                className="topbar-user-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                }}
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
                 role="button"
                 tabIndex={0}
               >
-                <div className="user-avatar-circle">{userInitials}</div>
-                <div className="user-info-text">
-                  <span className="user-name">
-                    {user.firstName} {user.lastName}
+                <div className="user-avatar-navy">{userInitials}</div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>
+                    {userName}
                   </span>
-                  <span className="user-role-label">
-                    {activeRole?.name ?? 'Owner'}
+                  <span style={{ fontSize: '0.725rem', color: '#64748B' }}>
+                    {roleTitle}
                   </span>
                 </div>
-                <ChevronDown size={14} style={{ color: '#9CA3AF' }} />
               </div>
 
               {showUserDropdown && (
-                <div className="user-dropdown-menu">
+                <div className="user-dropdown-menu" style={{ right: 0 }}>
                   <div className="user-dropdown-meta">
                     <div style={{ fontWeight: 600, color: '#172033', fontSize: '0.85rem' }}>
-                      {user.firstName} {user.lastName}
+                      {userName}
                     </div>
                     <div style={{ color: '#6B7280', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {user.email}
                     </div>
                     <div style={{ marginTop: '0.35rem' }}>
                       <span className="badge badge-owner" style={{ fontSize: '0.65rem' }}>
-                        {activeRole?.name ?? 'Owner'}
+                        {roleTitle}
                       </span>
                     </div>
                   </div>
@@ -556,8 +583,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Main Page Content */}
-        <main className="page-body">{children}</main>
+        {/* Page Content Body */}
+        {children}
       </div>
     </div>
   );
