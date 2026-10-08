@@ -172,7 +172,7 @@ export class TrialBalanceService {
     }
 
     const isBalanced = underlyingDebitTotal.sub(underlyingCreditTotal).isZero();
-    let totalDebit = overallDebitBalance;
+    const totalDebit = overallDebitBalance;
     let totalCredit = overallCreditBalance;
     let difference = overallDebitBalance.sub(overallCreditBalance);
 
