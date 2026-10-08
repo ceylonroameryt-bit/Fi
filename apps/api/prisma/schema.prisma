@@ -182,6 +182,9 @@ model User {
   journalsPosted        JournalEntry[]         @relation("JournalPostedBy")
   contactsCreated       Contact[]              @relation("ContactCreatedBy")
   invoicesCreated       Invoice[]              @relation("InvoiceCreatedBy")
+  aiDocumentsCreated    AiDocument[]           @relation("AiDocumentCreatedBy")
+  aiSuggestionsReviewed AiSuggestion[]         @relation("AiSuggestionReviewedBy")
+  aiFeedbacksGiven      AiFeedback[]           @relation("AiFeedbackCorrectedBy")
   auditLogs             AuditLog[]
 
   @@map("users")
@@ -256,6 +259,10 @@ model Organization {
   invoices       Invoice[]
   sequences      OrganizationSequence[]
   auditLogs      AuditLog[]
+  businessContext OrganizationBusinessContext?
+  aiDocuments    AiDocument[]
+  aiExtractions  AiExtraction[]
+  aiFeedbacks    AiFeedback[]
 
   @@index([status])
   @@map("organizations")
@@ -364,6 +371,7 @@ model Account {
   invoiceLines  InvoiceLine[]
   receivableContacts Contact[] @relation("ContactReceivableAccount")
   payableContacts    Contact[] @relation("ContactPayableAccount")
+  aiLineClassifications AiLineClassification[] @relation("AiLineResolvedAccount")
 
   @@unique([organizationId, code])
   @@unique([organizationId, id])
@@ -588,6 +596,7 @@ model Contact {
   invoices     Invoice[]
   people       ContactPerson[]
   journalLines JournalLine[]
+  aiClassifications AiClassification[] @relation("AiClassificationContact")
 
   @@unique([organizationId, id])
   @@index([organizationId, type])
@@ -689,5 +698,245 @@ model InvoiceLine {
   @@unique([invoiceId, lineNumber])
   @@index([organizationId, accountId])
   @@map("invoice_lines")
+}
+
+// ───────────────────── Document Intelligence & AI Engine ─────────────────────
+
+enum AiDocumentType {
+  PURCHASE_INVOICE
+  SALES_INVOICE
+  PURCHASE_CREDIT_NOTE
+  SALES_CREDIT_NOTE
+  RECEIPT
+  EXPENSE_RECEIPT
+  BANK_STATEMENT
+  DELIVERY_NOTE
+  STATEMENT
+  OTHER
+  UNKNOWN
+}
+
+enum AiDocumentStatus {
+  PENDING
+  PROCESSING
+  REQUIRES_REVIEW
+  DRAFTED
+  APPROVED
+  REJECTED
+  FAILED
+}
+
+enum AiDirection {
+  PURCHASE
+  SALE
+  UNKNOWN
+}
+
+enum AiProductType {
+  INVENTORY
+  EXPENSE
+  FIXED_ASSET
+  SERVICE
+  UNKNOWN
+}
+
+enum AiConfidenceLevel {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum AiSuggestionStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  EDITED
+}
+
+model OrganizationBusinessContext {
+  id                  String       @id @default(uuid()) @db.Uuid
+  organizationId      String       @unique @map("organization_id") @db.Uuid
+  industry            String       @default("GENERAL") @db.VarChar(50)
+  inventoryEnabled    Boolean      @default(true) @map("inventory_enabled")
+  inventoryCategories Json         @default("[]") @map("inventory_categories")
+  salesChannels       Json         @default("[]") @map("sales_channels")
+  accountingMethod    String       @default("INVENTORY_BASED") @map("accounting_method") @db.VarChar(50)
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_business_contexts")
+}
+
+model AiDocument {
+  id              String            @id @default(uuid()) @db.Uuid
+  organizationId  String            @map("organization_id") @db.Uuid
+  fileKey         String            @map("file_key") @db.VarChar(255)
+  fileName        String            @map("file_name") @db.VarChar(255)
+  fileSize        Int               @map("file_size")
+  mimeType        String            @map("mime_type") @db.VarChar(100)
+  documentType    AiDocumentType    @default(UNKNOWN) @map("document_type")
+  direction       AiDirection       @default(UNKNOWN)
+  status          AiDocumentStatus  @default(PENDING)
+  confidenceScore Decimal?          @map("confidence_score") @db.Decimal(5, 4)
+  confidenceLevel AiConfidenceLevel @default(MEDIUM) @map("confidence_level")
+  errorMessage    String?           @map("error_message") @db.VarChar(500)
+  createdById     String            @map("created_by") @db.Uuid
+  processedAt     DateTime?         @map("processed_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  organization         Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy            User                   @relation("AiDocumentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  extractions          AiExtraction[]
+  classifications      AiClassification[]
+  lineClassifications  AiLineClassification[]
+  suggestions          AiSuggestion[]
+  auditEvents          AiAuditEvent[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status])
+  @@index([organizationId, documentType])
+  @@map("ai_documents")
+}
+
+model AiExtraction {
+  id                String    @id @default(uuid()) @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  documentId        String    @map("document_id") @db.Uuid
+  invoiceNumber     String?   @map("invoice_number") @db.VarChar(50)
+  invoiceDate       DateTime? @map("invoice_date") @db.Date
+  dueDate           DateTime? @map("due_date") @db.Date
+  currency          String?   @db.Char(3)
+  issuerName        String?   @map("issuer_name") @db.VarChar(200)
+  issuerTaxId       String?   @map("issuer_tax_id") @db.VarChar(50)
+  issuerAddress     String?   @map("issuer_address") @db.VarChar(500)
+  recipientName     String?   @map("recipient_name") @db.VarChar(200)
+  recipientTaxId    String?   @map("recipient_tax_id") @db.VarChar(50)
+  recipientAddress  String?   @map("recipient_address") @db.VarChar(500)
+  subtotal          Decimal?  @db.Decimal(19, 4)
+  taxAmount         Decimal?  @map("tax_amount") @db.Decimal(19, 4)
+  totalAmount       Decimal?  @map("total_amount") @db.Decimal(19, 4)
+  rawStructuredData Json      @map("raw_structured_data")
+  modelVersion      String?   @map("model_version") @db.VarChar(50)
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  document     AiDocument   @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+
+  @@unique([organizationId, id])
+  @@index([documentId])
+  @@map("ai_extractions")
+}
+
+model AiClassification {
+  id                String      @id @default(uuid()) @db.Uuid
+  organizationId    String      @map("organization_id") @db.Uuid
+  documentId        String      @map("document_id") @db.Uuid
+  direction         AiDirection
+  entityType        String      @map("entity_type") @db.VarChar(30)
+  entityId          String?     @map("entity_id") @db.Uuid
+  entityMatchReason String?     @map("entity_match_reason") @db.VarChar(255)
+  classification    String      @db.VarChar(100)
+  confidenceScore   Decimal     @map("confidence_score") @db.Decimal(5, 4)
+  reasoning         String?     @db.VarChar(1000)
+  createdAt         DateTime    @default(now()) @map("created_at")
+
+  document AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+  contact  Contact?   @relation("AiClassificationContact", fields: [organizationId, entityId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([documentId])
+  @@map("ai_classifications")
+}
+
+model AiLineClassification {
+  id                    String        @id @default(uuid()) @db.Uuid
+  organizationId        String        @map("organization_id") @db.Uuid
+  documentId            String        @map("document_id") @db.Uuid
+  lineNumber            Int           @map("line_number") @db.SmallInt
+  rawDescription        String        @map("raw_description") @db.VarChar(255)
+  quantity              Decimal       @default(1) @db.Decimal(19, 4)
+  unit                  String?       @db.VarChar(30)
+  unitPrice             Decimal       @map("unit_price") @db.Decimal(19, 4)
+  netAmount             Decimal       @map("net_amount") @db.Decimal(19, 4)
+  taxAmount             Decimal       @map("tax_amount") @db.Decimal(19, 4)
+  totalAmount           Decimal       @map("total_amount") @db.Decimal(19, 4)
+  productType           AiProductType @map("product_type")
+  productClassification String        @map("product_classification") @db.VarChar(100)
+  taxClassification     String        @map("tax_classification") @db.VarChar(50)
+  accountingCategory    String        @map("accounting_category") @db.VarChar(100)
+  resolvedAccountId     String?       @map("resolved_account_id") @db.Uuid
+  confidenceScore       Decimal       @map("confidence_score") @db.Decimal(5, 4)
+  createdAt             DateTime      @default(now()) @map("created_at")
+
+  document AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+  account  Account?   @relation("AiLineResolvedAccount", fields: [organizationId, resolvedAccountId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([documentId, lineNumber])
+  @@map("ai_line_classifications")
+}
+
+model AiSuggestion {
+  id                 String             @id @default(uuid()) @db.Uuid
+  organizationId     String             @map("organization_id") @db.Uuid
+  documentId         String             @map("document_id") @db.Uuid
+  suggestionType     String             @map("suggestion_type") @db.VarChar(50)
+  payload            Json
+  confidenceScore    Decimal            @map("confidence_score") @db.Decimal(5, 4)
+  confidenceLevel    AiConfidenceLevel  @map("confidence_level")
+  status             AiSuggestionStatus @default(PENDING_REVIEW)
+  reviewedById       String?            @map("reviewed_by_id") @db.Uuid
+  reviewedAt         DateTime?          @map("reviewed_at")
+  reviewNote         String?            @map("review_note") @db.VarChar(500)
+  resultingInvoiceId String?            @map("resulting_invoice_id") @db.Uuid
+  resultingJournalId String?            @map("resulting_journal_id") @db.Uuid
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  document   AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+  reviewedBy User?      @relation("AiSuggestionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status])
+  @@map("ai_suggestions")
+}
+
+model AiFeedback {
+  id                      String   @id @default(uuid()) @db.Uuid
+  organizationId          String   @map("organization_id") @db.Uuid
+  suggestionId            String?  @map("suggestion_id") @db.Uuid
+  supplierOrCustomerId    String?  @map("supplier_or_customer_id") @db.Uuid
+  productPattern          String   @map("product_pattern") @db.VarChar(255)
+  originalClassification  String   @map("original_classification") @db.VarChar(100)
+  correctedClassification String   @map("corrected_classification") @db.VarChar(100)
+  correctedAccountId      String?  @map("corrected_account_id") @db.Uuid
+  correctedById           String   @map("corrected_by") @db.Uuid
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  correctedBy  User         @relation("AiFeedbackCorrectedBy", fields: [correctedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, productPattern])
+  @@index([organizationId, supplierOrCustomerId])
+  @@map("ai_feedbacks")
+}
+
+model AiAuditEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  documentId     String   @map("document_id") @db.Uuid
+  action         String   @db.VarChar(50)
+  actorId        String?  @map("actor_id") @db.Uuid
+  payload        Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  document AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+
+  @@index([organizationId, documentId])
+  @@index([organizationId, createdAt])
+  @@map("ai_audit_events")
 }
 

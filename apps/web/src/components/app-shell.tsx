@@ -20,6 +20,7 @@ import {
   BookOpenCheck,
   BookOpen,
   Scale,
+  Sparkles,
   CalendarRange,
   CalendarClock,
   TrendingUp,
@@ -103,9 +104,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F4F7FC' }}>
-        <div style={{ color: '#0C182F', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#FF705B' }}></span>
+      <div
+        style={{
+          display: 'flex',
+          height: '100vh',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#F4F7FC',
+        }}
+      >
+        <div
+          style={{
+            color: '#0C182F',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.65rem',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: '#FF705B',
+            }}
+          ></span>
           Loading Blynt workspace...
         </div>
       </div>
@@ -135,9 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Exact navigation categories and items from the official Blynt design reference
   const navSections: NavSection[] = [
     {
-      items: [
-        { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-      ],
+      items: [{ label: 'Dashboard', href: '/', icon: LayoutDashboard }],
     },
     {
       title: 'SALES',
@@ -168,6 +192,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     {
       title: 'ACCOUNTING',
       items: [
+        { label: 'Document Intelligence', href: '/accounting/documents', icon: Sparkles },
         { label: 'Chart of Accounts', href: '/accounting/chart-of-accounts', icon: ListTree },
         { label: 'Journals', href: '/accounting/journals', icon: BookOpenCheck },
         { label: 'General Ledger', href: '/accounting/general-ledger', icon: BookOpen },
@@ -207,7 +232,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { title: 'Invoices', category: 'Sales', href: '/sales/invoices' },
     { title: 'Customers', category: 'Sales', href: '/sales/contacts' },
     { title: 'Chart of Accounts', category: 'Accounting', href: '/accounting/chart-of-accounts' },
-    { title: 'New Manual Journal', category: 'Accounting', href: '/accounting/journals/new', badge: 'Action' },
+    {
+      title: 'New Manual Journal',
+      category: 'Accounting',
+      href: '/accounting/journals/new',
+      badge: 'Action',
+    },
     { title: 'Trial Balance', category: 'Reports', href: '/reports/trial-balance' },
     { title: 'Financial Years', category: 'Accounting', href: '/accounting/financial-years' },
     { title: 'Accounting Periods', category: 'Accounting', href: '/accounting/periods' },
@@ -218,7 +248,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ? searchCatalog.filter(
         (item) =>
           item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.category.toLowerCase().includes(searchQuery.toLowerCase())
+          item.category.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : searchCatalog.slice(0, 5);
 
@@ -226,11 +256,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="app-container">
       {/* Mobile Drawer Overlay */}
       {mobileNavOpen && (
-        <div
-          className="mobile-drawer-overlay"
-          onClick={() => setMobileNavOpen(false)}
-          aria-hidden="true"
-        />
+        <div className="mobile-drawer-overlay" onClick={() => setMobileNavOpen(false)} aria-hidden="true" />
       )}
 
       {/* Left Sidebar (Dark Navy matching design) */}
@@ -258,16 +284,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {section.title && <div className="nav-section-title">{section.title}</div>}
               {section.items.map((item) => {
                 const isActive =
-                  pathname === item.href ||
-                  (item.href !== '/' && pathname.startsWith(item.href));
+                  pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
                 const Icon = item.icon;
 
                 return (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className={`nav-link ${isActive ? 'active' : ''}`}
-                  >
+                  <Link key={item.label} href={item.href} className={`nav-link ${isActive ? 'active' : ''}`}>
                     <div className="nav-link-content">
                       <Icon size={16} className="nav-link-icon" />
                       <span>{item.label}</span>
@@ -333,7 +354,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                   <div className="search-results-list">
                     {searchResults.length === 0 ? (
-                      <div style={{ padding: '1rem', textAlign: 'center', color: '#6B7280', fontSize: '0.8rem' }}>
+                      <div
+                        style={{ padding: '1rem', textAlign: 'center', color: '#6B7280', fontSize: '0.8rem' }}
+                      >
                         No results found for &ldquo;{searchQuery}&rdquo;
                       </div>
                     ) : (
@@ -351,9 +374,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             <div style={{ fontSize: '0.825rem', fontWeight: 600, color: '#172033' }}>
                               {res.title}
                             </div>
-                            <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>
-                              {res.category}
-                            </div>
+                            <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>{res.category}</div>
                           </div>
                           {res.badge ? (
                             <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
@@ -414,7 +435,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             {m.organization.name.slice(0, 2).toUpperCase()}
                           </span>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#172033', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div
+                              style={{
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                color: '#172033',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
                               {m.organization.name}
                             </div>
                             <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>
@@ -521,19 +551,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>
                     {userName}
                   </span>
-                  <span style={{ fontSize: '0.725rem', color: '#64748B' }}>
-                    {roleTitle}
-                  </span>
+                  <span style={{ fontSize: '0.725rem', color: '#64748B' }}>{roleTitle}</span>
                 </div>
               </div>
 
               {showUserDropdown && (
                 <div className="user-dropdown-menu" style={{ right: 0 }}>
                   <div className="user-dropdown-meta">
-                    <div style={{ fontWeight: 600, color: '#172033', fontSize: '0.85rem' }}>
-                      {userName}
-                    </div>
-                    <div style={{ color: '#6B7280', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontWeight: 600, color: '#172033', fontSize: '0.85rem' }}>{userName}</div>
+                    <div
+                      style={{
+                        color: '#6B7280',
+                        fontSize: '0.75rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
                       {user.email}
                     </div>
                     <div style={{ marginTop: '0.35rem' }}>
