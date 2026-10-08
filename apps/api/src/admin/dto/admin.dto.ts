@@ -1,5 +1,5 @@
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { OrganizationStatus, UserStatus } from '@prisma/client';
 
 export class AdminPaginationQueryDto {
@@ -23,6 +23,11 @@ export class AdminPaginationQueryDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  superAdminOnly?: boolean;
 }
 
 export class UpdateOrgStatusDto {

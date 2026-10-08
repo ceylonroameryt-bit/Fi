@@ -144,4 +144,22 @@ describe('OrganizationAccessGuard Security & Tenant Isolation (organization-acce
     expect(ctx.request.org).toBeDefined();
     expect(ctx.request.org.organizationId).toBe('org-1');
   });
+
+  it('allows non-tenant routes with generic id param (e.g. user id) without invoking tenant validation', async () => {
+    reflector.getAllAndOverride.mockImplementation((key) => {
+      if (key === 'isPublic') return false;
+      if (key === 'requiredPermissions') return [];
+      return undefined;
+    });
+
+    const ctx = createMockContext({
+      headers: {},
+      params: { id: 'some-user-uuid' },
+    });
+
+    const result = await guard.canActivate(ctx as any);
+    expect(result).toBe(true);
+    expect(organizations.validateOrganizationAccess).not.toHaveBeenCalled();
+  });
 });
+

@@ -404,18 +404,20 @@ export class GeneralLedgerService {
       const period = await this.prisma.accountingPeriod.findFirst({
         where: { id: filter.periodId, organizationId },
       });
-      if (period) {
-        startDate = period.startDate;
-        endDate = period.endDate;
+      if (!period) {
+        throw new DomainException('PERIOD_NOT_FOUND', 'Requested accounting period was not found in this organisation');
       }
+      startDate = period.startDate;
+      endDate = period.endDate;
     } else if (filter.financialYearId) {
       const fy = await this.prisma.financialYear.findFirst({
         where: { id: filter.financialYearId, organizationId },
       });
-      if (fy) {
-        startDate = fy.startDate;
-        endDate = fy.endDate;
+      if (!fy) {
+        throw new DomainException('FINANCIAL_YEAR_NOT_FOUND', 'Requested financial year was not found in this organisation');
       }
+      startDate = fy.startDate;
+      endDate = fy.endDate;
     } else {
       if (filter.startDate) {
         startDate = parseIsoDate(filter.startDate, 'startDate');

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
@@ -102,7 +102,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
   const canPost = hasPermission('journal.post');
   const canReverse = hasPermission('journal.reverse');
 
-  const loadJournal = async () => {
+  const loadJournal = useCallback(async () => {
     if (!activeOrg || !journalId) return;
     try {
       setLoading(true);
@@ -179,11 +179,11 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOrg, journalId]);
 
   useEffect(() => {
     loadJournal();
-  }, [activeOrg, journalId]);
+  }, [loadJournal]);
 
   const handleValidate = async () => {
     if (!journal) return;

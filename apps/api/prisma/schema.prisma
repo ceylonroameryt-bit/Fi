@@ -455,7 +455,7 @@ model JournalEntry {
   metadata            Json?
 
   organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  period            AccountingPeriod? @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  period            AccountingPeriod? @relation(fields: [organizationId, periodId], references: [organizationId, id], onDelete: Restrict)
   createdBy         User              @relation("JournalCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy         User?             @relation("JournalUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   validatedBy       User?             @relation("JournalValidatedBy", fields: [validatedById], references: [id], onDelete: SetNull)
@@ -472,7 +472,7 @@ model JournalEntry {
   @@index([organizationId, status])
   @@index([organizationId, postingDate])
   @@index([organizationId, createdAt])
-  @@index([periodId])
+  @@index([organizationId, periodId])
   @@index([reversalOfJournalId])
   @@map("journal_entries")
 }

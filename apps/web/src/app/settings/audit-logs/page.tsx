@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
@@ -33,7 +33,7 @@ export default function AuditLogsPage() {
   const [selectedLog, setSelectedLog] = useState<AuditItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     if (!activeOrg) return;
     try {
       setLoading(true);
@@ -46,11 +46,11 @@ export default function AuditLogsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOrg]);
 
   useEffect(() => {
     loadLogs();
-  }, [activeOrg]);
+  }, [loadLogs]);
 
   const filteredLogs = logs.filter((log) => {
     if (selectedEventType !== 'ALL' && log.eventType !== selectedEventType) return false;

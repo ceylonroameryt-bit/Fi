@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
@@ -72,7 +72,7 @@ export default function InvoiceDetailPage() {
   const canPost = hasPermission('invoice.post');
   const canVoid = hasPermission('invoice.void');
 
-  const loadInvoice = async () => {
+  const loadInvoice = useCallback(async () => {
     if (!activeOrg || !id) return;
     try {
       setLoading(true);
@@ -84,11 +84,11 @@ export default function InvoiceDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOrg, id]);
 
   useEffect(() => {
     loadInvoice();
-  }, [activeOrg, id]);
+  }, [loadInvoice]);
 
   const handlePost = async () => {
     if (!invoice) return;

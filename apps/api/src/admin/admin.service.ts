@@ -227,6 +227,9 @@ export class AdminService {
     if (query.status && Object.values(UserStatus).includes(query.status as UserStatus)) {
       where.status = query.status as UserStatus;
     }
+    if (query.superAdminOnly) {
+      where.isSuperAdmin = true;
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({

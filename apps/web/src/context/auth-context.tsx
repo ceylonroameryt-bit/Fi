@@ -112,13 +112,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       await apiRequest(`/organizations/${orgId}/switch`, { method: 'POST' });
-    } catch {
-      // Switch locally even if network fails
+      setActiveOrg(membership.organization);
+      setActiveRole(membership.role);
+      localStorage.setItem('active_org_id', orgId);
+    } catch (err) {
+      console.error('Failed to switch organisation on server:', err);
+      throw err;
     }
-
-    setActiveOrg(membership.organization);
-    setActiveRole(membership.role);
-    localStorage.setItem('active_org_id', orgId);
   };
 
   const refreshOrgs = async () => {

@@ -43,7 +43,7 @@ export class OrganizationAccessGuard implements CanActivate {
           ? headerOrg[0]?.trim()
           : undefined;
 
-    const paramOrg = request.params?.orgId || request.params?.id;
+    const paramOrg = request.params?.orgId;
     const paramOrgId =
       typeof paramOrg === 'string'
         ? paramOrg.trim()

@@ -4,6 +4,7 @@ import { PrismaService } from '../database/prisma.service';
 import { MoneyService } from '../accounting-engine/money.service';
 import { parseIsoDate, toIsoDate } from '../common/utils/dates';
 import { toCsvRow } from '../common/utils/csv';
+import { DomainException } from '../common/errors/domain.exception';
 
 export interface TrialBalanceFilterDto {
   asOfDate?: string;
@@ -234,18 +235,20 @@ export class TrialBalanceService {
       const period = await this.prisma.accountingPeriod.findFirst({
         where: { id: filter.periodId, organizationId },
       });
-      if (period) {
-        return { asOfDate: period.endDate, periodName: period.name };
+      if (!period) {
+        throw new DomainException('PERIOD_NOT_FOUND', 'Requested accounting period was not found in this organisation');
       }
+      return { asOfDate: period.endDate, periodName: period.name };
     }
 
     if (filter.financialYearId) {
       const fy = await this.prisma.financialYear.findFirst({
         where: { id: filter.financialYearId, organizationId },
       });
-      if (fy) {
-        return { asOfDate: fy.endDate, financialYearName: fy.name };
+      if (!fy) {
+        throw new DomainException('FINANCIAL_YEAR_NOT_FOUND', 'Requested financial year was not found in this organisation');
       }
+      return { asOfDate: fy.endDate, financialYearName: fy.name };
     }
 
     if (filter.asOfDate) {

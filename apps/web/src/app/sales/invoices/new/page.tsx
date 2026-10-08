@@ -79,8 +79,8 @@ function NewInvoiceForm() {
 
         const customerList = Array.isArray(contactsData) ? contactsData : [];
         setContacts(customerList);
-        if (!contactId && customerList.length > 0) {
-          setContactId(customerList[0].id);
+        if (customerList.length > 0) {
+          setContactId((prev) => prev || customerList[0].id);
         }
 
         const revAccs = (Array.isArray(accountsData) ? accountsData : []).filter(

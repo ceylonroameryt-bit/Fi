@@ -183,7 +183,7 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
       }
     } else if (typeof data === 'string' && data.length > 0) {
       if (data.includes('DNS_HOSTNAME_RESOLVED_PRIVATE')) {
-        message = 'The backend API could not be reached by Vercel. In your Vercel Project Settings > Environment Variables, add API_URL pointing to your live backend (e.g. https://ledgerline-api.onrender.com) and redeploy.';
+        message = 'The backend API could not be reached by Vercel. In your Vercel Project Settings > Environment Variables, add API_URL pointing to your live backend (e.g. https://api.blynt.com) and redeploy.';
         code = 'CONFIG_ERROR';
       } else {
         try {

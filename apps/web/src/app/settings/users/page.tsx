@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
@@ -44,7 +44,7 @@ export default function UsersSettingsPage() {
 
   const canManageUsers = hasPermission('users.manage') || hasPermission('user:manage');
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!activeOrg) return;
     const orgId = activeOrg.id;
     try {
@@ -57,10 +57,11 @@ export default function UsersSettingsPage() {
       // Prevent stale response from overwriting newer activeOrg
       if (activeOrg.id !== orgId) return;
       setMembers(Array.isArray(membersData) ? membersData : []);
-      setRoles(Array.isArray(rolesData) ? rolesData : []);
-      if (rolesData.length > 0 && !inviteRoleId) {
-        const defaultRole = rolesData.find((r: Role) => r.systemKey === 'ACCOUNTANT') || rolesData[0];
-        setInviteRoleId(defaultRole.id);
+      const roleList = Array.isArray(rolesData) ? rolesData : [];
+      setRoles(roleList);
+      if (roleList.length > 0) {
+        const defaultRole = roleList.find((r: Role) => r.systemKey === 'ACCOUNTANT') || roleList[0];
+        setInviteRoleId((prev) => prev || defaultRole.id);
       }
     } catch (err: any) {
       if (activeOrg.id !== orgId) return;
@@ -72,7 +73,7 @@ export default function UsersSettingsPage() {
         setLoading(false);
       }
     }
-  };
+  }, [activeOrg]);
 
   useEffect(() => {
     // Clear state on activeOrg change to prevent showing stale tenant data
@@ -80,7 +81,7 @@ export default function UsersSettingsPage() {
     setError(null);
     setSuccess(null);
     loadData();
-  }, [activeOrg?.id]);
+  }, [loadData]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();

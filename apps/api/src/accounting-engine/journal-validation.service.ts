@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JournalSourceType, JournalStatus } from '@prisma/client';
+import { ContactStatus, JournalSourceType, JournalStatus } from '@prisma/client';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { MoneyService } from './money.service';
 import { FinancialYearsService } from '../financial-years/financial-years.service';
@@ -53,6 +53,7 @@ export class JournalValidationService {
         lines: {
           include: {
             account: true,
+            contact: true,
           },
           orderBy: { lineNumber: 'asc' },
         },
@@ -163,6 +164,12 @@ export class JournalValidationService {
       if (!line.account.isActive) {
         errors.push(`Line ${line.lineNumber}: Account ${line.account.code} (${line.account.name}) is archived and cannot be used`);
         issues.push({ lineIndex: index, accountId: line.accountId, message: `Account ${line.account.code} is archived`, code: 'ACCOUNT_ARCHIVED' });
+      }
+
+      // Rule 9b: Contact is not archived
+      if (line.contact && line.contact.status === ContactStatus.ARCHIVED) {
+        errors.push(`Line ${line.lineNumber}: Contact ${line.contact.name} is archived and cannot be used in new transactions`);
+        issues.push({ lineIndex: index, accountId: line.accountId, message: `Contact ${line.contact.name} is archived`, code: 'CONTACT_ARCHIVED' });
       }
 
       // Rule 10: Manual posting allowed (only applies to manual journals; system journals like invoices may post to AR/Tax nominals)

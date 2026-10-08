@@ -30,6 +30,10 @@ export class JournalLineDto {
   accountId: string;
 
   @IsOptional()
+  @IsUUID('4', { message: 'contactId must be a valid UUID' })
+  contactId?: string;
+
+  @IsOptional()
   @Transform(trim)
   @IsString()
   @MaxLength(255)

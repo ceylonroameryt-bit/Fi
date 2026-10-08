@@ -218,4 +218,21 @@ describe('GeneralLedgerService (Phase 11)', () => {
     }, 0);
     expect(totalExportedDebit).toBe(totalRecords * 10);
   });
+
+  it('throws PERIOD_NOT_FOUND when non-existent periodId is requested', async () => {
+    prisma.accountingPeriod.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.getGeneralLedger('org-123', { periodId: 'missing-period' }),
+    ).rejects.toThrow('Requested accounting period was not found in this organisation');
+  });
+
+  it('throws FINANCIAL_YEAR_NOT_FOUND when non-existent financialYearId is requested', async () => {
+    prisma.financialYear.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.getGeneralLedger('org-123', { financialYearId: 'missing-fy' }),
+    ).rejects.toThrow('Requested financial year was not found in this organisation');
+  });
 });
+

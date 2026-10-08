@@ -155,6 +155,7 @@ export class JournalsService {
               debit: new Prisma.Decimal(l.debit.toString()),
               credit: new Prisma.Decimal(l.credit.toString()),
               currency,
+              contactId: l.contactId ?? null,
             })),
           },
         },
@@ -259,6 +260,7 @@ export class JournalsService {
             debit: new Prisma.Decimal(l.debit.toString()),
             credit: new Prisma.Decimal(l.credit.toString()),
             currency: existing.currency,
+            contactId: l.contactId ?? null,
           })),
         });
       }
@@ -358,6 +360,7 @@ export class JournalsService {
         description: l.description ?? undefined,
         debit: new Prisma.Decimal(l.debit).toNumber(),
         credit: new Prisma.Decimal(l.credit).toNumber(),
+        contactId: l.contactId ?? undefined,
       })),
     };
 

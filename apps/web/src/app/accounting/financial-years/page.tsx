@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
@@ -50,7 +50,7 @@ export default function FinancialYearsPage() {
     autoGeneratePeriods: true,
   });
 
-  const loadFinancialYears = async () => {
+  const loadFinancialYears = useCallback(async () => {
     if (!activeOrg) return;
     try {
       setLoading(true);
@@ -65,11 +65,11 @@ export default function FinancialYearsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOrg, selectedYearId]);
 
   useEffect(() => {
     loadFinancialYears();
-  }, [activeOrg]);
+  }, [loadFinancialYears]);
 
   // Load periods when selected financial year changes
   useEffect(() => {

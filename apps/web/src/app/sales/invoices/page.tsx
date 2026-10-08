@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
@@ -40,7 +40,7 @@ export default function InvoicesPage() {
   const canCreate = hasPermission('invoice.create');
   const canPost = hasPermission('invoice.post');
 
-  const loadInvoices = async () => {
+  const loadInvoices = useCallback(async () => {
     if (!activeOrg) return;
     try {
       setLoading(true);
@@ -56,11 +56,11 @@ export default function InvoicesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOrg, statusFilter, search]);
 
   useEffect(() => {
     loadInvoices();
-  }, [activeOrg, statusFilter, search]);
+  }, [loadInvoices]);
 
   const handleQuickPost = async (id: string, invNum: string) => {
     if (!confirm(`Post invoice ${invNum} to the General Ledger? This will generate double-entry ledger postings.`)) return;

@@ -58,7 +58,7 @@ export default function OrganizationSettingsPage() {
     return () => {
       isCancelled = true;
     };
-  }, [activeOrg?.id]);
+  }, [activeOrg]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

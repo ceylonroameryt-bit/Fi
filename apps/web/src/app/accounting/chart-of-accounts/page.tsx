@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
@@ -47,7 +47,7 @@ export default function ChartOfAccountsPage() {
     description: '',
   });
 
-  const loadAccounts = async () => {
+  const loadAccounts = useCallback(async () => {
     if (!activeOrg) return;
     try {
       setLoading(true);
@@ -72,11 +72,11 @@ export default function ChartOfAccountsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOrg]);
 
   useEffect(() => {
     loadAccounts();
-  }, [activeOrg]);
+  }, [loadAccounts]);
 
   const handleTypeChange = (type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE') => {
     let normalBalance: 'DEBIT' | 'CREDIT' = 'DEBIT';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useCallback, useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
@@ -43,7 +43,7 @@ function PeriodsContent() {
   const canHardLock = hasPermission('period:hard_lock');
   const canUnlock = hasPermission('period:unlock');
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!activeOrg) return;
     try {
       setLoading(true);
@@ -60,11 +60,11 @@ function PeriodsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOrg, selectedFyId]);
 
   useEffect(() => {
     loadData();
-  }, [activeOrg, selectedFyId]);
+  }, [loadData]);
 
   const handlePeriodAction = async (periodId: string, action: 'soft-lock' | 'hard-lock' | 'unlock') => {
     if (action === 'hard-lock') {

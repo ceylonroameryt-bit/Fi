@@ -43,8 +43,8 @@ export default function RolesSettingsPage() {
         if (activeOrg.id !== orgId) return;
         const roleList: Role[] = Array.isArray(rolesRes) ? rolesRes : [];
         setRoles(roleList);
-        if (roleList.length > 0 && !selectedRoleId) {
-          setSelectedRoleId(roleList[0].id);
+        if (roleList.length > 0) {
+          setSelectedRoleId((prev) => prev || roleList[0].id);
         }
 
         const defaultPermissions: PermissionDef[] = [

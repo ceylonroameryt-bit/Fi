@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
@@ -31,7 +31,7 @@ export default function JournalsPage() {
 
   const canCreateJournal = hasPermission('journal:create');
 
-  const loadJournals = async () => {
+  const loadJournals = useCallback(async () => {
     if (!activeOrg) return;
     try {
       setLoading(true);
@@ -54,11 +54,11 @@ export default function JournalsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOrg]);
 
   useEffect(() => {
     loadJournals();
-  }, [activeOrg]);
+  }, [loadJournals]);
 
   const filteredJournals = journals.filter((j) => {
     if (statusFilter !== 'ALL' && j.status !== statusFilter) return false;
