@@ -206,10 +206,7 @@ export class TrialBalanceService {
   /**
    * Export Trial Balance as CSV formatted document.
    */
-  async exportTrialBalanceCsv(
-    organizationId: string,
-    filter: TrialBalanceFilterDto,
-  ): Promise<string> {
+  async exportTrialBalanceCsv(organizationId: string, filter: TrialBalanceFilterDto): Promise<string> {
     const tb = await this.generateTrialBalance(organizationId, filter);
 
     const rows: string[] = [];
@@ -224,9 +221,7 @@ export class TrialBalanceService {
     rows.push(toCsvRow(['Code', 'Account Name', 'Type', 'Debit Balance', 'Credit Balance']));
 
     for (const a of tb.accounts) {
-      rows.push(
-        toCsvRow([a.accountCode, a.accountName, a.accountType, a.debitBalance, a.creditBalance]),
-      );
+      rows.push(toCsvRow([a.accountCode, a.accountName, a.accountType, a.debitBalance, a.creditBalance]));
     }
 
     rows.push('');
@@ -245,7 +240,10 @@ export class TrialBalanceService {
         where: { id: filter.periodId, organizationId },
       });
       if (!period) {
-        throw new DomainException('PERIOD_NOT_FOUND', 'Requested accounting period was not found in this organisation');
+        throw new DomainException(
+          'PERIOD_NOT_FOUND',
+          'Requested accounting period was not found in this organisation',
+        );
       }
       return { asOfDate: period.endDate, periodName: period.name };
     }
@@ -255,7 +253,10 @@ export class TrialBalanceService {
         where: { id: filter.financialYearId, organizationId },
       });
       if (!fy) {
-        throw new DomainException('FINANCIAL_YEAR_NOT_FOUND', 'Requested financial year was not found in this organisation');
+        throw new DomainException(
+          'FINANCIAL_YEAR_NOT_FOUND',
+          'Requested financial year was not found in this organisation',
+        );
       }
       return { asOfDate: fy.endDate, financialYearName: fy.name };
     }

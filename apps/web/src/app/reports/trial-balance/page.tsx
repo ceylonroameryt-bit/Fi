@@ -107,9 +107,7 @@ function TrialBalanceContent() {
         params.set('asOfDate', asOfDate);
       }
 
-      const res = await apiRequest<TrialBalanceReport>(
-        `/reports/trial-balance?${params.toString()}`,
-      );
+      const res = await apiRequest<TrialBalanceReport>(`/reports/trial-balance?${params.toString()}`);
       setReport(res);
     } catch (err: any) {
       setError(err.message || 'Failed to generate Trial Balance');
@@ -362,12 +360,18 @@ function TrialBalanceContent() {
                         {row.accountType}
                       </span>
                     </td>
-                    <td className="text-right font-mono" style={{ fontWeight: Number(row.debitBalance) > 0 ? 600 : 400 }}>
+                    <td
+                      className="text-right font-mono"
+                      style={{ fontWeight: Number(row.debitBalance) > 0 ? 600 : 400 }}
+                    >
                       {Number(row.debitBalance) > 0
                         ? Number(row.debitBalance).toLocaleString('en-GB', { minimumFractionDigits: 2 })
                         : '—'}
                     </td>
-                    <td className="text-right font-mono" style={{ fontWeight: Number(row.creditBalance) > 0 ? 600 : 400 }}>
+                    <td
+                      className="text-right font-mono"
+                      style={{ fontWeight: Number(row.creditBalance) > 0 ? 600 : 400 }}
+                    >
                       {Number(row.creditBalance) > 0
                         ? Number(row.creditBalance).toLocaleString('en-GB', { minimumFractionDigits: 2 })
                         : '—'}
@@ -407,7 +411,9 @@ function TrialBalanceContent() {
                     }}
                   >
                     £{Number(report.difference).toLocaleString('en-GB', { minimumFractionDigits: 2 })}{' '}
-                    {report.isBalanced && <span style={{ marginLeft: '0.5rem', fontWeight: 500 }}>(Balanced)</span>}
+                    {report.isBalanced && (
+                      <span style={{ marginLeft: '0.5rem', fontWeight: 500 }}>(Balanced)</span>
+                    )}
                   </td>
                 </tr>
               </tfoot>
@@ -421,7 +427,13 @@ function TrialBalanceContent() {
 
 export default function TrialBalancePage() {
   return (
-    <Suspense fallback={<AppShell><div style={{ padding: '3rem', textAlign: 'center' }}>Loading Trial Balance...</div></AppShell>}>
+    <Suspense
+      fallback={
+        <AppShell>
+          <div style={{ padding: '3rem', textAlign: 'center' }}>Loading Trial Balance...</div>
+        </AppShell>
+      }
+    >
       <TrialBalanceContent />
     </Suspense>
   );
