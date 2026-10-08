@@ -17,14 +17,14 @@ This guide provides operational instructions for deploying and running **Blynt**
                                 ▼
  ┌─────────────────────────────────────────────────────────────┐
  │            Vercel (apps/web - Next.js 15)                   │
- │   - URL: https://app.warpledger.com                         │
+ │   - URL: https://app.blynt.com                              │
  │   - Same-origin reverse proxy: /api/v1/* ──────────────────┐│
  └────────────────────────────────────────────────────────────┼┘
                                                               │ Internal Server Proxy
                                                               ▼
  ┌─────────────────────────────────────────────────────────────┐
  │       Render / Railway / Container (apps/api - NestJS)      │
- │   - URL: https://api.warpledger.com                         │
+ │   - URL: https://api.blynt.com                              │
  │   - Double-entry accounting engine & JWT auth               │
  │   - Runs as unprivileged 'node' user (non-root)             │
  │   - Health check: /api/v1/health                            │
@@ -47,11 +47,11 @@ Managed serverless databases (like Neon or Supabase) utilize pgBouncer or connec
 
 1. **`DATABASE_URL`** (Transaction Pooling):
    ```env
-   DATABASE_URL="postgresql://user:password@ep-pooler.us-east-2.aws.neon.tech/warpledger?sslmode=require"
+   DATABASE_URL="postgresql://user:password@ep-pooler.us-east-2.aws.neon.tech/blynt?sslmode=require"
    ```
 2. **`DIRECT_URL`** (Direct Connection for Migrations):
    ```env
-   DIRECT_URL="postgresql://user:password@ep-direct.us-east-2.aws.neon.tech/warpledger?sslmode=require"
+   DIRECT_URL="postgresql://user:password@ep-direct.us-east-2.aws.neon.tech/blynt?sslmode=require"
    ```
 
 ### Applying Migrations (Explicit Release Step)
@@ -95,8 +95,8 @@ Configure the following environment variables in your deployment environment:
 | `SESSION_SECRET` | 256-bit secret for session cookies | *(Generated 64-char hex)* |
 | `ACCESS_TOKEN_TTL_SECONDS` | JWT expiry duration | `900` (15 minutes) |
 | `REFRESH_TOKEN_TTL_DAYS` | Refresh token lifespan | `14` |
-| `FRONTEND_URL` | Canonical frontend web URL | `https://app.warpledger.com` |
-| `CORS_ALLOWED_ORIGINS` | Comma-delimited CORS origins | `https://app.warpledger.com` |
+| `FRONTEND_URL` | Canonical frontend web URL | `https://app.blynt.com` |
+| `CORS_ALLOWED_ORIGINS` | Comma-delimited CORS origins | `https://app.blynt.com` |
 | `COOKIE_SECURE` | Enforce HTTPS cookies | `true` |
 | `RATE_LIMIT_PER_MINUTE` | General API rate limit | `300` |
 | `AUTH_RATE_LIMIT_PER_MINUTE` | Auth route brute-force protection | `10` |
@@ -106,7 +106,7 @@ Configure the following environment variables in your deployment environment:
 | `SMTP_USER` | SMTP username | `apikey` |
 | `SMTP_PASS` | SMTP password / API token | `SG.xxxxxxxx` |
 | `SMTP_SECURE` | Enable TLS wrapper | `false` (for STARTTLS 587) |
-| `MAIL_FROM` | Sender address | `noreply@warpledger.com` |
+| `MAIL_FROM` | Sender address | `noreply@blynt.com` |
 
 ### Render Blueprint Deployment
 When using Render:
@@ -126,7 +126,7 @@ The API and Web Dockerfiles run under the unprivileged `node` user (UID 1000) to
 2. Set **Root Directory** to `apps/web`.
 3. Set **Framework Preset** to Next.js.
 4. Set **Environment Variables**:
-   - `API_URL`: `https://api.warpledger.com` (internal server-to-server proxy target).
+   - `API_URL`: `https://api.blynt.com` (internal server-to-server proxy target).
 5. **Do Not Expose Container-Only Hostnames to Browsers**:
    - In containerized deployments (such as Docker Compose), set `API_URL=http://api:4000` so Next.js server proxies requests internally.
    - Leave `NEXT_PUBLIC_API_URL` empty to ensure client browsers use same-origin `/api/v1` routes rather than attempting to resolve non-routable container names.
@@ -146,17 +146,17 @@ If `JWT_SECRET` or `SESSION_SECRET` must be rotated:
 Perform automated point-in-time recovery (PITR) and daily logical backups:
 ```bash
 # Create logical backup
-pg_dump "$DATABASE_URL" -Fc -f "warpledger_backup_$(date +%Y%m%d_%H%M%S).dump"
+pg_dump "$DATABASE_URL" -Fc -f "blynt_backup_$(date +%Y%m%d_%H%M%S).dump"
 
 # Restore from backup
-pg_restore -d "$DATABASE_URL" --clean --no-owner "warpledger_backup_YYYYMMDD_HHMMSS.dump"
+pg_restore -d "$DATABASE_URL" --clean --no-owner "blynt_backup_YYYYMMDD_HHMMSS.dump"
 ```
 
 ### Rollback Procedure
 If a release must be rolled back:
 1. **Frontend / API**: Re-deploy the previous Git release tag or container SHA in your cloud hosting provider.
 2. **Database Migrations**:
-   - Warp Ledger migrations are forward-compatible.
+   - Blynt migrations are forward-compatible.
    - If an applied migration failed during a pre-deploy release:
      ```bash
      npx prisma migrate resolve --rolled-back <migration_name> --schema=apps/api/prisma/schema.prisma
