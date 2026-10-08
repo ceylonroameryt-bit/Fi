@@ -1,8 +1,8 @@
 {
-  "name": "@ledgerline/api",
+  "name": "@blynt/api",
   "version": "0.1.0",
   "private": true,
-  "description": "Ledgerline accounting core REST API (NestJS + Prisma + PostgreSQL)",
+  "description": "Blynt accounting core REST API (NestJS + Prisma + PostgreSQL)",
   "scripts": {
     "build": "prisma generate && nest build",
     "start": "node dist/main.js",

@@ -244,7 +244,7 @@ All tenant-scoped endpoints require `Authorization: Bearer <token>` and `x-organ
 ## 🐳 Hosting & Deployment
 
 ### 1. Production Docker Hosting (Turnkey)
-Ledgerline includes multi-stage container definitions and a Compose stack:
+Blynt includes multi-stage container definitions and a Compose stack:
 
 ```bash
 # Build and launch all services (PostgreSQL, NestJS API, Next.js Web)

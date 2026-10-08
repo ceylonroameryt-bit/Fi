@@ -1,5 +1,5 @@
 /**
- * Ledgerline Production Host Runner
+ * Blynt Production Host Runner
  * 
  * Runs database, migrations, API, and Next.js Web in production mode.
  * Accessible locally and over the local area network.

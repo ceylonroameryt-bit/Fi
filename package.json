@@ -1,8 +1,8 @@
 {
-  "name": "ledgerline",
+  "name": "blynt",
   "version": "0.1.0",
   "private": true,
-  "description": "Ledgerline - multi-organisation double-entry accounting platform (Phases 1-8: accounting core)",
+  "description": "Blynt - Small Business Accounting SaaS",
   "workspaces": [
     "apps/api",
     "apps/web"

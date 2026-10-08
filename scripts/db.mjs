@@ -5,8 +5,7 @@
  * project can be developed without Docker or a system-wide PostgreSQL install.
  * If you already run PostgreSQL elsewhere, skip this script and point
  * DATABASE_URL / DATABASE_URL_TEST at your own server instead.
- *
- * Creates two databases: `ledgerline` (development) and `ledgerline_test` (e2e tests).
+ * Creates local PostgreSQL development databases for Blynt.
  */
 import EmbeddedPostgres from 'embedded-postgres';
 import { existsSync } from 'node:fs';

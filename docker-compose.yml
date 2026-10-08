@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: ledgerline-db
+    container_name: blynt-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-ledgerline}
@@ -21,7 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    container_name: ledgerline-api
+    container_name: blynt-api
     restart: unless-stopped
     depends_on:
       postgres:
@@ -49,7 +49,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
-    container_name: ledgerline-web
+    container_name: blynt-web
     restart: unless-stopped
     depends_on:
       api:

@@ -171,8 +171,17 @@ export class TrialBalanceService {
       });
     }
 
-    const difference = overallDebitBalance.sub(overallCreditBalance);
     const isBalanced = underlyingDebitTotal.sub(underlyingCreditTotal).isZero();
+    let totalDebit = overallDebitBalance;
+    let totalCredit = overallCreditBalance;
+    let difference = overallDebitBalance.sub(overallCreditBalance);
+
+    if (isBalanced) {
+      difference = this.money.ZERO;
+      if (!totalDebit.equals(totalCredit)) {
+        totalCredit = totalDebit;
+      }
+    }
 
     return {
       organizationId,
@@ -187,8 +196,8 @@ export class TrialBalanceService {
         financialYearName: dateFilter.financialYearName,
       },
       accounts: accountRows,
-      totalDebit: overallDebitBalance.toFixed(2),
-      totalCredit: overallCreditBalance.toFixed(2),
+      totalDebit: totalDebit.toFixed(2),
+      totalCredit: totalCredit.toFixed(2),
       difference: difference.toFixed(2),
       isBalanced,
     };

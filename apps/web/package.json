@@ -1,8 +1,8 @@
 {
-  "name": "@ledgerline/web",
+  "name": "@blynt/web",
   "version": "0.1.0",
   "private": true,
-  "description": "Ledgerline accounting web application (Next.js)",
+  "description": "Blynt accounting web application (Next.js)",
   "scripts": {
     "dev": "next dev --turbo -p 3000",
     "build": "next build --turbo",
