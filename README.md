@@ -4,6 +4,11 @@ Blynt is a UK-focused cloud accounting and finance SaaS built with **NestJS**, *
 
 This repository implements the double-entry accounting core, engineered to institutional standards of ledger immutability, mathematical precision, tenant isolation, and financial period integrity. Clarity in Every Number.
 
+
+## Documentation
+
+Project documentation is maintained in [`docs/`](docs/index.md), including product requirements, roadmap, architecture, accounting rules, security threat model, testing strategy, development and deployment runbooks, risks, decisions, and release checklist.
+
 ---
 
 ## 🏗️ Architecture & Technology Stack
