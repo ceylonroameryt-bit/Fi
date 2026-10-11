@@ -23,6 +23,24 @@ This directory is the working source of truth for product intent, architecture, 
 - [Release checklist](project/release-checklist.md)
 - [Documentation policy](project/documentation-policy.md)
 
+## Additional reference documents
+- [Product glossary](product/glossary.md)
+- [Module design](architecture/module-design.md)
+- [Architecture Decision Records](architecture/architecture-decisions/README.md)
+- [Posting and reversals](accounting/posting-and-reversals.md)
+- [Financial reports](accounting/financial-reports.md)
+- [Financial years and period locking](accounting/period-locking.md)
+- [Secure development standard](security/secure-development.md)
+- [Incident response](security/incident-response.md)
+- [Database schema reference](database/schema-reference.md)
+- [Migration policy](database/migration-policy.md)
+- [Backup and recovery](database/backup-and-recovery.md)
+- [Core test cases](testing/test-cases.md)
+- [Defect log](testing/defect-log.md)
+- [Environment configuration](operations/environment-configuration.md)
+- [Monitoring and observability](operations/monitoring.md)
+- [Implementation plan](project/implementation-plan.md)
+
 ## Status and evidence
 These documents describe the intended product and the implementation reported in the repository README and package manifests. They are not a substitute for inspecting the current source code, running the test suites, reviewing deployment configuration, or obtaining professional accounting, tax, security, and legal advice. Any capability without fresh implementation and test evidence must be treated as **unverified**.
 
