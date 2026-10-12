@@ -12,9 +12,11 @@ terraform {
     }
   }
 
-  # Local state default for bootstrap. Can be migrated to S3 backend when remote bucket is created.
-  backend "local" {
-    path = "terraform.tfstate"
+  # Permanent remote state stored in S3
+  backend "s3" {
+    bucket = "blynt-terraform-state-896138901883"
+    key    = "dev/terraform.tfstate"
+    region = "eu-west-2"
   }
 }
 

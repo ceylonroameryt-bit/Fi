@@ -114,7 +114,7 @@ resource "aws_db_parameter_group" "pg16" {
 resource "aws_db_instance" "postgres" {
   identifier                  = "${var.project_name}-${var.environment}-db"
   engine                      = "postgres"
-  engine_version              = "16.6"
+  engine_version              = "16.10"
   instance_class              = var.db_instance_class
   allocated_storage           = var.allocated_storage
   max_allocated_storage       = 50 # Auto-minor scaling up to 50GB
