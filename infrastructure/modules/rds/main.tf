@@ -69,7 +69,6 @@ resource "aws_security_group" "rds" {
 }
 
 resource "aws_security_group_rule" "rds_ingress_app" {
-  count                    = var.app_security_group_id != "" ? 1 : 0
   type                     = "ingress"
   from_port                = 5432
   to_port                  = 5432
@@ -79,9 +78,7 @@ resource "aws_security_group_rule" "rds_ingress_app" {
   description              = "PostgreSQL from App Runner security group"
 }
 
-# Fallback VPC-internal ingress rule if security group id is not explicitly specified
 resource "aws_security_group_rule" "rds_ingress_self" {
-  count             = var.app_security_group_id == "" ? 1 : 0
   type              = "ingress"
   from_port         = 5432
   to_port           = 5432

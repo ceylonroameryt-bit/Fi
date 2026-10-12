@@ -30,7 +30,7 @@ output "s3_bucket_arn" {
 
 output "github_oidc_role_arn" {
   description = "IAM Role ARN to assume via GitHub Actions OIDC"
-  value       = module.iam.github_actions_role_arn
+  value       = module.iam.github_deploy_role_arn
 }
 
 output "secrets_manager_arn" {
