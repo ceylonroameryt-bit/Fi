@@ -170,8 +170,17 @@ jobs:
           echo "[+] Initializing Terraform..."
           terraform init
           echo "[+] Adopting ECR repositories into Terraform state..."
-          terraform import module.ecr.aws_ecr_repository.api blynt-dev-api || true
-          terraform import module.ecr.aws_ecr_repository.web blynt-dev-web || true
+          echo "[+] Waiting for App Runner services to settle into stable state..."
+          for i in {1..30}; do
+            WEB_ST=$(aws apprunner list-services --region ${AWS_REGION} --query "ServiceSummaryList[?ServiceName=='${WEB_APP_RUNNER_SERVICE_NAME}'].Status" --output text 2>/dev/null || true)
+            API_ST=$(aws apprunner list-services --region ${AWS_REGION} --query "ServiceSummaryList[?ServiceName=='${APP_RUNNER_SERVICE_NAME}'].Status" --output text 2>/dev/null || true)
+            if ([ -z "$WEB_ST" ] || [ "$WEB_ST" = "RUNNING" ]) && ([ -z "$API_ST" ] || [ "$API_ST" = "RUNNING" ]); then
+              echo "[+] Services ready: API(${API_ST:-pending}), WEB(${WEB_ST:-pending}). Proceeding with Terraform..."
+              break
+            fi
+            echo "[*] Waiting for services to transition to RUNNING (API: ${API_ST}, WEB: ${WEB_ST})... attempt $i/30"
+            sleep 10
+          done
           echo "[+] Applying Terraform infrastructure in ${AWS_REGION}..."
           terraform apply -auto-approve
 
