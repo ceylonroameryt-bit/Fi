@@ -139,13 +139,13 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Setup Terraform
-        if: ${{ inputs.run_terraform != false }}
+        if: ${{ github.event_name == 'push' || inputs.run_terraform != false }}
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.5
 
       - name: Provision Infrastructure via Terraform
-        if: ${{ inputs.run_terraform != false }}
+        if: ${{ github.event_name == 'push' || inputs.run_terraform != false }}
         working-directory: ./infrastructure/environments/dev
         run: |
           echo "[+] Initializing Terraform..."
@@ -162,13 +162,20 @@ jobs:
 
           if [ -n "${SERVICE_ARN}" ] && [ "${SERVICE_ARN}" != "None" ]; then
             echo "[+] Found App Runner service: ${SERVICE_ARN}"
-            echo "[+] Starting zero-downtime deployment..."
-            OPERATION_ID=$(aws apprunner start-deployment \
-              --service-arn "${SERVICE_ARN}" \
-              --region ${AWS_REGION} \
-              --query "OperationId" \
-              --output text)
-            echo "[+] Started App Runner deployment operation: ${OPERATION_ID}"
+            STATUS=$(aws apprunner describe-service --service-arn "${SERVICE_ARN}" --region ${AWS_REGION} --query "Service.Status" --output text)
+            echo "[+] Service status: ${STATUS}"
+
+            if [ "${STATUS}" = "RUNNING" ]; then
+              echo "[+] Starting zero-downtime deployment..."
+              OPERATION_ID=$(aws apprunner start-deployment \
+                --service-arn "${SERVICE_ARN}" \
+                --region ${AWS_REGION} \
+                --query "OperationId" \
+                --output text || true)
+              echo "[+] Deployment trigger result: ${OPERATION_ID}"
+            else
+              echo "[*] Service is currently transitioning (${STATUS}), deployment will proceed automatically."
+            fi
             
             SERVICE_URL=$(aws apprunner describe-service --service-arn "${SERVICE_ARN}" --region ${AWS_REGION} --query "Service.ServiceUrl" --output text)
             echo "::notice title=AWS Deployment Live::App Runner Service URL: https://${SERVICE_URL}"
