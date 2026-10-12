@@ -101,7 +101,6 @@ def generate_csv():
             "Description",
             "Component/s",
             "Priority",
-            "Original Estimate",
             "Story Points",
             "Status",
             "Epic Name",
@@ -124,7 +123,6 @@ def generate_csv():
                 desc,
                 comp,
                 prio,
-                "",
                 "",
                 status,
                 epic_name,
@@ -151,7 +149,6 @@ def generate_csv():
                 desc,
                 comp,
                 prio,
-                f"{sp * 8}h",
                 sp,
                 status,
                 epic_key,
@@ -163,26 +160,25 @@ def generate_csv():
         sample_stories = [
             ("Story", "Calculate UK VAT Return Box 1 to 9 from Posted Invoices and Bills", 
              "As an Accountant, I want Blynt to automatically compute Box 1 to 9 of the UK VAT return from posted general ledger transactions, so that statutory HMRC figures are guaranteed accurate.\n\nAcceptance Criteria:\n- Given posted sales invoices in the period, When Box 1 is calculated, Then output VAT matches nominal 2200.\n- Given zero-drift invariant, When Box 5 is net payable, Then Box 3 minus Box 4 equals Box 5.",
-             "Tax & Compliance", "Highest", "16h", 8, "To Do", "", "BLYNT-EPIC-16", "vat,hmrc,story"),
+             "Tax & Compliance", "Highest", 8, "To Do", "", "BLYNT-EPIC-16", "vat,hmrc,story"),
             ("Story", "Authenticate with HMRC MTD API using OAuth 2.0 Authorization Flow", 
              "As a System Administrator, I want to authenticate our Blynt organization with HMRC Making Tax Digital using OAuth 2.0, so that we can submit digital VAT returns securely.\n\nAcceptance Criteria:\n- OAuth state token validated.\n- Refresh token encrypted in AWS Secrets Manager.",
-             "Tax & Compliance", "Highest", "24h", 13, "To Do", "", "BLYNT-EPIC-17", "hmrc,oauth,story"),
+             "Tax & Compliance", "Highest", 13, "To Do", "", "BLYNT-EPIC-17", "hmrc,oauth,story"),
             ("Story", "Integrate TrueLayer Open Banking Connect Flow for UK Bank Accounts",
              "As a Business Owner, I want to link my Barclays/NatWest bank account via TrueLayer Open Banking, so that transactions stream into Blynt automatically every day.\n\nAcceptance Criteria:\n- TrueLayer auth dialog launched.\n- Bank account IBAN and account number stored securely.",
-             "Banking", "Highest", "24h", 13, "To Do", "", "BLYNT-EPIC-26", "open-banking,truelayer,story"),
+             "Banking", "Highest", 13, "To Do", "", "BLYNT-EPIC-26", "open-banking,truelayer,story"),
             ("Story", "AWS App Runner Production Health & CloudWatch SRE Dashboard",
              "As a Lead SRE, I want continuous CloudWatch metrics and alarms on App Runner services, so that any 5xx spikes or database latency triggers instant notifications.\n\nAcceptance Criteria:\n- P95 latency alarm configured.\n- App Runner HTTP 200 health check verified.",
-             "Infrastructure", "High", "8h", 5, "Done", "", "BLYNT-EPIC-01", "devops,aws,monitoring")
+             "Infrastructure", "High", 5, "Done", "", "BLYNT-EPIC-01", "devops,aws,monitoring")
         ]
 
-        for itype, summary, desc, comp, prio, est, sp, status, epic_name, epic_link, labels in sample_stories:
+        for itype, summary, desc, comp, prio, sp, status, epic_name, epic_link, labels in sample_stories:
             writer.writerow([
                 itype,
                 summary,
                 desc,
                 comp,
                 prio,
-                est,
                 sp,
                 status,
                 epic_name,
