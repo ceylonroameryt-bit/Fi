@@ -12,8 +12,10 @@ variable "tags" {
   default = {}
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_s3_bucket" "documents" {
-  bucket        = "${var.project_name}-${var.environment}-documents"
+  bucket        = "${var.project_name}-${var.environment}-documents-${data.aws_caller_identity.current.account_id}"
   force_destroy = var.environment == "dev" ? true : false
 
   tags = var.tags
