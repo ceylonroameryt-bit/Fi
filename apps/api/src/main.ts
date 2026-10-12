@@ -36,6 +36,7 @@ async function bootstrap() {
       'https://www.blynt.co',
       'https://app.blynt.co',
       'https://api.blynt.co',
+      'https://dev.blynt.co',
     ]),
   );
 

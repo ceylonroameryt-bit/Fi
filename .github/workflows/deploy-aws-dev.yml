@@ -217,9 +217,11 @@ jobs:
           fi
 
           echo "[+] Inspecting Custom Domain DNS Setup for blynt.co..."
-          if [ -n "${API_ARN}" ] && [ "${API_ARN}" != "None" ]; then
-            aws apprunner describe-custom-domains --service-arn "${API_ARN}" --region ${AWS_REGION} || true
-          fi
           if [ -n "${WEB_ARN}" ] && [ "${WEB_ARN}" != "None" ]; then
-            aws apprunner describe-custom-domains --service-arn "${WEB_ARN}" --region ${AWS_REGION} || true
+            echo "### 🌐 Web Custom Domains (dev.blynt.co, app.blynt.co, blynt.co)" >> $GITHUB_STEP_SUMMARY || true
+            aws apprunner describe-custom-domains --service-arn "${WEB_ARN}" --region ${AWS_REGION} --output json | tee -a $GITHUB_STEP_SUMMARY || true
+          fi
+          if [ -n "${API_ARN}" ] && [ "${API_ARN}" != "None" ]; then
+            echo "### 🔌 API Custom Domains (api.blynt.co)" >> $GITHUB_STEP_SUMMARY || true
+            aws apprunner describe-custom-domains --service-arn "${API_ARN}" --region ${AWS_REGION} --output json | tee -a $GITHUB_STEP_SUMMARY || true
           fi

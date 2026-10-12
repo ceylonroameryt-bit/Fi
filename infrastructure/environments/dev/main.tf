@@ -205,6 +205,12 @@ resource "aws_apprunner_service" "web" {
 }
 
 # 10. Custom Domain Associations for blynt.co
+resource "aws_apprunner_custom_domain_association" "web_dev" {
+  service_arn          = aws_apprunner_service.web.arn
+  domain_name          = "dev.blynt.co"
+  enable_www_subdomain = false
+}
+
 resource "aws_apprunner_custom_domain_association" "web_app" {
   service_arn          = aws_apprunner_service.web.arn
   domain_name          = "app.blynt.co"
