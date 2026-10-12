@@ -63,16 +63,6 @@ output "web_service_arn" {
   value       = aws_apprunner_service.web.arn
 }
 
-output "custom_domain_web_dev_validation" {
-  description = "Certificate validation records for dev.blynt.co"
-  value       = aws_apprunner_custom_domain_association.web_dev.certificate_validation_records
-}
-
-output "custom_domain_web_dev_target" {
-  description = "DNS CNAME target for dev.blynt.co"
-  value       = aws_apprunner_custom_domain_association.web_dev.dns_target
-}
-
 output "custom_domain_web_app_validation" {
   description = "Certificate validation records for app.blynt.co"
   value       = aws_apprunner_custom_domain_association.web_app.certificate_validation_records
