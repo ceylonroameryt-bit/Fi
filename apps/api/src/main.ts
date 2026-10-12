@@ -27,7 +27,17 @@ async function bootstrap() {
     : [];
 
   const devOrigins = isProduction ? [] : ['http://localhost:3000', 'http://127.0.0.1:3000'];
-  const allowedOrigins = Array.from(new Set([...originsFromCorsVar, ...originsFromFrontendVar, ...devOrigins]));
+  const allowedOrigins = Array.from(
+    new Set([
+      ...originsFromCorsVar,
+      ...originsFromFrontendVar,
+      ...devOrigins,
+      'https://blynt.co',
+      'https://www.blynt.co',
+      'https://app.blynt.co',
+      'https://api.blynt.co',
+    ]),
+  );
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -37,6 +47,8 @@ async function bootstrap() {
       const normalizedOrigin = origin.replace(/\/$/, '');
       const isAllowed =
         allowedOrigins.includes(normalizedOrigin) ||
+        normalizedOrigin === 'https://blynt.co' ||
+        normalizedOrigin.endsWith('.blynt.co') ||
         normalizedOrigin.endsWith('.awsapprunner.com');
 
       if (isAllowed) {

@@ -206,3 +206,11 @@ jobs:
             WEB_URL=$(aws apprunner describe-service --service-arn "${WEB_ARN}" --region ${AWS_REGION} --query "Service.ServiceUrl" --output text)
             echo "::notice title=AWS Web App Live::Web App URL: https://${WEB_URL}"
           fi
+
+          echo "[+] Inspecting Custom Domain DNS Setup for blynt.co..."
+          if [ -n "${API_ARN}" ] && [ "${API_ARN}" != "None" ]; then
+            aws apprunner describe-custom-domains --service-arn "${API_ARN}" --region ${AWS_REGION} || true
+          fi
+          if [ -n "${WEB_ARN}" ] && [ "${WEB_ARN}" != "None" ]; then
+            aws apprunner describe-custom-domains --service-arn "${WEB_ARN}" --region ${AWS_REGION} || true
+          fi
