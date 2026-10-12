@@ -169,6 +169,9 @@ jobs:
         run: |
           echo "[+] Initializing Terraform..."
           terraform init
+          echo "[+] Adopting ECR repositories into Terraform state..."
+          terraform import module.ecr.aws_ecr_repository.api blynt-dev-api || true
+          terraform import module.ecr.aws_ecr_repository.web blynt-dev-web || true
           echo "[+] Applying Terraform infrastructure in ${AWS_REGION}..."
           terraform apply -auto-approve
 

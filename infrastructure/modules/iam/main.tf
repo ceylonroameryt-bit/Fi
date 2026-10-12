@@ -103,7 +103,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload"
         ]
-        Resource = "arn:aws:ecr:*:*:repository/${var.project_name}-${var.environment}-api"
+        Resource = "arn:aws:ecr:*:*:repository/${var.project_name}-${var.environment}-*"
       },
       {
         Sid    = "AppRunnerDeploy"
@@ -112,7 +112,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "apprunner:StartDeployment",
           "apprunner:DescribeService"
         ]
-        Resource = "arn:aws:apprunner:*:*:service/${var.project_name}-${var.environment}-api/*"
+        Resource = "arn:aws:apprunner:*:*:service/${var.project_name}-${var.environment}-*/*"
       }
     ]
   })
