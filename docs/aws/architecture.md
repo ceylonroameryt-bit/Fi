@@ -13,7 +13,7 @@ blynt is a UK-focused multi-tenant double-entry accounting SaaS engineered for p
                          ▼                                                       ▼
             ┌───────────────────────────┐                           ┌───────────────────────────┐
             │        Next.js Web        │                           │         NestJS API        │
-            │   (Amplify / Vercel Edge) │                           │      (AWS App Runner)     │
+            │      (AWS App Runner)     │                           │      (AWS App Runner)     │
             │      https://blynt.io     │                           │   https://api.blynt.io    │
             └───────────────────────────┘                           └─────────────┬─────────────┘
                                                                                   │

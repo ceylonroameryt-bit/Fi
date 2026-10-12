@@ -58,8 +58,8 @@ export TARGET_DATABASE_URL="postgresql://...aws-rds..."
 
 ### Step 6: DNS Cutover (T+00:22)
 Update DNS records in Cloudflare / Route 53:
-- `api.blynt.io` CNAME → `<AWS_APPRUNNER_DOMAIN>`
-- `app.blynt.io` CNAME → `<AWS_AMPLIFY_OR_VERCEL_DOMAIN>`
+- `api.blynt.io` CNAME → `<AWS_API_APPRUNNER_DOMAIN>`
+- `app.blynt.io` CNAME → `<AWS_WEB_APPRUNNER_DOMAIN>`
 
 ### Step 7: Live Smoke Testing (T+00:25)
 1. Log in with test administrator credentials.

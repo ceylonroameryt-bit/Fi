@@ -37,8 +37,6 @@ async function bootstrap() {
       const normalizedOrigin = origin.replace(/\/$/, '');
       const isAllowed =
         allowedOrigins.includes(normalizedOrigin) ||
-        normalizedOrigin.endsWith('.vercel.app') ||
-        normalizedOrigin.endsWith('.onrender.com') ||
         normalizedOrigin.endsWith('.awsapprunner.com');
 
       if (isAllowed) {

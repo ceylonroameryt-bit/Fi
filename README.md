@@ -275,9 +275,11 @@ Or for development hosting:
 npm run dev
 ```
 
-### 3. Cloud Deployment (Vercel + Render/Railway + Neon/Supabase)
-For production cloud hosting, turnkey configurations are included:
-- **Frontend**: [apps/web/vercel.json](file:///d:/Project/F!/apps/web/vercel.json) & [vercel.json](file:///d:/Project/F!/vercel.json)
-- **Backend API**: [render.yaml](file:///d:/Project/F!/render.yaml) & [railway.json](file:///d:/Project/F!/railway.json)
-- **Step-by-Step Guide**: See the complete [DEPLOYMENT.md](file:///d:/Project/F!/DEPLOYMENT.md) guide.
+### 3. AWS Cloud Deployment
+Blynt is deployed 100% on AWS (`eu-west-2` London):
+- **Web Frontend**: AWS App Runner (Next.js 15 container on port 3000)
+- **Backend API**: AWS App Runner (NestJS container on port 4000)
+- **Database**: Amazon RDS PostgreSQL 16.10
+- **CI/CD Pipeline**: GitHub Actions ([deploy-aws-dev.yml](file:///d:/Project/F!/.github/workflows/deploy-aws-dev.yml)) with automated ECR and Terraform deployments.
+- **Operations & Runbooks**: See [DEPLOYMENT.md](file:///d:/Project/F!/DEPLOYMENT.md) for full operational architecture.
 

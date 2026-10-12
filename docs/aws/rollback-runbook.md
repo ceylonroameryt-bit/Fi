@@ -40,13 +40,12 @@ The Lead Engineer and Incident Commander must trigger an immediate rollback if A
 
 ## 3. Detailed Step Actions
 
-### Step 1: Revert DNS
+### Step 1: Revert DNS / Traffic
 In DNS control plane (Cloudflare / Route 53):
-- Revert `api.blynt.io` to Render backend URL (e.g. `blynt-api.onrender.com`).
-- Revert `app.blynt.io` to Vercel/Render frontend URL.
+- Revert `api.blynt.io` and `app.blynt.io` to previous stable AWS deployment endpoints or backup origin.
 
-### Step 2: Restore Legacy Service
-- Ensure Render services are active and healthy.
+### Step 2: Roll Back Container Releases in AWS App Runner
+- Re-deploy previous stable container image tag via AWS ECR and App Runner.
 - Remove the maintenance banner and re-enable API write access.
 
 ### Step 3: Prevent Split-Brain Traffic
