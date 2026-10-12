@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-Phase 3 transitions Blynt's Contacts module from a passive directory into an authoritative **accounting subledger foundation**. In standard double-entry bookkeeping, accounts receivable (AR) and accounts payable (AP) represent control accounts on the General Ledger. The individual breakdown per customer or supplier must be tracked strictly through subledger journal entries without relying on mutable or cached balance fields.
+Phase 3 transitions blynt's Contacts module from a passive directory into an authoritative **accounting subledger foundation**. In standard double-entry bookkeeping, accounts receivable (AR) and accounts payable (AP) represent control accounts on the General Ledger. The individual breakdown per customer or supplier must be tracked strictly through subledger journal entries without relying on mutable or cached balance fields.
 
 This implementation establishes:
 - Tenant-safe composite relations between `JournalLine` and `Contact` `(organization_id, contact_id)` with `onDelete: Restrict`.

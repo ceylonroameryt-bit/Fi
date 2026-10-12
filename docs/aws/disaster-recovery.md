@@ -1,7 +1,7 @@
-# Blynt — Disaster Recovery & Backup Policy
+# blynt — Disaster Recovery & Backup Policy
 
 ## 1. Objectives & Metrics
-As a cloud accounting and financial SaaS platform, Blynt adheres to the following recovery objectives:
+As a cloud accounting and financial SaaS platform, blynt adheres to the following recovery objectives:
 
 - **Recovery Point Objective (RPO)**:
   - **Production**: < 15 minutes (continuous WAL archiving and point-in-time recovery).

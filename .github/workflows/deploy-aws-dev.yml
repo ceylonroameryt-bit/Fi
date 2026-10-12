@@ -17,9 +17,9 @@ on:
     branches:
       - main
     paths:
-      - 'apps/api/**'
+      - 'apps/**'
       - 'infrastructure/**'
-      - 'Dockerfile.api'
+      - 'Dockerfile.*'
       - '.github/workflows/deploy-aws-dev.yml'
 
 permissions:
@@ -91,7 +91,9 @@ jobs:
     env:
       AWS_REGION: eu-west-2
       ECR_REPOSITORY: blynt-dev-api
+      WEB_ECR_REPOSITORY: blynt-dev-web
       APP_RUNNER_SERVICE_NAME: blynt-dev-api
+      WEB_APP_RUNNER_SERVICE_NAME: blynt-dev-web
 
     steps:
       - name: Checkout repository
@@ -111,11 +113,14 @@ jobs:
           echo "[+] Connected to AWS Account:"
           aws sts get-caller-identity
 
-      - name: Ensure ECR Repository Exists
+      - name: Ensure ECR Repositories Exist
         run: |
-          echo "[+] Checking Amazon ECR repository: ${ECR_REPOSITORY}..."
+          echo "[+] Checking Amazon ECR repositories..."
           aws ecr describe-repositories --repository-names ${ECR_REPOSITORY} --region ${AWS_REGION} || \
           aws ecr create-repository --repository-name ${ECR_REPOSITORY} --region ${AWS_REGION} --image-scanning-configuration scanOnPush=true
+
+          aws ecr describe-repositories --repository-names ${WEB_ECR_REPOSITORY} --region ${AWS_REGION} || \
+          aws ecr create-repository --repository-name ${WEB_ECR_REPOSITORY} --region ${AWS_REGION} --image-scanning-configuration scanOnPush=true
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -124,7 +129,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and Push Docker image to ECR
+      - name: Build and Push API Docker image to ECR
         uses: docker/build-push-action@v5
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -135,6 +140,20 @@ jobs:
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
             ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Web Frontend Docker image to ECR
+        uses: docker/build-push-action@v5
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        with:
+          context: .
+          file: ./Dockerfile.web
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.WEB_ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ env.ECR_REGISTRY }}/${{ env.WEB_ECR_REPOSITORY }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -153,32 +172,34 @@ jobs:
           echo "[+] Applying Terraform infrastructure in ${AWS_REGION}..."
           terraform apply -auto-approve
 
-      - name: Deploy & Verify App Runner Service
+      - name: Deploy & Verify App Runner Services
         run: |
-          echo "[+] Fetching App Runner service for ${APP_RUNNER_SERVICE_NAME}..."
-          SERVICE_ARN=$(aws apprunner list-services --region ${AWS_REGION} \
+          echo "[+] Checking API App Runner Service..."
+          API_ARN=$(aws apprunner list-services --region ${AWS_REGION} \
             --query "ServiceSummaryList[?ServiceName=='${APP_RUNNER_SERVICE_NAME}'].ServiceArn" \
             --output text)
 
-          if [ -n "${SERVICE_ARN}" ] && [ "${SERVICE_ARN}" != "None" ]; then
-            echo "[+] Found App Runner service: ${SERVICE_ARN}"
-            STATUS=$(aws apprunner describe-service --service-arn "${SERVICE_ARN}" --region ${AWS_REGION} --query "Service.Status" --output text)
-            echo "[+] Service status: ${STATUS}"
-
-            if [ "${STATUS}" = "RUNNING" ]; then
-              echo "[+] Starting zero-downtime deployment..."
-              OPERATION_ID=$(aws apprunner start-deployment \
-                --service-arn "${SERVICE_ARN}" \
-                --region ${AWS_REGION} \
-                --query "OperationId" \
-                --output text || true)
-              echo "[+] Deployment trigger result: ${OPERATION_ID}"
-            else
-              echo "[*] Service is currently transitioning (${STATUS}), deployment will proceed automatically."
+          if [ -n "${API_ARN}" ] && [ "${API_ARN}" != "None" ]; then
+            API_STATUS=$(aws apprunner describe-service --service-arn "${API_ARN}" --region ${AWS_REGION} --query "Service.Status" --output text)
+            echo "[+] API Service status: ${API_STATUS}"
+            if [ "${API_STATUS}" = "RUNNING" ]; then
+              aws apprunner start-deployment --service-arn "${API_ARN}" --region ${AWS_REGION} || true
             fi
-            
-            SERVICE_URL=$(aws apprunner describe-service --service-arn "${SERVICE_ARN}" --region ${AWS_REGION} --query "Service.ServiceUrl" --output text)
-            echo "::notice title=AWS Deployment Live::App Runner Service URL: https://${SERVICE_URL}"
-          else
-            echo "[!] App Runner service '${APP_RUNNER_SERVICE_NAME}' pending creation."
+            API_URL=$(aws apprunner describe-service --service-arn "${API_ARN}" --region ${AWS_REGION} --query "Service.ServiceUrl" --output text)
+            echo "::notice title=AWS API Live::API URL: https://${API_URL}"
+          fi
+
+          echo "[+] Checking Web Frontend App Runner Service..."
+          WEB_ARN=$(aws apprunner list-services --region ${AWS_REGION} \
+            --query "ServiceSummaryList[?ServiceName=='${WEB_APP_RUNNER_SERVICE_NAME}'].ServiceArn" \
+            --output text)
+
+          if [ -n "${WEB_ARN}" ] && [ "${WEB_ARN}" != "None" ]; then
+            WEB_STATUS=$(aws apprunner describe-service --service-arn "${WEB_ARN}" --region ${AWS_REGION} --query "Service.Status" --output text)
+            echo "[+] Web Service status: ${WEB_STATUS}"
+            if [ "${WEB_STATUS}" = "RUNNING" ]; then
+              aws apprunner start-deployment --service-arn "${WEB_ARN}" --region ${AWS_REGION} || true
+            fi
+            WEB_URL=$(aws apprunner describe-service --service-arn "${WEB_ARN}" --region ${AWS_REGION} --query "Service.ServiceUrl" --output text)
+            echo "::notice title=AWS Web App Live::Web App URL: https://${WEB_URL}"
           fi

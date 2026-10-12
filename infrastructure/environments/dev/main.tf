@@ -139,7 +139,7 @@ module "monitoring" {
   retention_in_days = 7
 }
 
-# 8. App Runner Service
+# 8. App Runner Service (API)
 module "app_runner" {
   source                 = "../../modules/app-runner"
   project_name           = var.project_name
@@ -153,3 +153,54 @@ module "app_runner" {
   secrets_arn            = module.secrets.secret_arn
   frontend_url           = var.frontend_url
 }
+
+# 9. App Runner Web Frontend Service (Next.js)
+resource "aws_apprunner_service" "web" {
+  service_name = "${var.project_name}-${var.environment}-web"
+
+  source_configuration {
+    authentication_configuration {
+      access_role_arn = module.iam.app_runner_access_role_arn
+    }
+
+    image_repository {
+      image_identifier      = "${module.ecr.web_repository_url}:${var.image_tag}"
+      image_repository_type = "ECR"
+
+      image_configuration {
+        port = "3000"
+
+        runtime_environment_variables = {
+          NODE_ENV            = "production"
+          PORT                = "3000"
+          API_URL             = module.app_runner.service_url
+          NEXT_PUBLIC_API_URL = ""
+        }
+      }
+    }
+
+    auto_deployments_enabled = false
+  }
+
+  instance_configuration {
+    cpu               = "1024"
+    memory            = "2048"
+    instance_role_arn = module.iam.app_runner_instance_role_arn
+  }
+
+  health_check_configuration {
+    protocol            = "HTTP"
+    path                = "/login"
+    interval            = 10
+    timeout             = 5
+    healthy_threshold   = 1
+    unhealthy_threshold = 5
+  }
+
+  tags = {
+    Project     = "Blynt"
+    Environment = "dev"
+    Component   = "web"
+  }
+}
+

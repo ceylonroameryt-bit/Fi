@@ -1,7 +1,7 @@
-# Blynt — Secrets Management & Rotation Policy
+# blynt — Secrets Management & Rotation Policy
 
 ## 1. Secrets Overview
-Blynt mandates strict zero-hardcoded-secrets and least-privilege policies. All runtime secrets are provisioned in **AWS Secrets Manager** (`blynt-dev-secrets` in DEV, `blynt-prod-secrets` in Production) and injected as environment variables into AWS App Runner via IAM role permissions.
+blynt mandates strict zero-hardcoded-secrets and least-privilege policies. All runtime secrets are provisioned in **AWS Secrets Manager** (`blynt-dev-secrets` in DEV, `blynt-prod-secrets` in Production) and injected as environment variables into AWS App Runner via IAM role permissions.
 
 ---
 

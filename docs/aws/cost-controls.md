@@ -1,7 +1,7 @@
-# Blynt — AWS Cost Controls & DEV Budgeting
+# blynt — AWS Cost Controls & DEV Budgeting
 
 ## 1. Budget Objective
-The target monthly cloud spend for the Blynt Development (DEV) environment on AWS is **under $35–45 / month**.
+The target monthly cloud spend for the blynt Development (DEV) environment on AWS is **under $35–45 / month**.
 
 ---
 

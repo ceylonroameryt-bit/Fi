@@ -52,3 +52,14 @@ output "cloudwatch_log_group" {
   description = "Name of the CloudWatch log group for Blynt API logs"
   value       = module.monitoring.log_group_name
 }
+
+output "web_service_url" {
+  description = "Public URL of the Blynt Web Frontend on AWS App Runner"
+  value       = "https://${aws_apprunner_service.web.service_url}"
+}
+
+output "web_service_arn" {
+  description = "ARN of the Blynt Web Frontend App Runner service"
+  value       = aws_apprunner_service.web.arn
+}
+

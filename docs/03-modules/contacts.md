@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Contacts module in Blynt manages all external parties with whom an organisation conducts business: Customers, Suppliers, or both. Rather than acting as a static CRM or simple address book, Contacts serves as the authoritative boundary for Accounts Receivable (AR) and Accounts Payable (AP) subledger accounting.
+The Contacts module in blynt manages all external parties with whom an organisation conducts business: Customers, Suppliers, or both. Rather than acting as a static CRM or simple address book, Contacts serves as the authoritative boundary for Accounts Receivable (AR) and Accounts Payable (AP) subledger accounting.
 
 ## Contact Types & State Management
 

@@ -128,23 +128,18 @@ export class AccountingIntegrityService {
    * Control 2: Global Trial Balance verification - total debits == total credits.
    */
   async checkTrialBalance(organizationId: string): Promise<IntegrityCheckResult> {
-    const lines = await this.prisma.journalLine.findMany({
+    const totals = await this.prisma.journalLine.aggregate({
       where: {
         organizationId,
         journalEntry: {
           status: { in: [JournalStatus.POSTED, JournalStatus.REVERSED] },
         },
       },
-      select: { debit: true, credit: true },
+      _sum: { debit: true, credit: true },
     });
 
-    let totalDr = this.money.ZERO;
-    let totalCr = this.money.ZERO;
-
-    for (const l of lines) {
-      totalDr = totalDr.add(this.money.toDecimal(l.debit));
-      totalCr = totalCr.add(this.money.toDecimal(l.credit));
-    }
+    const totalDr = this.money.toDecimal(totals._sum.debit ?? 0);
+    const totalCr = this.money.toDecimal(totals._sum.credit ?? 0);
 
     const diff = totalDr.sub(totalCr);
     const passed = diff.isZero();
@@ -199,13 +194,18 @@ export class AccountingIntegrityService {
    * Control 4: Duplicate journal numbers within organisation.
    */
   async checkDuplicateJournalNumbers(organizationId: string): Promise<IntegrityCheckResult> {
-    const duplicates = await this.prisma.$queryRaw<Array<{ journal_number: string; count: bigint }>>`
-      SELECT journal_number, COUNT(*) as count
+    const rawDuplicates = await this.prisma.$queryRaw<Array<{ journal_number: string; count: bigint | number }>>`
+      SELECT journal_number, CAST(COUNT(*) AS integer) as count
       FROM journal_entries
       WHERE organization_id = ${organizationId}::uuid
       GROUP BY journal_number
       HAVING COUNT(*) > 1
     `;
+
+    const duplicates = rawDuplicates.map((d) => ({
+      journal_number: d.journal_number,
+      count: Number(d.count),
+    }));
 
     const passed = duplicates.length === 0;
 
@@ -260,6 +260,10 @@ export class AccountingIntegrityService {
     const violations: Array<{ journalNumber: string; postingDate: Date; periodName: string }> = [];
 
     for (const period of lockedPeriods) {
+      if (!period.lockedAt) {
+        continue;
+      }
+
       const journalsInLockedPeriod = await this.prisma.journalEntry.findMany({
         where: {
           organizationId,
@@ -269,7 +273,7 @@ export class AccountingIntegrityService {
             lte: period.endDate,
           },
           postedAt: {
-            gt: period.lockedAt ?? period.endDate,
+            gt: period.lockedAt,
           },
         },
         select: { journalNumber: true, postingDate: true },

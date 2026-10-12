@@ -2,7 +2,7 @@
 
 ## Overview
 
-Accounts Receivable represents the money owed to an organisation by its customers for goods or services delivered on credit. In Blynt, Accounts Receivable operates as a subledger governed strictly by double-entry General Ledger journals.
+Accounts Receivable represents the money owed to an organisation by its customers for goods or services delivered on credit. In blynt, Accounts Receivable operates as a subledger governed strictly by double-entry General Ledger journals.
 
 ## Double-Entry Posting Rules
 

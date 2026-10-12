@@ -2,14 +2,14 @@
 
 ## Architectural Overview
 
-Blynt enforces strict multi-tenant isolation across all data access patterns and subledger accounting workflows. Tenant boundaries are enforced through a defense-in-depth model combining application-layer scoping and database-level composite foreign key constraints.
+blynt enforces strict multi-tenant isolation across all data access patterns and subledger accounting workflows. Tenant boundaries are enforced through a defense-in-depth model combining application-layer scoping and database-level composite foreign key constraints.
 
 ## Defense-in-Depth Model
 
 ### 1. Database-Level Foreign Key Hardening
 Single-column foreign keys (`contact_id` pointing to `contacts.id`) are insufficient for multi-tenant systems because they cannot prevent a record in Organisation A from referencing an ID belonging to Organisation B if IDs are forged or leaked.
 
-Blynt resolves this by enforcing composite foreign keys containing `organization_id`:
+blynt resolves this by enforcing composite foreign keys containing `organization_id`:
 
 ```sql
 ALTER TABLE "journal_lines" 

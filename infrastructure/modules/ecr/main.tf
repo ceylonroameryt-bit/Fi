@@ -62,10 +62,67 @@ resource "aws_ecr_lifecycle_policy" "api_policy" {
   })
 }
 
+resource "aws_ecr_repository" "web" {
+  name                 = "${var.project_name}-${var.environment}-web"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "AES256"
+  }
+
+  tags = var.tags
+}
+
+resource "aws_ecr_lifecycle_policy" "web_policy" {
+  repository = aws_ecr_repository.web.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Expire untagged images older than 7 days"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 7
+        }
+        action = {
+          type = "expire"
+        }
+      },
+      {
+        rulePriority = 2
+        description  = "Keep last 10 tagged images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 10
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+}
+
 output "repository_url" {
   value = aws_ecr_repository.api.repository_url
 }
 
 output "repository_arn" {
   value = aws_ecr_repository.api.arn
+}
+
+output "web_repository_url" {
+  value = aws_ecr_repository.web.repository_url
+}
+
+output "web_repository_arn" {
+  value = aws_ecr_repository.web.arn
 }

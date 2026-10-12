@@ -1,6 +1,6 @@
-# Blynt — AWS Deployment Guide
+# blynt — AWS Deployment Guide
 
-This guide details how to provision and deploy Blynt on AWS in the London region (`eu-west-2`) using Terraform, Amazon ECR, and AWS App Runner.
+This guide details how to provision and deploy blynt on AWS in the London region (`eu-west-2`) using Terraform, Amazon ECR, and AWS App Runner.
 
 ---
 

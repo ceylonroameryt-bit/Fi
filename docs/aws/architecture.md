@@ -1,7 +1,7 @@
-# Blynt — AWS Cloud Architecture
+# blynt — AWS Cloud Architecture
 
 ## 1. Overview
-Blynt is a UK-focused multi-tenant double-entry accounting SaaS engineered for precision, regulatory compliance, and high availability. This document defines the production-grade target cloud architecture hosted on Amazon Web Services (AWS) in the London region (`eu-west-2`), aligned with UK data residency requirements.
+blynt is a UK-focused multi-tenant double-entry accounting SaaS engineered for precision, regulatory compliance, and high availability. This document defines the production-grade target cloud architecture hosted on Amazon Web Services (AWS) in the London region (`eu-west-2`), aligned with UK data residency requirements.
 
 ```
                               ┌───────────────────────────────────────────────┐

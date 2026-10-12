@@ -1,4 +1,4 @@
-# Blynt — Database Migration Protocol
+# blynt — Database Migration Protocol
 
 This protocol provides the definitive standard operating procedure (SOP) for dumping, transferring, restoring, and validating the PostgreSQL database from existing hosting (Render / Supabase / Neon) to Amazon RDS PostgreSQL in `eu-west-2`.
 

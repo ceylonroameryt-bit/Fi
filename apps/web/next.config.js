@@ -10,9 +10,9 @@ const nextConfig = {
     const isLocalhost = !rawApiUrl || rawApiUrl.includes('localhost') || rawApiUrl.includes('127.0.0.1');
 
     if (isCloudEnv && isLocalhost) {
-      rawApiUrl = 'https://fi-46xw.onrender.com';
+      rawApiUrl = 'https://arpi2ujw2t.eu-west-2.awsapprunner.com';
     } else if (!rawApiUrl) {
-      rawApiUrl = 'http://localhost:4000';
+      rawApiUrl = 'https://arpi2ujw2t.eu-west-2.awsapprunner.com';
     }
 
     const cleanApiUrl = rawApiUrl.replace(/\/$/, '').replace(/\/api\/v1$/, '');

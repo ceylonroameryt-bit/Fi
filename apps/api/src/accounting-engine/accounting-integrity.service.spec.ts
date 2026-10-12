@@ -17,6 +17,7 @@ describe('AccountingIntegrityService (Phase 13)', () => {
       },
       journalLine: {
         findMany: jest.fn().mockResolvedValue([]),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { debit: null, credit: null } }),
       },
       accountingPeriod: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -76,5 +77,36 @@ describe('AccountingIntegrityService (Phase 13)', () => {
 
     expect(result.passed).toBe(false);
     expect(result.message).toContain('cross-tenant');
+  });
+
+  it('detects duplicate journal numbers and serializes numeric counts cleanly', async () => {
+    prisma.$queryRaw.mockResolvedValueOnce([
+      { journal_number: 'JE-2026-000001', count: 2n },
+    ]);
+
+    const result = await service.checkDuplicateJournalNumbers('org-123');
+
+    expect(result.passed).toBe(false);
+    expect(result.message).toContain('JE-2026-000001');
+    const details = result.details as Array<{ journal_number: string; count: number }>;
+    expect(details[0].count).toBe(2);
+    expect(typeof details[0].count).toBe('number');
+  });
+
+  it('ignores periods without lockedAt when checking locked period violations', async () => {
+    prisma.accountingPeriod.findMany.mockResolvedValueOnce([
+      {
+        id: 'p-1',
+        name: 'April 2026',
+        startDate: new Date('2026-04-01'),
+        endDate: new Date('2026-04-30'),
+        lockedAt: null,
+      },
+    ]);
+
+    const result = await service.checkLockedPeriodViolations('org-123');
+
+    expect(result.passed).toBe(true);
+    expect(prisma.journalEntry.findMany).not.toHaveBeenCalled();
   });
 });

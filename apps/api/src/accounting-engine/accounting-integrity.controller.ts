@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentActor, CurrentOrg, RequirePermission } from '../common/decorators';
 import type { Actor, OrgContext } from '../common/types/request-context.types';
 import { AccountingIntegrityService } from './accounting-integrity.service';
@@ -10,6 +10,7 @@ export class AccountingIntegrityController {
   @Get()
   @RequirePermission('accounting_integrity.view')
   check(
+    @Param('orgId', ParseUUIDPipe) _orgId: string,
     @CurrentOrg() org: OrgContext,
     @CurrentActor() actor: Actor,
   ) {

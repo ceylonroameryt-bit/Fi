@@ -38,7 +38,8 @@ async function bootstrap() {
       const isAllowed =
         allowedOrigins.includes(normalizedOrigin) ||
         normalizedOrigin.endsWith('.vercel.app') ||
-        normalizedOrigin.endsWith('.onrender.com');
+        normalizedOrigin.endsWith('.onrender.com') ||
+        normalizedOrigin.endsWith('.awsapprunner.com');
 
       if (isAllowed) {
         return callback(null, true);

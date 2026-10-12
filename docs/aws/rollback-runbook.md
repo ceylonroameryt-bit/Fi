@@ -1,4 +1,4 @@
-# Blynt — Rollback Runbook
+# blynt — Rollback Runbook
 
 This document defines the emergency rollback procedure in the event that the AWS cutover encounters critical failures, data verification discrepancies, or unrecoverable system errors during the maintenance window.
 

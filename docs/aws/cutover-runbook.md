@@ -1,4 +1,4 @@
-# Blynt — Production Cutover Runbook
+# blynt — Production Cutover Runbook
 
 This runbook outlines the exact sequence for executing a scheduled zero-data-loss production cutover to AWS with a maintenance window of under 30 minutes.
 
