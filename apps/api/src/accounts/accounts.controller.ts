@@ -47,6 +47,16 @@ export class AccountsController {
     return this.accounts.createAccount(org.organizationId, dto, actor);
   }
 
+  @Post('template')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission('account.create')
+  applyTemplate(
+    @CurrentOrg() org: OrgContext,
+    @CurrentActor() actor: Actor,
+  ) {
+    return this.accounts.applyTemplate(org.organizationId, actor);
+  }
+
   @Patch(':accountId')
   @RequirePermission('account.edit')
   update(

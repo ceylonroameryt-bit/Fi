@@ -19,6 +19,7 @@ export class DocumentIntelligenceController {
   ) {}
 
   @Post('documents/upload')
+  @Post('documents')
   @HttpCode(HttpStatus.CREATED)
   @RequirePermission('invoice.create')
   async uploadAndProcess(

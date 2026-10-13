@@ -5,7 +5,7 @@ import { DomainException } from '../common/errors/domain.exception';
 import type { Actor } from '../common/types/request-context.types';
 import { AuditService } from '../audit/audit.service';
 import { AuditEvents } from '../audit/audit-events';
-import { getExpectedNormalBalance } from './accounts.constants';
+import { getExpectedNormalBalance, DEFAULT_CHART_OF_ACCOUNTS } from './accounts.constants';
 import type { CreateAccountDto, UpdateAccountDto, AccountFilterQueryDto } from './dto/account.dto';
 
 @Injectable()
@@ -251,5 +251,45 @@ export class AccountsService {
     });
 
     return roots;
+  }
+
+  async applyTemplate(organizationId: string, actor: Actor) {
+    const existingAccounts = await this.prisma.account.findMany({
+      where: { organizationId },
+      select: { code: true },
+    });
+    const existingCodes = new Set(existingAccounts.map((a) => a.code));
+
+    const toCreate = DEFAULT_CHART_OF_ACCOUNTS.filter((a) => !existingCodes.has(a.code));
+
+    if (toCreate.length > 0) {
+      await this.prisma.account.createMany({
+        data: toCreate.map((a) => ({
+          organizationId,
+          code: a.code,
+          name: a.name,
+          accountType: a.type,
+          accountSubtype: a.subtype,
+          normalBalance: a.normalBalance,
+          reportGroup: a.reportGroup,
+          description: a.description,
+          allowManualPosting: a.allowManualPosting,
+          isControlAccount: a.isControlAccount ?? false,
+          isSystemAccount: false,
+          isActive: true,
+          createdById: actor.userId,
+        })),
+      });
+
+      await this.audit.record(null, actor, {
+        organizationId,
+        eventType: AuditEvents.CHART_OF_ACCOUNTS_TEMPLATE_APPLIED,
+        entityType: 'CHART_OF_ACCOUNTS',
+        entityId: organizationId,
+        newValues: { addedAccounts: toCreate.length },
+      });
+    }
+
+    return { createdCount: toCreate.length, totalTemplateCount: DEFAULT_CHART_OF_ACCOUNTS.length };
   }
 }

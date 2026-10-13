@@ -161,7 +161,7 @@ export default function DocumentIntelligencePage() {
     try {
       setActionLoading(true);
       setError(null);
-      const created = await apiRequest<DetailedDoc>('/ai/documents', {
+      const created = await apiRequest<DetailedDoc>('/ai/documents/upload', {
         method: 'POST',
         body: JSON.stringify({
           fileName: uploadFileName,

@@ -198,8 +198,9 @@ export class AuthController {
   }
 
   private clearAuthCookies(res: Response) {
-    res.clearCookie('access_token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/api/v1/auth' });
-    res.clearCookie('csrf_token', { path: '/' });
+    const opts = { secure: this.config.cookieSecure, sameSite: 'lax' as const };
+    res.clearCookie('access_token', { ...opts, path: '/' });
+    res.clearCookie('refresh_token', { ...opts, path: '/api/v1/auth' });
+    res.clearCookie('csrf_token', { ...opts, path: '/' });
   }
 }

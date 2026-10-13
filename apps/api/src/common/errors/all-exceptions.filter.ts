@@ -75,7 +75,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const r = response as { message?: unknown; code?: string; details?: Record<string, unknown> };
         if (r.code) code = r.code;
         if (r.details) details = r.details;
-        message = typeof r.message === 'string' ? r.message : exception.message;
+        if (typeof r.message === 'string') {
+          message = r.message;
+        } else if (Array.isArray(r.message)) {
+          message = r.message.join(', ');
+        } else {
+          message = exception.message;
+        }
       } else {
         message = String(response);
       }

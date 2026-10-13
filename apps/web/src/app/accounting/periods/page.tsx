@@ -39,9 +39,9 @@ function PeriodsContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const canSoftLock = hasPermission('period:soft_lock');
-  const canHardLock = hasPermission('period:hard_lock');
-  const canUnlock = hasPermission('period:unlock');
+  const canSoftLock = hasPermission('period.lock');
+  const canHardLock = hasPermission('period.lock');
+  const canUnlock = hasPermission('period.unlock');
 
   const loadData = useCallback(async () => {
     if (!activeOrg) return;

@@ -61,6 +61,8 @@ export function resolveEndpoint(endpoint: string, activeOrgId?: string | null): 
       clean = `/organizations/${activeOrgId}${clean}`;
     } else if (clean.startsWith('/invoices')) {
       clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/ai')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
     }
   }
 
@@ -204,7 +206,7 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
     }
 
     if (message === 'An error occurred' && (res.status === 502 || res.status === 503 || res.status === 504)) {
-      message = 'The backend server is starting up (Render free tier cold start). Please wait 30-60 seconds and try again.';
+      message = 'The backend server is temporarily unavailable or initializing on AWS. Please wait a moment and try again.';
     }
 
     throw new ApiError(code, message, res.status, details);

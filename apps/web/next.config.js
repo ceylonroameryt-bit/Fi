@@ -11,7 +11,7 @@ const nextConfig = {
     if (isCloudEnv && isLocalhost) {
       rawApiUrl = 'https://arpi2ujw2t.eu-west-2.awsapprunner.com';
     } else if (!rawApiUrl) {
-      rawApiUrl = 'https://arpi2ujw2t.eu-west-2.awsapprunner.com';
+      rawApiUrl = isCloudEnv ? 'https://arpi2ujw2t.eu-west-2.awsapprunner.com' : 'http://localhost:4000';
     }
 
     const cleanApiUrl = rawApiUrl.replace(/\/$/, '').replace(/\/api\/v1$/, '');
