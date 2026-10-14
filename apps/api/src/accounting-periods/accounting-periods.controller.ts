@@ -43,6 +43,6 @@ export class AccountingPeriodsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentActor() actor: Actor,
   ) {
-    return this.fyService.unlockPeriod(org.organizationId, id, actor);
+    return this.fyService.unlockPeriod(org.organizationId, id, actor, org);
   }
 }

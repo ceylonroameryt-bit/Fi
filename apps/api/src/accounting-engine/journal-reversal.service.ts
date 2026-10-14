@@ -7,7 +7,13 @@ import { AuditService } from '../audit/audit.service';
 import { AuditEvents } from '../audit/audit-events';
 import { MoneyService } from './money.service';
 import { FinancialYearsService } from '../financial-years/financial-years.service';
-import { parseIsoDate, toIsoDate } from '../common/utils/dates';
+import { parseIsoDate, toIsoDate, utcDate } from '../common/utils/dates';
+
+/** Today as a calendar date (UTC midnight), matching how accounting dates are stored. */
+function todayUtc(): Date {
+  const now = new Date();
+  return utcDate(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+}
 
 export interface ReverseJournalDto {
   reversalDate?: string;
@@ -59,7 +65,7 @@ export class JournalReversalService {
       // 1. Determine effective reversal date
       const effectiveReversalDate = dto.reversalDate
         ? parseIsoDate(dto.reversalDate, 'reversalDate')
-        : new Date();
+        : todayUtc();
 
       // 2. Consistent lock order: lock period row FOR SHARE
       await this.lockPeriodForReversal(tx, organizationId, effectiveReversalDate);
@@ -122,7 +128,7 @@ export class JournalReversalService {
       const reversalLines = this.generateReversalLines(original.lines, reversalReason);
 
       // 6. Allocate unique journal number for reversal journal
-      const reversalYear = effectiveReversalDate.getFullYear();
+      const reversalYear = effectiveReversalDate.getUTCFullYear();
       const reversalNumber = await this.allocateJournalNumber(tx, organizationId, reversalYear);
 
       // 7. Create reversal journal in DRAFT status with lines, then transition to POSTED
@@ -132,7 +138,8 @@ export class JournalReversalService {
           organizationId,
           journalNumber: reversalNumber,
           journalType: original.journalType,
-          sourceType: JournalSourceType.MANUAL,
+          // SYSTEM (with reversalOfJournalId) marks it as generated, not a hand-entered journal.
+          sourceType: JournalSourceType.SYSTEM,
           status: JournalStatus.DRAFT,
           journalDate: effectiveReversalDate,
           postingDate: effectiveReversalDate,

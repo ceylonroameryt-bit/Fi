@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { currencySymbol } from '@/lib/format';
 
 interface ContactPersonSummary {
   id: string;
@@ -70,6 +71,7 @@ interface AccountOption {
 
 export default function ContactsPage() {
   const { activeOrg, hasPermission } = useAuth();
+  const sym = currencySymbol(activeOrg?.baseCurrency);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [summary, setSummary] = useState<ContactSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -621,7 +623,7 @@ export default function ContactsPage() {
                       <div style={{ fontSize: '0.85rem' }}>Net {c.paymentTermsDays || 30}d</div>
                       {c.creditLimit && (
                         <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                          Limit: £{parseFloat(c.creditLimit).toLocaleString()}
+                          Limit: {sym}{parseFloat(c.creditLimit).toLocaleString()}
                         </div>
                       )}
                     </td>
@@ -989,7 +991,7 @@ export default function ContactsPage() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Credit Limit (£)</label>
+                    <label className="form-label">Credit Limit ({sym})</label>
                     <input
                       type="number"
                       step="0.01"

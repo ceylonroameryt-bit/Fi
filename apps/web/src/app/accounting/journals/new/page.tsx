@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest, ApiError } from '@/lib/api';
+import { toDecimalInput } from '@/lib/format';
 
 interface Account {
   id: string;
@@ -96,12 +97,12 @@ export default function NewJournalPage() {
 
   // Real-time client calculation
   const totalDebit = lines.reduce((sum, line) => {
-    const val = parseFloat(line.debit) || 0;
+    const val = Number(toDecimalInput(line.debit)) || 0;
     return sum + val;
   }, 0);
 
   const totalCredit = lines.reduce((sum, line) => {
-    const val = parseFloat(line.credit) || 0;
+    const val = Number(toDecimalInput(line.credit)) || 0;
     return sum + val;
   }, 0);
 
@@ -109,7 +110,7 @@ export default function NewJournalPage() {
   const differenceAbs = Math.abs(rawDifference);
   const isBalancedClient = differenceAbs < 0.0001 && totalDebit > 0;
   const hasAccountsSelected = lines.every((l) => !!l.accountId);
-  const hasValidAmounts = lines.every((l) => (parseFloat(l.debit) || 0) > 0 || (parseFloat(l.credit) || 0) > 0);
+  const hasValidAmounts = lines.every((l) => (Number(toDecimalInput(l.debit)) || 0) > 0 || (Number(toDecimalInput(l.credit)) || 0) > 0);
 
   const handleSaveOrValidate = async (andValidate: boolean = false) => {
     setError(null);
@@ -128,8 +129,8 @@ export default function NewJournalPage() {
       if (!lines[i].accountId) {
         issues.push(`Line #${i + 1}: Select an account from the chart of accounts.`);
       }
-      const deb = parseFloat(lines[i].debit) || 0;
-      const cred = parseFloat(lines[i].credit) || 0;
+      const deb = Number(toDecimalInput(lines[i].debit)) || 0;
+      const cred = Number(toDecimalInput(lines[i].credit)) || 0;
       if (deb === 0 && cred === 0) {
         issues.push(`Line #${i + 1}: Must specify either a debit or credit amount.`);
       }
@@ -160,8 +161,9 @@ export default function NewJournalPage() {
         lines: lines.map((l) => ({
           accountId: l.accountId,
           description: l.description.trim() || undefined,
-          debit: parseFloat(l.debit) || 0,
-          credit: parseFloat(l.credit) || 0,
+          // Send exact decimal strings; the API does all money arithmetic in decimals.
+          debit: toDecimalInput(l.debit) || '0',
+          credit: toDecimalInput(l.credit) || '0',
         })),
       };
 

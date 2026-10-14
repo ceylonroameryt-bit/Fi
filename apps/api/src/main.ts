@@ -27,41 +27,20 @@ async function bootstrap() {
     : [];
 
   const devOrigins = isProduction ? [] : ['http://localhost:3000', 'http://127.0.0.1:3000'];
-  const allowedOrigins = Array.from(
-    new Set([
-      ...originsFromCorsVar,
-      ...originsFromFrontendVar,
-      ...devOrigins,
-      'https://blynt.co',
-      'https://www.blynt.co',
-      'https://app.blynt.co',
-      'https://api.blynt.co',
-      'https://dev.blynt.co',
-    ]),
+  // Exact-match allowlist only. Wildcards such as *.awsapprunner.com would trust every
+  // other AWS customer's App Runner app, and credentials are allowed on these requests.
+  const allowedOrigins = new Set(
+    [...originsFromCorsVar, ...originsFromFrontendVar, ...devOrigins].filter(
+      (o) => !isProduction || o.startsWith('https://'),
+    ),
   );
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server health checks)
+      // Requests without an Origin header (server-to-server, health checks, curl) carry no
+      // browser credentials from another site, so CORS does not apply to them.
       if (!origin) return callback(null, true);
-
-      const normalizedOrigin = origin.replace(/\/$/, '');
-      const isAllowed =
-        allowedOrigins.includes(normalizedOrigin) ||
-        normalizedOrigin === 'https://blynt.co' ||
-        normalizedOrigin.endsWith('.blynt.co') ||
-        normalizedOrigin.endsWith('.awsapprunner.com');
-
-      if (isAllowed) {
-        return callback(null, true);
-      }
-
-      // In development/test mode only: allow localhost origins
-      if (!isProduction && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-        return callback(null, true);
-      }
-
-      return callback(null, false);
+      return callback(null, allowedOrigins.has(origin.replace(/\/$/, '')));
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
@@ -75,6 +54,9 @@ async function bootstrap() {
       crossOriginEmbedderPolicy: false,
     }),
   );
+
+  // Behind App Runner (and the Next.js proxy) the socket address is the proxy's, not the user's.
+  app.getHttpAdapter().getInstance().set('trust proxy', parseTrustProxy(config.TRUST_PROXY));
 
   app.use(cookieParser(config.SESSION_SECRET));
   app.setGlobalPrefix('api/v1');
@@ -91,6 +73,14 @@ async function bootstrap() {
     env: config.APP_ENV,
     url: `http://localhost:${config.PORT}/api/v1`,
   });
+}
+
+function parseTrustProxy(value: string): boolean | number | string[] {
+  const v = value.trim().toLowerCase();
+  if (v === '' || v === 'false' || v === '0') return false;
+  if (v === 'true') return true;
+  if (/^\d+$/.test(v)) return Number(v);
+  return v.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
 bootstrap().catch((err) => {

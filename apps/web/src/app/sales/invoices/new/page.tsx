@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { currencySymbol } from '@/lib/format';
 
 interface Contact {
   id: string;
@@ -33,6 +34,7 @@ interface LineItem {
 
 function NewInvoiceForm() {
   const { activeOrg } = useAuth();
+  const sym = currencySymbol(activeOrg?.baseCurrency);
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialContactId = searchParams.get('contactId') || '';
@@ -84,7 +86,8 @@ function NewInvoiceForm() {
         }
 
         const revAccs = (Array.isArray(accountsData) ? accountsData : []).filter(
-          (a) => a.accountType === 'REVENUE' || a.code.startsWith('4'),
+          // Must match the API rule: invoice lines post to active revenue accounts only.
+          (a) => a.accountType === 'REVENUE' && (a as { isActive?: boolean }).isActive !== false,
         );
         setRevenueAccounts(revAccs);
 
@@ -169,9 +172,9 @@ function NewInvoiceForm() {
           lines: lines.map((l) => ({
             accountId: l.accountId,
             description: l.description.trim(),
-            quantity: Number(l.quantity),
-            unitPrice: Number(l.unitPrice),
-            taxRate: Number(l.taxRate),
+            quantity: String(l.quantity),
+            unitPrice: String(l.unitPrice),
+            taxRate: String(l.taxRate),
           })),
         }),
       });
@@ -369,7 +372,7 @@ function NewInvoiceForm() {
                       </select>
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A', verticalAlign: 'middle' }}>
-                      £{line.total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {sym}{line.total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                       <button
@@ -418,18 +421,18 @@ function NewInvoiceForm() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#64748B' }}>
               <span>Subtotal (Net)</span>
-              <span>£{subtotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span>{sym}{subtotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.875rem', color: '#64748B' }}>
               <span>VAT / Sales Tax</span>
-              <span>£{taxTotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span>{sym}{taxTotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #E2E8F0', paddingTop: '0.75rem', fontSize: '1.15rem', fontWeight: 700, color: '#0F172A' }}>
               <span>Total Invoiced</span>
               <span style={{ color: '#2563EB' }}>
-                £{totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {sym}{totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
 

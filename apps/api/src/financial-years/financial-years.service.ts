@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { FinancialYearStatus, PeriodStatus } from '@prisma/client';
+import { FinancialYearStatus, PeriodStatus, SystemRoleKey } from '@prisma/client';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
-import type { Actor } from '../common/types/request-context.types';
+import type { Actor, OrgContext } from '../common/types/request-context.types';
 import { AuditService } from '../audit/audit.service';
 import { AuditEvents } from '../audit/audit-events';
 import {
@@ -285,13 +285,22 @@ export class FinancialYearsService {
     return updated;
   }
 
-  async unlockPeriod(organizationId: string, periodId: string, actor: Actor) {
+  async unlockPeriod(organizationId: string, periodId: string, actor: Actor, actorContext?: OrgContext) {
     const updated = await this.prisma.transaction(async (tx) => {
       await this.lockPeriodForStateChange(tx, organizationId, periodId);
       const period = await tx.accountingPeriod.findFirst({
         where: { id: periodId, organizationId },
       });
       if (!period) throw new DomainException('PERIOD_NOT_FOUND', 'Accounting period not found');
+
+      // A hard lock is a control over closed books: only an Owner may reopen it.
+      if (
+        period.status === PeriodStatus.HARD_LOCKED &&
+        actorContext &&
+        actorContext.systemRoleKey !== SystemRoleKey.OWNER
+      ) {
+        throw new DomainException('PERMISSION_DENIED', 'Only an Owner can reopen a hard-locked period');
+      }
 
       const res = await tx.accountingPeriod.update({
         where: { id: periodId },
@@ -333,11 +342,14 @@ export class FinancialYearsService {
    */
   async getPeriodForDate(organizationId: string, date: Date, tx?: Tx) {
     const client = tx ?? this.prisma;
+    // Periods are calendar dates stored at UTC midnight. A timestamp later in the day
+    // (e.g. `new Date()`) would otherwise miss the last day of its period.
+    const day = utcDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
     return client.accountingPeriod.findFirst({
       where: {
         organizationId,
-        startDate: { lte: date },
-        endDate: { gte: date },
+        startDate: { lte: day },
+        endDate: { gte: day },
       },
       include: { financialYear: true },
     });

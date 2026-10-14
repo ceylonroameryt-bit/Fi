@@ -1,3 +1,4 @@
+import { MAX_PAGE_SIZE } from '../common/dto/pagination.dto';
 import { Injectable } from '@nestjs/common';
 import { AccountSubtype, JournalStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
@@ -161,7 +162,7 @@ export class ContactSubledgerService {
     const fromDate = query.from ? parseIsoDate(query.from, 'from') : null;
     const toDate = query.to ? parseIsoDate(query.to, 'to') : null;
     const page = query.page && query.page > 0 ? query.page : 1;
-    const pageSize = query.pageSize && query.pageSize > 0 ? query.pageSize : 50;
+    const pageSize = query.pageSize && query.pageSize > 0 ? Math.min(query.pageSize, MAX_PAGE_SIZE) : 50;
 
     const baseWhere: Prisma.JournalLineWhereInput = {
       organizationId,
@@ -343,7 +344,7 @@ export class ContactSubledgerService {
     const fromDate = query.from ? parseIsoDate(query.from, 'from') : null;
     const toDate = query.to ? parseIsoDate(query.to, 'to') : null;
     const page = query.page && query.page > 0 ? query.page : 1;
-    const pageSize = query.pageSize && query.pageSize > 0 ? query.pageSize : 50;
+    const pageSize = query.pageSize && query.pageSize > 0 ? Math.min(query.pageSize, MAX_PAGE_SIZE) : 50;
 
     const baseWhere: Prisma.JournalLineWhereInput = {
       organizationId,

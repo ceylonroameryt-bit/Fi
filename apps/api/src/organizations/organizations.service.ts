@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { auditDiff } from '../audit/audit-diff';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { APP_CONFIG } from '../config/config.module';
+import type { AppEnv } from '../config/env';
 import { MemberStatus, OrganizationStatus, Organization, Role } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
@@ -15,9 +18,20 @@ export class OrganizationsService {
     private readonly prisma: PrismaService,
     private readonly roles: RolesService,
     private readonly audit: AuditService,
+    @Optional() @Inject(APP_CONFIG) private readonly config?: AppEnv,
   ) {}
 
   async createOrganization(dto: CreateOrganizationDto, actor: Actor) {
+    if (this.config?.requireEmailVerification && actor.userId) {
+      const creator = await this.prisma.user.findUnique({
+        where: { id: actor.userId },
+        select: { emailVerified: true },
+      });
+      if (!creator?.emailVerified) {
+        throw new DomainException('EMAIL_NOT_VERIFIED', 'Verify your email address before creating an organisation');
+      }
+    }
+
     return this.prisma.transaction(async (tx) => {
       const org = await tx.organization.create({
         data: {
@@ -167,8 +181,7 @@ export class OrganizationsService {
         eventType: AuditEvents.ORGANIZATION_UPDATED,
         entityType: 'ORGANIZATION',
         entityId: organizationId,
-        oldValues: org,
-        newValues: res,
+        ...auditDiff(org as unknown as Record<string, unknown>, res as unknown as Record<string, unknown>),
       });
 
       return res;

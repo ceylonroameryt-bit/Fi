@@ -7,6 +7,12 @@ const prisma = new PrismaClient();
 const passwords = new PasswordService();
 
 async function main() {
+  // The seed creates demo users with a shared, publicly known password. Never run it against production.
+  const isProduction = process.env.APP_ENV === 'production' || process.env.NODE_ENV === 'production';
+  if (isProduction && process.env.ALLOW_DEMO_SEED !== 'true') {
+    throw new Error('Refusing to seed demo data into a production database (set ALLOW_DEMO_SEED=true to override).');
+  }
+
   const appEnv = process.env.APP_ENV || 'development';
   const allowDemoSeed = process.env.ALLOW_DEMO_SEED === 'true';
 

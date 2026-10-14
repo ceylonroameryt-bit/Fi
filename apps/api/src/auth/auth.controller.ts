@@ -40,16 +40,12 @@ export class AuthController {
   async register(
     @Body() dto: RegisterDto,
     @CurrentActor() actor: Actor,
+    @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
     const session = await this.auth.register(dto, actor);
     this.setAuthCookies(res, session.accessToken, session.refreshToken);
-    // Return safe user and session metadata. Refresh token is strictly HttpOnly cookie.
-    return {
-      user: session.user,
-      expiresInSeconds: session.expiresInSeconds,
-      accessToken: session.accessToken,
-    };
+    return this.sessionBody(req, session);
   }
 
   @Public()
@@ -59,16 +55,12 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @CurrentActor() actor: Actor,
+    @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
     const session = await this.auth.login(dto, actor);
     this.setAuthCookies(res, session.accessToken, session.refreshToken);
-    // Return safe user and session metadata. Refresh token is strictly HttpOnly cookie.
-    return {
-      user: session.user,
-      expiresInSeconds: session.expiresInSeconds,
-      accessToken: session.accessToken,
-    };
+    return this.sessionBody(req, session);
   }
 
   @Public()
@@ -81,27 +73,29 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Body('refreshToken') bodyRefresh?: string,
   ) {
-    const token = req.cookies?.['refresh_token'] || bodyRefresh;
+    // Browsers must use the HttpOnly cookie; only non-browser API clients may send it in the body.
+    const token = req.cookies?.['refresh_token'] || (this.isApiClient(req) ? bodyRefresh : undefined);
     if (!token) {
       throw new DomainException('AUTH_REQUIRED', 'Refresh token required');
     }
     const session = await this.auth.refreshSession(token, actor);
     this.setAuthCookies(res, session.accessToken, session.refreshToken);
-    return {
-      user: session.user,
-      expiresInSeconds: session.expiresInSeconds,
-      accessToken: session.accessToken,
-    };
+    return this.sessionBody(req, session);
   }
 
+  /**
+   * Public so a user whose access token has expired can still sign out: the session is
+   * identified from the access token if valid, otherwise from the refresh cookie.
+   */
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(
-    @CurrentAuth() auth: AuthContext,
+    @Req() req: AppRequest,
     @CurrentActor() actor: Actor,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.auth.logout(auth.sessionId, actor);
+    await this.auth.logout(req.auth?.sessionId ?? null, req.cookies?.['refresh_token'] ?? null, actor);
     this.clearAuthCookies(res);
     return { success: true };
   }
@@ -132,6 +126,14 @@ export class AuthController {
     return { success: true };
   }
 
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(@CurrentAuth() auth: AuthContext, @CurrentActor() actor: Actor) {
+    await this.auth.resendVerificationEmail(auth.userId, actor);
+    return { success: true };
+  }
+
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('accept-invitation')
@@ -139,15 +141,12 @@ export class AuthController {
   async acceptInvitation(
     @Body() dto: AcceptInvitationDto,
     @CurrentActor() actor: Actor,
+    @Req() req: AppRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
     const session = await this.auth.acceptInvitation(dto, actor);
     this.setAuthCookies(res, session.accessToken, session.refreshToken);
-    return {
-      user: session.user,
-      expiresInSeconds: session.expiresInSeconds,
-      accessToken: session.accessToken,
-    };
+    return this.sessionBody(req, session);
   }
 
   @Get('me')
@@ -171,7 +170,24 @@ export class AuthController {
     return { success: true };
   }
 
-  private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+  /**
+   * Browser sessions live only in HttpOnly cookies, so the access token is not echoed
+   * in the response body. Non-browser API clients (no Origin header) still receive it
+   * so they can use Bearer authentication.
+   */
+  private sessionBody(req: AppRequest, session: { user: unknown; expiresInSeconds: number; accessToken: string }) {
+    return {
+      user: session.user,
+      expiresInSeconds: session.expiresInSeconds,
+      ...(this.isApiClient(req) ? { accessToken: session.accessToken } : {}),
+    };
+  }
+
+  private isApiClient(req: AppRequest): boolean {
+    return !req.header('origin');
+  }
+
+  private setAuthCookies(res: Response, accessToken: string, refreshToken: string | null) {
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: this.config.cookieSecure,
@@ -179,13 +195,15 @@ export class AuthController {
       path: '/',
       maxAge: this.config.ACCESS_TOKEN_TTL_SECONDS * 1000,
     });
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: this.config.cookieSecure,
-      sameSite: 'lax',
-      path: '/api/v1/auth',
-      maxAge: this.config.REFRESH_TOKEN_TTL_DAYS * 86400 * 1000,
-    });
+    if (refreshToken) {
+      res.cookie('refresh_token', refreshToken, {
+        httpOnly: true,
+        secure: this.config.cookieSecure,
+        sameSite: 'lax',
+        path: '/api/v1/auth',
+        maxAge: this.config.REFRESH_TOKEN_TTL_DAYS * 86400 * 1000,
+      });
+    }
     // Set double-submit CSRF cookie (accessible to frontend JS)
     const csrfToken = randomBytes(24).toString('hex');
     res.cookie('csrf_token', csrfToken, {

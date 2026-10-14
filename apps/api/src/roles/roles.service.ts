@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
-import type { Actor } from '../common/types/request-context.types';
+import type { Actor, OrgContext } from '../common/types/request-context.types';
 import { AuditService } from '../audit/audit.service';
 import { AuditEvents } from '../audit/audit-events';
 import { SYSTEM_PERMISSIONS, SYSTEM_ROLE_PERMISSIONS } from './roles.constants';
@@ -110,7 +110,10 @@ export class RolesService {
     organizationId: string,
     dto: { name: string; description?: string; permissionCodes: string[] },
     actor: Actor,
+    actorContext?: OrgContext,
   ) {
+    const permissionCodes = Array.from(new Set(dto.permissionCodes));
+    this.assertCanGrant(actorContext, permissionCodes);
     const existing = await this.prisma.role.findFirst({
       where: { organizationId, name: { equals: dto.name, mode: 'insensitive' } },
     });
@@ -119,9 +122,9 @@ export class RolesService {
     }
 
     const permissions = await this.prisma.permission.findMany({
-      where: { code: { in: dto.permissionCodes } },
+      where: { code: { in: permissionCodes } },
     });
-    if (permissions.length !== dto.permissionCodes.length) {
+    if (permissions.length !== permissionCodes.length) {
       throw new DomainException('PERMISSION_NOT_FOUND', 'One or more invalid permission codes provided');
     }
 
@@ -144,7 +147,7 @@ export class RolesService {
         eventType: AuditEvents.ROLE_CREATED,
         entityType: 'ROLE',
         entityId: created.id,
-        newValues: { name: created.name, permissions: dto.permissionCodes },
+        newValues: { name: created.name, permissions: permissionCodes },
       });
 
       return created;
@@ -158,11 +161,17 @@ export class RolesService {
     roleId: string,
     dto: { name?: string; description?: string; permissionCodes?: string[] },
     actor: Actor,
+    actorContext?: OrgContext,
   ) {
     const role = await this.getRole(organizationId, roleId);
     if (role.isSystemRole) {
       throw new DomainException('ROLE_PROTECTED', 'System roles cannot be modified');
     }
+    // Editing a role changes what its members can do, so the editor must hold every
+    // permission the role has now and every permission it is being given.
+    this.assertCanGrant(actorContext, role.permissions.map((rp) => rp.permission.code));
+    const permissionCodes = dto.permissionCodes ? Array.from(new Set(dto.permissionCodes)) : undefined;
+    if (permissionCodes) this.assertCanGrant(actorContext, permissionCodes);
 
     if (dto.name && dto.name !== role.name) {
       const existing = await this.prisma.role.findFirst({
@@ -172,9 +181,9 @@ export class RolesService {
     }
 
     const updated = await this.prisma.transaction(async (tx) => {
-      if (dto.permissionCodes) {
-        const perms = await tx.permission.findMany({ where: { code: { in: dto.permissionCodes } } });
-        if (perms.length !== dto.permissionCodes.length) {
+      if (permissionCodes) {
+        const perms = await tx.permission.findMany({ where: { code: { in: permissionCodes } } });
+        if (perms.length !== permissionCodes.length) {
           throw new DomainException('PERMISSION_NOT_FOUND', 'One or more invalid permission codes');
         }
         await tx.rolePermission.deleteMany({ where: { roleId } });
@@ -204,5 +213,16 @@ export class RolesService {
     });
 
     return updated;
+  }
+
+  /** Non-owners may not create or edit roles carrying permissions they do not hold. */
+  private assertCanGrant(actorContext: OrgContext | undefined, codes: string[]): void {
+    if (!actorContext || actorContext.systemRoleKey === SystemRoleKey.OWNER) return;
+    const missing = codes.filter((code) => !actorContext.permissions.has(code));
+    if (missing.length > 0) {
+      throw new DomainException('PERMISSION_DENIED', 'A role cannot include permissions you do not have yourself', {
+        missingPermissions: missing,
+      });
+    }
   }
 }

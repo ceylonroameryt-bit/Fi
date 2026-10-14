@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { currencySymbol } from '@/lib/format';
 
 interface InvoiceDetail {
   id: string;
@@ -62,6 +63,7 @@ interface InvoiceDetail {
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { activeOrg, hasPermission } = useAuth();
+  const sym = currencySymbol(activeOrg?.baseCurrency);
   const router = useRouter();
 
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
@@ -392,13 +394,13 @@ export default function InvoiceDetailPage() {
                     </td>
                     <td style={{ textAlign: 'right', fontSize: '0.85rem' }}>{Number(line.quantity)}</td>
                     <td style={{ textAlign: 'right', fontSize: '0.85rem' }}>
-                      £{Number(line.unitPrice).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {sym}{Number(line.unitPrice).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style={{ textAlign: 'right', fontSize: '0.85rem' }}>
                       {Number(line.taxRate) > 0 ? `${(Number(line.taxRate) * 100).toFixed(0)}%` : '0%'}
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>
-                      £{Number(line.lineTotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {sym}{Number(line.lineTotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                   </tr>
                 ))}
@@ -411,16 +413,16 @@ export default function InvoiceDetailPage() {
             <div style={{ width: '320px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.9rem', color: '#64748B' }}>
                 <span>Subtotal (Net)</span>
-                <span>£{Number(invoice.subtotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>{sym}{Number(invoice.subtotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.9rem', color: '#64748B' }}>
                 <span>VAT / Sales Tax</span>
-                <span>£{Number(invoice.taxTotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>{sym}{Number(invoice.taxTotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #0F172A', padding: '0.6rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#0F172A' }}>
                 <span>Total Due</span>
                 <span style={{ color: '#2563EB' }}>
-                  £{Number(invoice.totalAmount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {sym}{Number(invoice.totalAmount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>

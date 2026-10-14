@@ -18,8 +18,8 @@ export class DocumentIntelligenceController {
     private readonly db: PrismaService,
   ) {}
 
-  @Post('documents/upload')
-  @Post('documents')
+  // One handler, both paths (stacked @Post decorators only register one of them).
+  @Post(['documents', 'documents/upload'])
   @HttpCode(HttpStatus.CREATED)
   @RequirePermission('invoice.create')
   async uploadAndProcess(
@@ -27,7 +27,9 @@ export class DocumentIntelligenceController {
     @CurrentActor() actor: Actor,
     @Body() dto: UploadDocumentDto,
   ) {
-    const fileKey = `docs/${org.organizationId}/${Date.now()}-${dto.fileName}`;
+    // The client-supplied name is only a label; never let it shape the storage path.
+    const safeName = dto.fileName.replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 120) || 'document';
+    const fileKey = `docs/${org.organizationId}/${Date.now()}-${safeName}`;
 
     // Create Document Record
     const doc = await this.db.aiDocument.create({
@@ -105,7 +107,7 @@ export class DocumentIntelligenceController {
   }
 
   @Put('business-context')
-  @RequirePermission('org.admin')
+  @RequirePermission('organization.edit')
   async updateBusinessContext(@CurrentOrg() org: OrgContext, @Body() dto: UpdateBusinessContextDto) {
     return this.businessContext.updateProfile(org.organizationId, {
       ...(dto.industry ? { industry: dto.industry } : {}),

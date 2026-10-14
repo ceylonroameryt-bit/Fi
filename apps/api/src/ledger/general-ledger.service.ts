@@ -1,3 +1,4 @@
+import { MAX_PAGE_SIZE, normalizePagination } from '../common/dto/pagination.dto';
 import { Injectable } from '@nestjs/common';
 import { AccountType, JournalStatus, JournalType, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
@@ -58,8 +59,7 @@ export class GeneralLedgerService {
    * Only includes POSTED and REVERSED journals (Draft & Validated are strictly excluded).
    */
   async getGeneralLedger(organizationId: string, filter: LedgerFilterDto) {
-    const page = filter.page && filter.page > 0 ? filter.page : 1;
-    const pageSize = filter.pageSize && filter.pageSize > 0 ? filter.pageSize : 50;
+    const { page, pageSize } = normalizePagination(filter.page, filter.pageSize, 50);
 
     const dateFilter = await this.resolveDateRange(organizationId, filter);
 
@@ -358,7 +358,7 @@ export class GeneralLedgerService {
         ]),
       );
 
-      const BATCH_SIZE = 1000;
+      const BATCH_SIZE = MAX_PAGE_SIZE; // must not exceed the page-size cap, or the export would stop early
       let currentPage = 1;
       let hasMore = true;
 

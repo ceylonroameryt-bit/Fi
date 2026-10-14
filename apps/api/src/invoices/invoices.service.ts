@@ -1,6 +1,10 @@
+import { auditDiff } from '../audit/audit-diff';
+import { normalizePagination } from '../common/dto/pagination.dto';
 import { Injectable } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import {
   AccountSubtype,
+  AccountType,
   ContactStatus,
   ContactType,
   InvoiceStatus,
@@ -60,8 +64,7 @@ export class InvoicesService {
   ) {}
 
   async listInvoices(organizationId: string, filter: InvoiceFilterQueryDto) {
-    const page = filter.page ?? 1;
-    const pageSize = filter.pageSize ?? 50;
+    const { page, pageSize } = normalizePagination(filter.page, filter.pageSize, 50);
 
     const where: Prisma.InvoiceWhereInput = {
       organizationId,
@@ -138,14 +141,16 @@ export class InvoicesService {
       );
     }
 
+    this.assertDueDate(issueDate, dueDate);
+    await this.assertRevenueAccounts(organizationId, dto.lines.map((l) => l.accountId));
+
     // 2. Compute line totals and invoice totals with Decimal precision
     const { calculatedLines, subtotal, taxTotal, totalAmount } = this.calculateInvoiceTotals(dto.lines);
 
-    const year = issueDate.getUTCFullYear();
-
     return this.prisma.transaction(async (tx) => {
-      // 3. Generate sequential invoice number: INV-YYYY-XXXXXX
-      const invoiceNumber = await this.allocateInvoiceNumber(tx, organizationId, year);
+      // 3. Drafts get a temporary reference. The sequential INV-YYYY-XXXXXX number is
+      // allocated when the invoice is posted, so deleted drafts never leave gaps.
+      const invoiceNumber = this.draftNumber();
 
       // 4. Create Invoice & Lines
       const invoice = await tx.invoice.create({
@@ -252,11 +257,17 @@ export class InvoicesService {
         );
       }
 
+      this.assertDueDate(
+        dto.issueDate ? parseIsoDate(dto.issueDate, 'issueDate') : existing.issueDate,
+        dto.dueDate ? parseIsoDate(dto.dueDate, 'dueDate') : existing.dueDate,
+      );
+
       let subtotal = existing.subtotal;
       let taxTotal = existing.taxTotal;
       let totalAmount = existing.totalAmount;
 
       if (dto.lines && dto.lines.length > 0) {
+        await this.assertRevenueAccounts(organizationId, dto.lines.map((l) => l.accountId), tx);
         const calculated = this.calculateInvoiceTotals(dto.lines);
         subtotal = calculated.subtotal;
         taxTotal = calculated.taxTotal;
@@ -301,8 +312,7 @@ export class InvoicesService {
         eventType: AuditEvents.INVOICE_UPDATED,
         entityType: 'INVOICE',
         entityId: invoiceId,
-        oldValues: existing,
-        newValues: updated,
+        ...auditDiff(existing as unknown as Record<string, unknown>, updated as unknown as Record<string, unknown>),
       });
 
       return updated;
@@ -354,7 +364,9 @@ export class InvoicesService {
    * In event of any error (validation, posting, linkage, audit), the entire operation rolls back.
    */
   async postInvoice(organizationId: string, invoiceId: string, orgContext: OrgContext, actor: Actor) {
-    this.postingService.checkPostingPermission(orgContext);
+    // The route already required invoice.post. The journal it generates is system-managed,
+    // so the user doesn't also need the manual-journal permissions.
+    const systemContext = this.withPermissions(orgContext, ['journal.validate', 'journal.post']);
 
     return this.prisma.transaction(async (tx) => {
       // 1. Lock invoice row FOR UPDATE to prevent concurrent posting/modifications
@@ -405,21 +417,27 @@ export class InvoicesService {
         );
       }
 
-      // 4. Identify Accounts Receivable account (customer specific or default nominal 1100)
+      // 4. Identify Accounts Receivable account: the customer's own control account if it is a
+      // receivable, otherwise nominal 1100, otherwise the first receivable by code.
       let arAccount = null;
       if (invoice.contact.receivableAccountId) {
         arAccount = await tx.account.findFirst({
-          where: { id: invoice.contact.receivableAccountId, organizationId, isActive: true },
+          where: {
+            id: invoice.contact.receivableAccountId,
+            organizationId,
+            isActive: true,
+            accountType: AccountType.ASSET,
+            accountSubtype: AccountSubtype.ACCOUNTS_RECEIVABLE,
+          },
         });
       }
       if (!arAccount) {
-        arAccount = await tx.account.findFirst({
-          where: {
-            organizationId,
-            isActive: true,
-            OR: [{ code: '1100' }, { accountSubtype: AccountSubtype.ACCOUNTS_RECEIVABLE }],
-          },
-        });
+        arAccount =
+          (await tx.account.findFirst({ where: { organizationId, isActive: true, code: '1100', accountType: AccountType.ASSET } })) ??
+          (await tx.account.findFirst({
+            where: { organizationId, isActive: true, accountSubtype: AccountSubtype.ACCOUNTS_RECEIVABLE },
+            orderBy: { code: 'asc' },
+          }));
       }
       if (!arAccount) {
         throw new DomainException(
@@ -432,13 +450,12 @@ export class InvoicesService {
       const taxTotalDec = this.money.toDecimal(invoice.taxTotal);
       let taxAccount = null;
       if (taxTotalDec.greaterThan(0)) {
-        taxAccount = await tx.account.findFirst({
-          where: {
-            organizationId,
-            isActive: true,
-            OR: [{ code: '2100' }, { accountSubtype: AccountSubtype.TAX_PAYABLE }],
-          },
-        });
+        taxAccount =
+          (await tx.account.findFirst({ where: { organizationId, isActive: true, code: '2100', accountType: AccountType.LIABILITY } })) ??
+          (await tx.account.findFirst({
+            where: { organizationId, isActive: true, accountSubtype: AccountSubtype.TAX_PAYABLE },
+            orderBy: { code: 'asc' },
+          }));
         if (!taxAccount) {
           throw new DomainException(
             'ACCOUNT_NOT_FOUND',
@@ -446,6 +463,12 @@ export class InvoicesService {
           );
         }
       }
+
+      // 6a. Allocate the permanent sequential invoice number now that it is being issued.
+      const year = invoice.issueDate.getUTCFullYear();
+      const invoiceNumber = invoice.invoiceNumber.startsWith(InvoicesService.DRAFT_PREFIX)
+        ? await this.allocateInvoiceNumber(tx, organizationId, year)
+        : invoice.invoiceNumber;
 
       // 6. Construct Double-Entry Journal Lines:
       // Line 1: Debtors Control / Accounts Receivable (DEBIT) - Subledger tagged with customer contactId
@@ -459,21 +482,27 @@ export class InvoicesService {
 
       journalLines.push({
         accountId: arAccount.id,
-        description: `Sales Invoice ${invoice.invoiceNumber} - ${invoice.contact.name}`,
+        description: `Sales Invoice ${invoiceNumber} - ${invoice.contact.name}`,
         debit: new Prisma.Decimal(invoice.totalAmount.toString()),
         credit: new Prisma.Decimal('0'),
         contactId: invoice.contactId,
       });
 
       // Lines 2..N: Revenue Accounts (CREDIT)
+      if (new Prisma.Decimal(invoice.totalAmount.toString()).lessThanOrEqualTo(0)) {
+        throw new DomainException('INVOICE_ZERO_TOTAL', 'An invoice with a zero total has nothing to post');
+      }
+
       for (const line of invoice.lines) {
         // Derive line net credit directly from persisted line amounts: lineTotal - taxAmount
         const lineNet = new Prisma.Decimal(line.lineTotal.toString()).sub(
           new Prisma.Decimal(line.taxAmount.toString()),
         );
+        // Free (zero-value) lines stay on the invoice but don't produce a ledger line.
+        if (lineNet.isZero()) continue;
         journalLines.push({
           accountId: line.accountId,
-          description: line.description || `Sales: ${invoice.invoiceNumber}`,
+          description: line.description || `Sales: ${invoiceNumber}`,
           debit: new Prisma.Decimal('0'),
           credit: lineNet,
         });
@@ -483,13 +512,12 @@ export class InvoicesService {
       if (taxTotalDec.greaterThan(0) && taxAccount) {
         journalLines.push({
           accountId: taxAccount.id,
-          description: `VAT / Sales Tax on Invoice ${invoice.invoiceNumber}`,
+          description: `VAT / Sales Tax on Invoice ${invoiceNumber}`,
           debit: new Prisma.Decimal('0'),
           credit: new Prisma.Decimal(taxTotalDec.toFixed(4)),
         });
       }
 
-      const year = invoice.issueDate.getUTCFullYear();
       const journalNumber = await this.journalsService.allocateJournalNumber(tx, organizationId, year);
 
       // 7. Create Draft Journal with sourceType = INVOICE and sourceId = invoice.id
@@ -500,8 +528,8 @@ export class InvoicesService {
           journalType: JournalType.SALES,
           journalDate: invoice.issueDate,
           postingDate: invoice.issueDate,
-          description: `Sales Invoice ${invoice.invoiceNumber} - ${invoice.contact.name}`,
-          reference: invoice.reference ?? invoice.invoiceNumber,
+          description: `Sales Invoice ${invoiceNumber} - ${invoice.contact.name}`,
+          reference: invoice.reference ?? invoiceNumber,
           sourceType: JournalSourceType.INVOICE,
           sourceId: invoice.id,
           currency: invoice.currency,
@@ -524,7 +552,7 @@ export class InvoicesService {
       // 8. Validate Journal inside tx
       const validation = await this.validator.validateJournal(
         draftJournal.id,
-        orgContext,
+        systemContext,
         tx,
       );
 
@@ -551,7 +579,7 @@ export class InvoicesService {
       const postingResult = await this.postingService.postJournal(
         organizationId,
         draftJournal.id,
-        orgContext,
+        systemContext,
         actor,
         tx,
       );
@@ -560,6 +588,7 @@ export class InvoicesService {
       const updatedInvoice = await tx.invoice.update({
         where: { id: invoiceId },
         data: {
+          invoiceNumber,
           status: InvoiceStatus.POSTED,
           journalEntryId: draftJournal.id,
           postedById: actor.userId,
@@ -601,7 +630,8 @@ export class InvoicesService {
     orgContext: OrgContext,
     actor: Actor,
   ) {
-    this.reversalService.validateReversalPermission(orgContext);
+    // The route already required invoice.void; reversing its system journal is part of that.
+    const systemContext = this.withPermissions(orgContext, ['journal.reverse']);
 
     return this.prisma.transaction(async (tx) => {
       // 1. Lock invoice row FOR UPDATE
@@ -641,7 +671,7 @@ export class InvoicesService {
         {
           reason: dto.reason ?? `Voiding Invoice ${invoice.invoiceNumber}`,
         },
-        orgContext,
+        systemContext,
         actor,
         tx,
       );
@@ -781,5 +811,46 @@ export class InvoicesService {
     }
 
     return candidateNumber;
+  }
+
+  static readonly DRAFT_PREFIX = 'DRAFT-';
+
+  private draftNumber(): string {
+    return `${InvoicesService.DRAFT_PREFIX}${randomBytes(6).toString('hex').toUpperCase()}`;
+  }
+
+  private withPermissions(orgContext: OrgContext, extra: string[]): OrgContext {
+    return { ...orgContext, permissions: new Set([...orgContext.permissions, ...extra]) };
+  }
+
+  private assertDueDate(issueDate: Date, dueDate: Date): void {
+    if (dueDate.getTime() < issueDate.getTime()) {
+      throw new DomainException('VALIDATION_FAILED', 'Due date cannot be before the issue date', {
+        fields: { dueDate: ['must be on or after the issue date'] },
+      });
+    }
+  }
+
+  /** Sales invoice lines must credit active revenue accounts in this organisation. */
+  private async assertRevenueAccounts(organizationId: string, accountIds: string[], tx?: Tx): Promise<void> {
+    const ids = Array.from(new Set(accountIds));
+    const client = tx ?? this.prisma;
+    const accounts = await client.account.findMany({
+      where: { id: { in: ids }, organizationId },
+      select: { id: true, code: true, accountType: true, isActive: true },
+    });
+    const byId = new Map(accounts.map((a) => [a.id, a]));
+    for (const id of ids) {
+      const account = byId.get(id);
+      if (!account) {
+        throw new DomainException('ACCOUNT_NOT_FOUND', 'An invoice line uses an account that does not exist in this organisation');
+      }
+      if (!account.isActive) {
+        throw new DomainException('ACCOUNT_ARCHIVED', `Account ${account.code} is archived and cannot be used`);
+      }
+      if (account.accountType !== AccountType.REVENUE) {
+        throw new DomainException('VALIDATION_FAILED', `Invoice lines must use revenue accounts (account ${account.code} is ${account.accountType})`);
+      }
+    }
   }
 }

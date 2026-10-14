@@ -270,9 +270,17 @@ export class ProfitAndLossService {
     }
 
     const endDate = filter.endDate ? parseIsoDate(filter.endDate, 'endDate') : new Date();
-    const startDate = filter.startDate
-      ? parseIsoDate(filter.startDate, 'startDate')
-      : new Date(Date.UTC(endDate.getUTCFullYear(), 0, 1));
+    if (filter.startDate) {
+      return { startDate: parseIsoDate(filter.startDate, 'startDate'), endDate };
+    }
+
+    // Default to the start of the organisation's financial year (UK companies rarely use
+    // a calendar year), falling back to 1 January when no financial year covers the date.
+    const fy = await this.prisma.financialYear.findFirst({
+      where: { organizationId, startDate: { lte: endDate }, endDate: { gte: endDate } },
+      select: { startDate: true },
+    });
+    const startDate = fy?.startDate ?? new Date(Date.UTC(endDate.getUTCFullYear(), 0, 1));
 
     return { startDate, endDate };
   }

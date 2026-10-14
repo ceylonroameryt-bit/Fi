@@ -66,7 +66,7 @@ export class AcceptInvitationDto {
   token: string;
 
   @IsString()
-  @Length(8, 128)
+  @Length(1, 128)
   password: string;
 
   @IsOptional()

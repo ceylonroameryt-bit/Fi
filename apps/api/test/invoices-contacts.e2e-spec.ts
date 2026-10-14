@@ -123,7 +123,8 @@ describe('Contacts & Invoicing Module (E2E Integration)', () => {
 
     expect(res.body.id).toBeDefined();
     expect(res.body.status).toBe('DRAFT');
-    expect(res.body.invoiceNumber).toMatch(/^INV-2026-\d{6}$/);
+    // Drafts carry a temporary reference; the sequential number is issued on posting.
+    expect(res.body.invoiceNumber).toMatch(/^DRAFT-/);
     expect(Number(res.body.subtotal)).toBe(4000);
     expect(Number(res.body.taxTotal)).toBe(800);
     expect(Number(res.body.totalAmount)).toBe(4800);
@@ -138,6 +139,7 @@ describe('Contacts & Invoicing Module (E2E Integration)', () => {
       .expect(200);
 
     expect(res.body.invoice.status).toBe('POSTED');
+    expect(res.body.invoice.invoiceNumber).toMatch(/^INV-2026-\d{6}$/);
     expect(res.body.invoice.journalEntryId).toBeDefined();
     expect(res.body.postingResult.status).toBe('POSTED');
     expect(res.body.postingResult.journalNumber).toMatch(/^JE-2026-\d{6}$/);
