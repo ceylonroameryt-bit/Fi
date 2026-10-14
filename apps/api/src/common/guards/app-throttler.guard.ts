@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { createHash } from 'node:crypto';
 
+interface TrackedRequest {
+  ip?: string;
+  socket?: { remoteAddress?: string };
+  headers?: { authorization?: unknown };
+  cookies?: Record<string, string | undefined>;
+  body?: { email?: unknown };
+}
+
 /**
  * Rate-limit bucket per client rather than per IP alone.
  *
@@ -13,13 +21,14 @@ import { createHash } from 'node:crypto';
  */
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {
-  protected async getTracker(req: Record<string, any>): Promise<string> {
-    const ip: string = req.ip ?? req.socket?.remoteAddress ?? 'unknown';
-    const identity = this.identityOf(req);
+  protected async getTracker(req: Record<string, unknown>): Promise<string> {
+    const r = req as unknown as TrackedRequest;
+    const ip = r.ip ?? r.socket?.remoteAddress ?? 'unknown';
+    const identity = this.identityOf(r);
     return identity ? `${ip}|${identity}` : ip;
   }
 
-  private identityOf(req: Record<string, any>): string | null {
+  private identityOf(req: TrackedRequest): string | null {
     const auth = typeof req.headers?.authorization === 'string' ? req.headers.authorization : '';
     const candidate: unknown =
       req.cookies?.['refresh_token'] ||
