@@ -17,6 +17,8 @@ function AcceptInvitationForm() {
   const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  // Existing users confirm with their current password instead of choosing a new one.
+  const [hasAccount, setHasAccount] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,12 +31,12 @@ function AcceptInvitationForm() {
       return;
     }
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+    if (!hasAccount && password.length < 10) {
+      setError('Password must be at least 10 characters long and include a letter and a number.');
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (!hasAccount && password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
@@ -109,36 +111,47 @@ function AcceptInvitationForm() {
         </div>
       </div>
 
+      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.825rem', marginBottom: '1rem' }}>
+        <input type="checkbox" checked={hasAccount} onChange={(e) => setHasAccount(e.target.checked)} />
+        I already have a Blynt account
+      </label>
+
       <div className="form-group" style={{ marginBottom: '1rem' }}>
-        <label className="form-label" htmlFor="password">Set Account Password *</label>
+        <label className="form-label" htmlFor="password">
+          {hasAccount ? 'Your current password *' : 'Set Account Password *'}
+        </label>
         <input
           id="password"
           type="password"
           required
-          minLength={8}
+          minLength={hasAccount ? 1 : 10}
           className="form-input"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••••••"
         />
         <span style={{ fontSize: '0.725rem', color: '#6B7280', marginTop: '0.25rem', display: 'block' }}>
-          Must be at least 8 characters long with uppercase, lowercase, numbers, or symbols.
+          {hasAccount
+            ? 'Enter the password you already use to sign in to Blynt.'
+            : 'At least 10 characters, including a letter and a number.'}
         </span>
       </div>
 
+      {!hasAccount && (
       <div className="form-group" style={{ marginBottom: '1.25rem' }}>
         <label className="form-label" htmlFor="confirmPassword">Confirm Password *</label>
         <input
           id="confirmPassword"
           type="password"
           required
-          minLength={8}
+          minLength={10}
           className="form-input"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="••••••••••••"
         />
       </div>
+      )}
 
       <button
         type="submit"

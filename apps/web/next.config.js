@@ -1,24 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  async rewrites() {
-    let rawApiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
-
-    // In AWS cloud deployments, proxy to AWS App Runner API backend.
-    const isCloudEnv = Boolean(process.env.AWS_EXECUTION_ENV || process.env.NODE_ENV === 'production');
-    const isLocalhost = !rawApiUrl || rawApiUrl.includes('localhost') || rawApiUrl.includes('127.0.0.1');
-
-    if (isCloudEnv && isLocalhost) {
-      rawApiUrl = 'https://arpi2ujw2t.eu-west-2.awsapprunner.com';
-    } else if (!rawApiUrl) {
-      rawApiUrl = isCloudEnv ? 'https://arpi2ujw2t.eu-west-2.awsapprunner.com' : 'http://localhost:4000';
-    }
-
-    const cleanApiUrl = rawApiUrl.replace(/\/$/, '').replace(/\/api\/v1$/, '');
+  poweredByHeader: false,
+  // API calls under /api/v1 are proxied at runtime by src/app/api/v1/[...path]/route.ts,
+  // which reads API_URL per request (build-time rewrites froze the API address into the image).
+  async headers() {
     return [
       {
-        source: '/api/v1/:path*',
-        destination: `${cleanApiUrl}/api/v1/:path*`,
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
       },
     ];
   },

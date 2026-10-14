@@ -38,6 +38,9 @@ export interface BalanceSheetReport {
   nonCurrentLiabilities: BalanceSheetSection;
   totalLiabilities: string;
   equity: BalanceSheetSection;
+  /** Profit from earlier financial years not yet closed to an equity account. */
+  priorYearsEarnings: string;
+  /** Profit from the start of the financial year containing the as-of date. */
   currentYearEarnings: string;
   totalEquity: string;
   totalLiabilitiesAndEquity: string;
@@ -86,14 +89,34 @@ export class BalanceSheetService {
         accountId: true,
         debit: true,
         credit: true,
+        journalEntry: { select: { postingDate: true } },
       },
     });
+
+    // Profit before the current financial year is shown as prior-years earnings, not
+    // folded into "current year".
+    const currentFy = await this.prisma.financialYear.findFirst({
+      where: { organizationId, startDate: { lte: asOfDate }, endDate: { gte: asOfDate } },
+      select: { startDate: true },
+    });
+    const fyStart = currentFy?.startDate ?? null;
+    const isPriorYear = (l: { journalEntry?: { postingDate: Date } | null }) =>
+      Boolean(fyStart && l.journalEntry?.postingDate && l.journalEntry.postingDate.getTime() < fyStart.getTime());
 
     // 3. Aggregate totals per account
     const debitByAccount = new Map<string, Prisma.Decimal>();
     const creditByAccount = new Map<string, Prisma.Decimal>();
 
+    const accountTypeById = new Map(accounts.map((a) => [a.id, a.accountType]));
+    let priorYearsEarnings = this.money.ZERO;
+
     for (const l of lines) {
+      const type = accountTypeById.get(l.accountId);
+      if ((type === AccountType.REVENUE || type === AccountType.EXPENSE) && isPriorYear(l)) {
+        // Revenue increases equity (credit); expenses reduce it (debit).
+        priorYearsEarnings = priorYearsEarnings.add(this.money.toDecimal(l.credit)).sub(this.money.toDecimal(l.debit));
+        continue;
+      }
       const currentDr = debitByAccount.get(l.accountId) ?? this.money.ZERO;
       const currentCr = creditByAccount.get(l.accountId) ?? this.money.ZERO;
       debitByAccount.set(l.accountId, currentDr.add(this.money.toDecimal(l.debit)));
@@ -195,11 +218,12 @@ export class BalanceSheetService {
     const currentYearEarnings = cumulativeRevenue.sub(cumulativeExpenses);
     const totalAssets = totalCurrentAssets.add(totalNonCurrentAssets);
     const totalLiabilities = totalCurrentLiab.add(totalNonCurrentLiab);
-    const totalEquity = totalEquityAccounts.add(currentYearEarnings);
+    const totalEquity = totalEquityAccounts.add(priorYearsEarnings).add(currentYearEarnings);
     const totalLiabilitiesAndEquity = totalLiabilities.add(totalEquity);
 
+    // Exact check, the same as the trial balance: a rounding tolerance would hide real errors.
     const difference = totalAssets.sub(totalLiabilitiesAndEquity).abs();
-    const isBalanced = difference.lessThan(0.01);
+    const isBalanced = difference.isZero();
 
     return {
       organizationId,
@@ -233,6 +257,7 @@ export class BalanceSheetService {
         accounts: equityRows,
         total: totalEquityAccounts.toFixed(2),
       },
+      priorYearsEarnings: priorYearsEarnings.toFixed(2),
       currentYearEarnings: currentYearEarnings.toFixed(2),
       totalEquity: totalEquity.toFixed(2),
       totalLiabilitiesAndEquity: totalLiabilitiesAndEquity.toFixed(2),
@@ -288,7 +313,8 @@ export class BalanceSheetService {
     for (const eq of report.equity.accounts) {
       rows.push([eq.accountCode, eq.accountName, eq.amount]);
     }
-    rows.push(['', 'Current Period Earnings', report.currentYearEarnings]);
+    rows.push(['', 'Prior Years Earnings', report.priorYearsEarnings]);
+    rows.push(['', 'Current Year Earnings', report.currentYearEarnings]);
     rows.push(['', 'TOTAL EQUITY', report.totalEquity]);
     rows.push([]);
 

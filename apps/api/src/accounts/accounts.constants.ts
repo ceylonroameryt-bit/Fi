@@ -83,3 +83,26 @@ export function getExpectedNormalBalance(type: AccountType): NormalBalance {
       return NormalBalance.CREDIT;
   }
 }
+
+/** The account type each subtype belongs to. A subtype must always match its account's type. */
+export const SUBTYPE_ACCOUNT_TYPE: Record<AccountSubtype, AccountType> = {
+  BANK: AccountType.ASSET,
+  CASH: AccountType.ASSET,
+  ACCOUNTS_RECEIVABLE: AccountType.ASSET,
+  INVENTORY: AccountType.ASSET,
+  CURRENT_ASSET: AccountType.ASSET,
+  FIXED_ASSET: AccountType.ASSET,
+  ACCUMULATED_DEPRECIATION: AccountType.ASSET,
+  ACCOUNTS_PAYABLE: AccountType.LIABILITY,
+  CURRENT_LIABILITY: AccountType.LIABILITY,
+  LONG_TERM_LIABILITY: AccountType.LIABILITY,
+  TAX_PAYABLE: AccountType.LIABILITY,
+  OWNER_EQUITY: AccountType.EQUITY,
+  RETAINED_EARNINGS: AccountType.EQUITY,
+  SALES: AccountType.REVENUE,
+  SERVICE_REVENUE: AccountType.REVENUE,
+  OTHER_INCOME: AccountType.REVENUE,
+  COST_OF_SALES: AccountType.EXPENSE,
+  OPERATING_EXPENSE: AccountType.EXPENSE,
+  OTHER_EXPENSE: AccountType.EXPENSE,
+};

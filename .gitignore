@@ -20,3 +20,5 @@ npm-debug.log*
 crash.log
 *.tfvars
 !*.tfvars.example
+# Non-secret dev settings that CI's terraform apply reads. Never put secrets here.
+!infrastructure/environments/dev/terraform.tfvars

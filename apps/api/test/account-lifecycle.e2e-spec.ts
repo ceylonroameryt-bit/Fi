@@ -138,7 +138,7 @@ describe('Account Lifecycle & Token Concurrency Controls (Phase 5 E2E)', () => {
       expect(res.body.error.code).toBe('AUTH_TOKEN_INVALID');
     });
 
-    it('invites an existing active user and delivers notification email directly', async () => {
+    it('invites an existing active user as a pending member who must accept', async () => {
       const existingUserEmail = 'bookkeeper@democonsulting.com';
 
       // Ensure user exists and is active
@@ -154,8 +154,10 @@ describe('Account Lifecycle & Token Concurrency Controls (Phase 5 E2E)', () => {
           });
 
         if (res.status === 201) {
+          // Existing users are no longer added silently; they get an invitation to accept.
+          expect(res.body.status).toBe('INVITED');
           const mail = mailService.lastMailTo(existingUserEmail);
-          expect(mail?.link).toContain('/login');
+          expect(mail?.link).toContain('/accept-invitation?token=');
         } else {
           expect(res.status).toBe(409);
         }

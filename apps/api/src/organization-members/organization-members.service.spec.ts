@@ -33,6 +33,10 @@ describe('OrganizationMembersService Response Contracts & Data Hygiene (organiza
         findUnique: jest.fn(),
         create: jest.fn(),
       },
+      userToken: {
+        create: jest.fn(),
+        updateMany: jest.fn(),
+      },
       transaction: jest.fn().mockImplementation(async (callback) => callback(prisma)),
     };
 
@@ -44,7 +48,12 @@ describe('OrganizationMembersService Response Contracts & Data Hygiene (organiza
       send: jest.fn().mockResolvedValue(true),
     };
 
-    service = new OrganizationMembersService(prisma, audit, mail);
+    const tokens: any = {
+      generate: jest.fn().mockReturnValue('raw-invitation-token-value-123456'),
+      hash: jest.fn().mockReturnValue('hashed-token'),
+    };
+
+    service = new OrganizationMembersService(prisma, audit, mail, tokens);
   });
 
   it('guarantees listMembers excludes password hashes and authentication token hashes', async () => {
@@ -182,5 +191,82 @@ describe('OrganizationMembersService Response Contracts & Data Hygiene (organiza
     expect((result.user as any).passwordHash).toBeUndefined();
     expect((result.user as any).passwordResetTokenHash).toBeUndefined();
     expect((result.user as any).emailVerificationTokenHash).toBeUndefined();
+  });
+
+  describe('privilege escalation guards', () => {
+    const adminContext: any = {
+      organizationId: 'org-1',
+      memberId: 'admin-member',
+      roleId: 'role-admin',
+      roleName: 'Administrator',
+      systemRoleKey: SystemRoleKey.ADMINISTRATOR,
+      permissions: new Set(['users.view', 'users.manage']),
+      baseCurrency: 'GBP',
+    };
+
+    it('stops a non-owner from granting the Owner role', async () => {
+      prisma.organizationMember.findFirst.mockResolvedValue({
+        id: 'member-2',
+        userId: 'user-2',
+        status: MemberStatus.ACTIVE,
+        role: { id: 'role-viewer', name: 'Viewer', systemKey: SystemRoleKey.VIEWER, permissions: [] },
+      });
+      prisma.role.findFirst.mockResolvedValue({
+        id: 'role-owner',
+        name: 'Owner',
+        systemKey: SystemRoleKey.OWNER,
+        permissions: [],
+      });
+
+      await expect(
+        service.updateMemberRole('org-1', 'member-2', { roleId: 'role-owner' }, actor, adminContext),
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+      expect(prisma.organizationMember.update).not.toHaveBeenCalled();
+    });
+
+    it('stops a non-owner from promoting themselves', async () => {
+      prisma.organizationMember.findFirst.mockResolvedValue({
+        id: 'admin-member',
+        userId: 'actor-user-id',
+        status: MemberStatus.ACTIVE,
+        role: { id: 'role-admin', name: 'Administrator', systemKey: SystemRoleKey.ADMINISTRATOR, permissions: [] },
+      });
+      prisma.role.findFirst.mockResolvedValue({
+        id: 'role-viewer',
+        name: 'Viewer',
+        systemKey: SystemRoleKey.VIEWER,
+        permissions: [],
+      });
+
+      await expect(
+        service.updateMemberRole('org-1', 'admin-member', { roleId: 'role-viewer' }, actor, adminContext),
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    });
+
+    it('stops a non-owner from removing an Owner', async () => {
+      prisma.organizationMember.findFirst.mockResolvedValue({
+        id: 'owner-member',
+        userId: 'owner-user',
+        status: MemberStatus.ACTIVE,
+        role: { id: 'role-owner', name: 'Owner', systemKey: SystemRoleKey.OWNER, permissions: [] },
+      });
+
+      await expect(service.removeMember('org-1', 'owner-member', actor, adminContext)).rejects.toMatchObject({
+        code: 'PERMISSION_DENIED',
+      });
+    });
+
+    it('stops granting a custom role with permissions the actor lacks', async () => {
+      prisma.role.findFirst.mockResolvedValue({
+        id: 'role-custom',
+        name: 'Super',
+        systemKey: null,
+        permissions: [{ permission: { code: 'journal.post' } }],
+      });
+
+      await expect(
+        service.inviteMember('org-1', { email: 'x@example.com', roleId: 'role-custom' }, actor, adminContext),
+      ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    });
   });
 });

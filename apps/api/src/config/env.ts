@@ -39,6 +39,11 @@ const envSchema = z
     CORS_ALLOWED_ORIGINS: z.string().optional().default(''),
     COOKIE_SECURE: booleanString,
     REDIS_URL: z.string().optional().default(''),
+    // Express "trust proxy" setting so req.ip is the real client behind App Runner / the Next.js proxy.
+    // A hop count ("2"), "true", "false", or a comma-separated list of trusted subnets.
+    TRUST_PROXY: z.string().optional().default('false'),
+    // Require a verified email before creating organisations. Defaults to on in production.
+    REQUIRE_EMAIL_VERIFICATION: z.enum(['true', 'false', '1', '0']).optional(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(300),
     AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(10),
@@ -48,7 +53,7 @@ const envSchema = z
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
     SMTP_SECURE: booleanString,
-    MAIL_FROM: z.string().email().optional().default('noreply@blynt.com'),
+    MAIL_FROM: z.string().email().optional().default('noreply@blynt.co'),
   })
   .superRefine((env, ctx) => {
     const isProd = env.APP_ENV === 'production';
@@ -132,6 +137,7 @@ export type AppEnv = Omit<z.infer<typeof envSchema>, 'JWT_SECRET' | 'SESSION_SEC
   isProduction: boolean;
   isTest: boolean;
   cookieSecure: boolean;
+  requireEmailVerification: boolean;
 };
 
 /**
@@ -174,5 +180,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     isProduction,
     isTest: raw.APP_ENV === 'test',
     cookieSecure: isProduction || Boolean(raw.COOKIE_SECURE),
+    requireEmailVerification:
+      raw.REQUIRE_EMAIL_VERIFICATION === undefined
+        ? isProduction
+        : raw.REQUIRE_EMAIL_VERIFICATION === 'true' || raw.REQUIRE_EMAIL_VERIFICATION === '1',
   };
 }

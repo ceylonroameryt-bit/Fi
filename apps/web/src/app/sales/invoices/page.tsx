@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { currencySymbol } from '@/lib/format';
 
 interface InvoiceListItem {
   id: string;
@@ -31,6 +32,7 @@ interface InvoiceListItem {
 
 export default function InvoicesPage() {
   const { activeOrg, hasPermission } = useAuth();
+  const sym = currencySymbol(activeOrg?.baseCurrency);
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'POSTED' | 'VOIDED'>('ALL');
@@ -105,14 +107,14 @@ export default function InvoicesPage() {
         <div className="card" style={{ padding: '1rem 1.25rem' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Invoiced</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', marginTop: '0.25rem' }}>
-            £{totalInvoiced.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {sym}{totalInvoiced.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Across all active sales</div>
         </div>
         <div className="card" style={{ padding: '1rem 1.25rem' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Posted to Ledger</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2563EB', marginTop: '0.25rem' }}>
-            £{postedAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {sym}{postedAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Authoritative accounts receivable</div>
         </div>
@@ -230,7 +232,7 @@ export default function InvoicesPage() {
                       )}
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A' }}>
-                      £{Number(inv.totalAmount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {sym}{Number(inv.totalAmount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>

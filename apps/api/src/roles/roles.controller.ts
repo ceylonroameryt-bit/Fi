@@ -33,7 +33,7 @@ export class RolesController {
     @Body() dto: CreateRoleDto,
     @CurrentActor() actor: Actor,
   ) {
-    return this.roles.createRole(org.organizationId, dto, actor);
+    return this.roles.createRole(org.organizationId, dto, actor, org);
   }
 
   @Patch(':roleId')
@@ -44,6 +44,6 @@ export class RolesController {
     @Body() dto: UpdateRoleDto,
     @CurrentActor() actor: Actor,
   ) {
-    return this.roles.updateRole(org.organizationId, roleId, dto, actor);
+    return this.roles.updateRole(org.organizationId, roleId, dto, actor, org);
   }
 }

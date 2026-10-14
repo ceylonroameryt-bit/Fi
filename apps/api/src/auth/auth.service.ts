@@ -21,7 +21,8 @@ export interface AccessTokenPayload {
 
 export interface SessionResult {
   accessToken: string;
-  refreshToken: string;
+  /** Null when the refresh token was not rotated (concurrent-refresh grace path). */
+  refreshToken: string | null;
   expiresInSeconds: number;
   user: {
     id: string;
@@ -35,6 +36,10 @@ export interface SessionResult {
 
 @Injectable()
 export class AuthService {
+  static readonly MAX_FAILED_LOGINS = 5;
+  static readonly LOCKOUT_MS = 15 * 60_000;
+  static readonly REFRESH_REUSE_GRACE_MS = 30_000;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -86,12 +91,16 @@ export class AuthService {
       return created;
     });
 
-    await this.mail.send({
-      to: user.email,
-      subject: 'Verify your Blynt account',
-      text: `Welcome to Blynt. Verify your email with token: ${verificationRaw}`,
-      link: `${this.config.FRONTEND_URL}/verify-email?token=${verificationRaw}`,
-    });
+    try {
+      await this.mail.send({
+        to: user.email,
+        subject: 'Verify your Blynt account',
+        text: 'Welcome to Blynt. Open the link to verify your email address.',
+        link: `${this.config.FRONTEND_URL}/verify-email?token=${verificationRaw}`,
+      });
+    } catch {
+      // The account exists either way; the user can request a new link from the app.
+    }
 
     return this.createSession(user.id, actor);
   }
@@ -104,25 +113,33 @@ export class AuthService {
       throw new DomainException('AUTH_INVALID_CREDENTIALS', 'Invalid email or password');
     }
 
-    if (user.status === UserStatus.DISABLED || user.status === UserStatus.SUSPENDED) {
-      throw new DomainException('AUTH_ACCOUNT_DISABLED', 'Account is suspended or disabled');
-    }
+    const now = Date.now();
+    const lockActive = Boolean(user.lockedUntil && user.lockedUntil.getTime() > now);
+    const lockExpired = Boolean(user.lockedUntil && user.lockedUntil.getTime() <= now);
 
-    if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+    // Always run the hash so timing is the same for every branch.
+    const valid = await this.passwords.verify(dto.password, user.passwordHash);
+
+    // While locked, the answer must not depend on the password, or the lock becomes an oracle.
+    if (lockActive) {
       throw new DomainException('AUTH_ACCOUNT_LOCKED', 'Account temporarily locked due to failed login attempts. Try again later.');
     }
 
-    const valid = await this.passwords.verify(dto.password, user.passwordHash);
     if (!valid) {
-      const attempts = user.failedLoginAttempts + 1;
-      const lock = attempts >= 5;
-      await this.prisma.user.update({
+      // A lock that has run out starts a fresh count; the increment is atomic.
+      const updated = await this.prisma.user.update({
         where: { id: user.id },
-        data: {
-          failedLoginAttempts: attempts,
-          lockedUntil: lock ? new Date(Date.now() + 15 * 60_000) : null,
-        },
+        data: lockExpired
+          ? { failedLoginAttempts: 1, lockedUntil: null }
+          : { failedLoginAttempts: { increment: 1 } },
+        select: { failedLoginAttempts: true },
       });
+      if (updated.failedLoginAttempts >= AuthService.MAX_FAILED_LOGINS) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { lockedUntil: new Date(now + AuthService.LOCKOUT_MS) },
+        });
+      }
 
       await this.audit.record(null, actor, {
         organizationId: null,
@@ -132,6 +149,15 @@ export class AuthService {
       });
 
       throw new DomainException('AUTH_INVALID_CREDENTIALS', 'Invalid email or password');
+    }
+
+    // Status is only revealed to someone who knows the password.
+    if (user.status === UserStatus.INVITED) {
+      throw new DomainException('AUTH_ACCOUNT_DISABLED', 'Please accept your invitation from the email we sent to activate this account.');
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new DomainException('AUTH_ACCOUNT_DISABLED', 'Account is suspended or disabled');
     }
 
     await this.prisma.user.update({
@@ -168,54 +194,112 @@ export class AuthService {
       include: { user: true },
     });
 
-    if (!session || session.revokedAt || session.expiresAt.getTime() <= Date.now()) {
+    if (!session) {
+      return this.handleRotatedRefreshToken(tokenHash, actor);
+    }
+
+    if (session.revokedAt || session.expiresAt.getTime() <= Date.now()) {
       throw new DomainException('AUTH_SESSION_EXPIRED', 'Session has expired or is invalid');
     }
 
-    if (session.user.status === UserStatus.DISABLED || session.user.status === UserStatus.SUSPENDED) {
+    if (session.user.status !== UserStatus.ACTIVE) {
       throw new DomainException('AUTH_ACCOUNT_DISABLED', 'Account is inactive');
     }
 
-    // Rotate refresh token
+    // Rotate the refresh token with a compare-and-swap so two concurrent refreshes
+    // cannot both rotate the same token.
     const newRawRefresh = this.tokens.generate();
     const newRefreshHash = this.tokens.hash(newRawRefresh);
     const expiresAt = new Date(Date.now() + this.config.REFRESH_TOKEN_TTL_DAYS * 86_400_000);
 
-    await this.prisma.session.update({
-      where: { id: session.id },
+    const swapped = await this.prisma.session.updateMany({
+      where: { id: session.id, refreshTokenHash: tokenHash, revokedAt: null },
       data: {
         refreshTokenHash: newRefreshHash,
+        previousRefreshTokenHash: tokenHash,
+        refreshRotatedAt: new Date(),
         expiresAt,
         lastUsedAt: new Date(),
         ipAddress: actor?.ipAddress ?? session.ipAddress,
         userAgent: actor?.userAgent ?? session.userAgent,
       },
     });
+    if (swapped.count === 0) {
+      // Another request rotated it first; treat like the grace path.
+      return this.handleRotatedRefreshToken(tokenHash, actor);
+    }
 
-    const accessToken = await this.signAccessToken({
-      sub: session.user.id,
-      sid: session.id,
-      email: session.user.email,
+    return this.sessionResult(session.id, session.user, newRawRefresh);
+  }
+
+  /**
+   * A refresh token that is no longer current. Within a short grace window after rotation
+   * (another tab refreshed at the same moment) we issue a fresh access token only; the browser
+   * already holds the newer refresh cookie. Outside the window this is reuse of an old token,
+   * which suggests theft, so the whole session is revoked.
+   */
+  private async handleRotatedRefreshToken(tokenHash: string, actor: Actor | null): Promise<SessionResult> {
+    const session = await this.prisma.session.findUnique({
+      where: { previousRefreshTokenHash: tokenHash },
+      include: { user: true },
     });
+    if (!session || session.revokedAt || session.expiresAt.getTime() <= Date.now()) {
+      throw new DomainException('AUTH_SESSION_EXPIRED', 'Session has expired or is invalid');
+    }
 
+    const rotatedAt = session.refreshRotatedAt?.getTime() ?? 0;
+    if (Date.now() - rotatedAt <= AuthService.REFRESH_REUSE_GRACE_MS && session.user.status === UserStatus.ACTIVE) {
+      return this.sessionResult(session.id, session.user, null);
+    }
+
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: { revokedAt: new Date(), revokedReason: 'REFRESH_TOKEN_REUSE' },
+    });
+    await this.audit.record(null, actor, {
+      organizationId: null,
+      eventType: AuditEvents.SESSION_REVOKED,
+      entityType: 'SESSION',
+      entityId: session.id,
+      newValues: { reason: 'REFRESH_TOKEN_REUSE' },
+    });
+    throw new DomainException('AUTH_SESSION_EXPIRED', 'Session has expired or is invalid');
+  }
+
+  private async sessionResult(
+    sessionId: string,
+    user: { id: string; email: string; firstName: string; lastName: string; emailVerified: boolean; isSuperAdmin: boolean },
+    refreshToken: string | null,
+  ): Promise<SessionResult> {
+    const accessToken = await this.signAccessToken({ sub: user.id, sid: sessionId, email: user.email });
     return {
       accessToken,
-      refreshToken: newRawRefresh,
+      refreshToken,
       expiresInSeconds: this.config.ACCESS_TOKEN_TTL_SECONDS,
       user: {
-        id: session.user.id,
-        email: session.user.email,
-        firstName: session.user.firstName,
-        lastName: session.user.lastName,
-        emailVerified: session.user.emailVerified,
-        isSuperAdmin: session.user.isSuperAdmin,
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        emailVerified: user.emailVerified,
+        isSuperAdmin: user.isSuperAdmin,
       },
     };
   }
 
-  async logout(sessionId: string, actor: Actor | null): Promise<void> {
+  async logout(sessionId: string | null, rawRefreshToken: string | null, actor: Actor | null): Promise<void> {
+    let targetId = sessionId;
+    if (!targetId && rawRefreshToken) {
+      const session = await this.prisma.session.findUnique({
+        where: { refreshTokenHash: this.tokens.hash(rawRefreshToken) },
+        select: { id: true },
+      });
+      targetId = session?.id ?? null;
+    }
+    if (!targetId) return;
+
     await this.prisma.session.updateMany({
-      where: { id: sessionId, revokedAt: null },
+      where: { id: targetId, revokedAt: null },
       data: { revokedAt: new Date(), revokedReason: 'LOGOUT' },
     });
 
@@ -223,7 +307,7 @@ export class AuthService {
       organizationId: null,
       eventType: AuditEvents.USER_LOGOUT,
       entityType: 'SESSION',
-      entityId: sessionId,
+      entityId: targetId,
     });
   }
 
@@ -248,7 +332,9 @@ export class AuthService {
 
   async requestPasswordReset(email: string, actor: Actor | null): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) return; // Silent success to prevent account enumeration
+    // Silent success to prevent account enumeration. Users who never set a password
+    // (pending invitations) and disabled accounts don't get reset links.
+    if (!user || !user.passwordHash || user.status === UserStatus.DISABLED) return;
 
     const resetRaw = this.tokens.generate();
     const tokenHash = this.tokens.hash(resetRaw);
@@ -265,7 +351,7 @@ export class AuthService {
     await this.mail.send({
       to: user.email,
       subject: 'Reset your Blynt password',
-      text: `Reset token: ${resetRaw}`,
+      text: 'Open the link to reset your password. It expires in one hour.',
       link: `${this.config.FRONTEND_URL}/reset-password?token=${resetRaw}`,
     });
 
@@ -278,7 +364,6 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto, actor: Actor | null): Promise<void> {
-    this.passwords.assertStrong(dto.password);
     const tokenHash = this.tokens.hash(dto.token);
 
     const record = await this.prisma.userToken.findFirst({
@@ -294,6 +379,7 @@ export class AuthService {
     if (!record) {
       throw new DomainException('AUTH_TOKEN_INVALID', 'Invalid or expired password reset token');
     }
+    this.passwords.assertStrong(dto.password, { email: record.user.email });
 
     const passwordHash = await this.passwords.hash(dto.password);
 
@@ -313,6 +399,12 @@ export class AuthService {
         data: { passwordHash, failedLoginAttempts: 0, lockedUntil: null },
       });
 
+      // Any other outstanding reset links stop working.
+      await tx.userToken.updateMany({
+        where: { userId: record.userId, type: UserTokenType.PASSWORD_RESET, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
       // Revoke all existing sessions for security
       await tx.session.updateMany({
         where: { userId: record.userId, revokedAt: null },
@@ -325,6 +417,35 @@ export class AuthService {
         entityType: 'USER',
         entityId: record.userId,
       });
+    });
+  }
+
+  async resendVerificationEmail(userId: string, _actor: Actor | null): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.emailVerified) return;
+
+    const raw = this.tokens.generate();
+    await this.prisma.transaction(async (tx) => {
+      // Older verification links stop working once a new one is sent.
+      await tx.userToken.updateMany({
+        where: { userId, type: UserTokenType.EMAIL_VERIFICATION, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      await tx.userToken.create({
+        data: {
+          userId,
+          type: UserTokenType.EMAIL_VERIFICATION,
+          tokenHash: this.tokens.hash(raw),
+          expiresAt: new Date(Date.now() + 24 * 3600_000),
+        },
+      });
+    });
+
+    await this.mail.send({
+      to: user.email,
+      subject: 'Verify your Blynt account',
+      text: 'Open the link to verify your email address.',
+      link: `${this.config.FRONTEND_URL}/verify-email?token=${raw}`,
     });
   }
 
@@ -368,8 +489,12 @@ export class AuthService {
     });
   }
 
+  /**
+   * Accepts one invitation. A new user sets their password here; an existing user
+   * confirms with their current password (it is never overwritten). Only the
+   * membership the invitation was issued for is activated.
+   */
   async acceptInvitation(dto: AcceptInvitationDto, actor: Actor | null): Promise<SessionResult> {
-    this.passwords.assertStrong(dto.password);
     const tokenHash = this.tokens.hash(dto.token);
 
     const record = await this.prisma.userToken.findFirst({
@@ -386,7 +511,20 @@ export class AuthService {
       throw new DomainException('AUTH_TOKEN_INVALID', 'Invalid or expired invitation token');
     }
 
-    const passwordHash = await this.passwords.hash(dto.password);
+    const existingAccount = Boolean(record.user.passwordHash);
+    let newPasswordHash: string | null = null;
+    if (existingAccount) {
+      const valid = await this.passwords.verify(dto.password, record.user.passwordHash);
+      if (!valid) {
+        throw new DomainException('AUTH_INVALID_CREDENTIALS', 'Enter the password for your existing Blynt account to accept');
+      }
+      if (record.user.status === UserStatus.DISABLED || record.user.status === UserStatus.SUSPENDED) {
+        throw new DomainException('AUTH_ACCOUNT_DISABLED', 'Account is suspended or disabled');
+      }
+    } else {
+      this.passwords.assertStrong(dto.password, { email: record.user.email });
+      newPasswordHash = await this.passwords.hash(dto.password);
+    }
 
     await this.prisma.transaction(async (tx) => {
       // Atomic single-use test-and-set to prevent concurrent race conditions
@@ -399,29 +537,42 @@ export class AuthService {
         throw new DomainException('AUTH_TOKEN_INVALID', 'Invitation token has already been used');
       }
 
-      await tx.user.update({
-        where: { id: record.userId },
-        data: {
-          passwordHash,
-          status: UserStatus.ACTIVE,
-          emailVerified: true,
-          emailVerifiedAt: new Date(),
-          firstName: dto.firstName?.trim() || record.user.firstName,
-          lastName: dto.lastName?.trim() || record.user.lastName,
-          failedLoginAttempts: 0,
-          lockedUntil: null,
-        },
-      });
+      if (!existingAccount) {
+        await tx.user.update({
+          where: { id: record.userId },
+          data: {
+            passwordHash: newPasswordHash,
+            status: UserStatus.ACTIVE,
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
+            firstName: dto.firstName?.trim() || record.user.firstName,
+            lastName: dto.lastName?.trim() || record.user.lastName,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+          },
+        });
+      } else if (!record.user.emailVerified) {
+        // Receiving the invitation proves control of the address.
+        await tx.user.update({
+          where: { id: record.userId },
+          data: { emailVerified: true, emailVerifiedAt: new Date() },
+        });
+      }
 
-      // Activate all pending memberships for this user
+      // Activate only the membership this invitation was for (legacy tokens without an
+      // organisation fall back to the previous behaviour).
       await tx.organizationMember.updateMany({
-        where: { userId: record.userId, status: MemberStatus.INVITED },
+        where: {
+          userId: record.userId,
+          status: MemberStatus.INVITED,
+          ...(record.organizationId ? { organizationId: record.organizationId } : {}),
+        },
         data: { status: MemberStatus.ACTIVE, joinedAt: new Date() },
       });
 
       await this.audit.record(tx, actor, {
-        organizationId: null,
-        eventType: AuditEvents.USER_INVITED,
+        organizationId: record.organizationId ?? null,
+        eventType: AuditEvents.INVITATION_ACCEPTED,
         entityType: 'USER',
         entityId: record.userId,
       });

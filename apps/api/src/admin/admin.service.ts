@@ -1,3 +1,4 @@
+import { normalizePagination } from '../common/dto/pagination.dto';
 import { Injectable } from '@nestjs/common';
 import { OrganizationStatus, UserStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
@@ -86,8 +87,7 @@ export class AdminService {
    * List organizations across the entire platform with pagination and search.
    */
   async listOrganizations(query: AdminPaginationQueryDto) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const { page, pageSize } = normalizePagination(query.page, query.pageSize, 20);
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.OrganizationWhereInput = {};
@@ -212,8 +212,7 @@ export class AdminService {
    * List all global users with pagination and search.
    */
   async listUsers(query: AdminPaginationQueryDto) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const { page, pageSize } = normalizePagination(query.page, query.pageSize, 20);
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.UserWhereInput = {};
@@ -408,8 +407,7 @@ export class AdminService {
    * System-wide audit log query with cross-tenant capability.
    */
   async getAuditLogs(query: AdminPaginationQueryDto) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 30;
+    const { page, pageSize } = normalizePagination(query.page, query.pageSize, 30);
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.AuditLogWhereInput = {};

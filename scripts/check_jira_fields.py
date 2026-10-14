@@ -1,10 +1,13 @@
+import os
 import base64
 import json
 import urllib.request
 
 JIRA_URL = "https://blynt-co.atlassian.net"
-EMAIL = "blynttechnologies@gmail.com"
-API_TOKEN = "ATATT3xFfGF0fCmX0geTVLXs5-U05HWdeD12Ltg_TSyF7i9_8X8XdMzjuJDosb3Iqk9kHteICNzJO6SkshyWow7r-MMAan7QBFDTd4MRBDQPtJOFfhwP37MS3WIv6Rl8oMjVw7Rw_oRq_bQCSl2v5j8YT2_kOnxHv4Q0EgKRwbZ-qL-ZKsbgvcY=F5D7FBCF"
+EMAIL = os.environ.get("JIRA_EMAIL", "blynttechnologies@gmail.com")
+API_TOKEN = os.environ.get("JIRA_API_TOKEN")
+if not API_TOKEN:
+    raise SystemExit("Set the JIRA_API_TOKEN environment variable (never commit tokens).")
 
 auth_str = f"{EMAIL}:{API_TOKEN}"
 b64_auth = base64.b64encode(auth_str.encode()).decode()

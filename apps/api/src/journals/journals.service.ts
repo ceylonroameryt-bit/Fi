@@ -1,3 +1,4 @@
+import { normalizePagination } from '../common/dto/pagination.dto';
 import { Injectable } from '@nestjs/common';
 import { JournalSourceType, JournalStatus, JournalType, Prisma } from '@prisma/client';
 import { PrismaService, Tx } from '../database/prisma.service';
@@ -23,8 +24,7 @@ export class JournalsService {
     organizationId: string,
     filter: { status?: JournalStatus; search?: string; page?: number; pageSize?: number },
   ) {
-    const page = filter.page ?? 1;
-    const pageSize = filter.pageSize ?? 50;
+    const { page, pageSize } = normalizePagination(filter.page, filter.pageSize, 50);
 
     const where: Prisma.JournalEntryWhereInput = {
       organizationId,
@@ -347,19 +347,27 @@ export class JournalsService {
 
   async duplicateDraftJournal(organizationId: string, journalId: string, orgContext: OrgContext, actor: Actor) {
     const original = await this.getJournal(organizationId, journalId);
+    if (original.sourceType !== JournalSourceType.MANUAL || original.reversalOfJournalId) {
+      throw new DomainException(
+        'JOURNAL_SYSTEM_MANAGED',
+        'Only manual journals can be duplicated. Invoice and reversal journals are created by the system.',
+      );
+    }
 
     const dto: CreateJournalDto = {
       journalType: original.journalType,
       journalDate: toIsoDate(new Date()),
       postingDate: toIsoDate(new Date()),
+      // (toIsoDate uses UTC, so this is today's calendar date in UTC.)
       description: `Copy of ${original.description}`,
       reference: original.reference ?? undefined,
       currency: original.currency,
       lines: original.lines.map((l) => ({
         accountId: l.accountId,
         description: l.description ?? undefined,
-        debit: new Prisma.Decimal(l.debit).toNumber(),
-        credit: new Prisma.Decimal(l.credit).toNumber(),
+        // Keep exact decimal strings: converting to number loses precision on large amounts.
+        debit: new Prisma.Decimal(l.debit).toFixed(4),
+        credit: new Prisma.Decimal(l.credit).toFixed(4),
         contactId: l.contactId ?? undefined,
       })),
     };

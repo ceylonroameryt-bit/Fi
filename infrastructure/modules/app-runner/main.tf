@@ -48,6 +48,44 @@ variable "frontend_url" {
   default = "http://localhost:3000"
 }
 
+variable "trust_proxy" {
+  description = "Express trust proxy hop count: the web proxy plus App Runner's own front end"
+  type        = string
+  default     = "2"
+}
+
+variable "mail_provider" {
+  description = "smtp to deliver email; anything else fails closed in production"
+  type        = string
+  default     = "console"
+}
+
+variable "smtp_host" {
+  type    = string
+  default = ""
+}
+
+variable "smtp_port" {
+  type    = string
+  default = "587"
+}
+
+variable "smtp_user" {
+  type    = string
+  default = ""
+}
+
+variable "mail_from" {
+  type    = string
+  default = "noreply@blynt.co"
+}
+
+variable "smtp_password_in_secret" {
+  description = "Set true once SMTP_PASS has been added to the app secret in Secrets Manager"
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
@@ -84,16 +122,24 @@ resource "aws_apprunner_service" "api" {
           PORT                 = "4000"
           FRONTEND_URL         = var.frontend_url
           CORS_ALLOWED_ORIGINS = var.frontend_url
-          MAIL_PROVIDER        = "console"
+          TRUST_PROXY          = var.trust_proxy
+          MAIL_PROVIDER        = var.mail_provider
+          MAIL_FROM            = var.mail_from
+          SMTP_HOST            = var.smtp_host
+          SMTP_PORT            = var.smtp_port
+          SMTP_USER            = var.smtp_user
           LOG_LEVEL            = "info"
         }
 
-        runtime_environment_secrets = {
-          DATABASE_URL   = "${var.secrets_arn}:DATABASE_URL::"
-          DIRECT_URL     = "${var.secrets_arn}:DIRECT_URL::"
-          JWT_SECRET     = "${var.secrets_arn}:JWT_SECRET::"
-          SESSION_SECRET = "${var.secrets_arn}:SESSION_SECRET::"
-        }
+        runtime_environment_secrets = merge(
+          {
+            DATABASE_URL   = "${var.secrets_arn}:DATABASE_URL::"
+            DIRECT_URL     = "${var.secrets_arn}:DIRECT_URL::"
+            JWT_SECRET     = "${var.secrets_arn}:JWT_SECRET::"
+            SESSION_SECRET = "${var.secrets_arn}:SESSION_SECRET::"
+          },
+          var.smtp_password_in_secret ? { SMTP_PASS = "${var.secrets_arn}:SMTP_PASS::" } : {},
+        )
       }
     }
 

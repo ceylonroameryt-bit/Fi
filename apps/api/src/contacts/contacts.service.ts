@@ -1,3 +1,4 @@
+import { auditDiff } from '../audit/audit-diff';
 import { Injectable } from '@nestjs/common';
 import { ContactStatus, ContactType, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
@@ -419,8 +420,7 @@ export class ContactsService {
         eventType: AuditEvents.CONTACT_UPDATED,
         entityType: 'CONTACT',
         entityId: contactId,
-        oldValues: existing,
-        newValues: updated,
+        ...auditDiff(existing as unknown as Record<string, unknown>, updated as unknown as Record<string, unknown>),
       });
 
       return updated;
@@ -587,8 +587,7 @@ export class ContactsService {
         eventType: AuditEvents.CONTACT_PERSON_UPDATED,
         entityType: 'CONTACT_PERSON',
         entityId: personId,
-        oldValues: existing,
-        newValues: updated,
+        ...auditDiff(existing as unknown as Record<string, unknown>, updated as unknown as Record<string, unknown>),
       });
 
       if (dto.isPrimary && !existing.isPrimary) {

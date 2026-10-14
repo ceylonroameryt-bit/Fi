@@ -40,6 +40,12 @@ variable "backup_retention_period" {
   default = 7
 }
 
+variable "protect_data" {
+  description = "Deletion protection and a final snapshot. Keep true for any environment holding real users' data."
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
@@ -134,9 +140,11 @@ resource "aws_db_instance" "postgres" {
   maintenance_window          = "Sun:04:30-Sun:05:30"
   auto_minor_version_upgrade  = true
   allow_major_version_upgrade = false
-  skip_final_snapshot         = var.environment == "dev" ? true : false
-  final_snapshot_identifier   = var.environment == "dev" ? null : "${var.project_name}-${var.environment}-final-snapshot"
-  deletion_protection         = var.environment == "dev" ? false : true
+  # The public site runs on this "dev" stack, so it holds real data: protect it by default.
+  skip_final_snapshot         = !var.protect_data
+  final_snapshot_identifier   = var.protect_data ? "${var.project_name}-${var.environment}-final-snapshot" : null
+  deletion_protection         = var.protect_data
+  copy_tags_to_snapshot       = true
 
   tags = var.tags
 }

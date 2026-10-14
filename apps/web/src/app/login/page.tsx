@@ -15,10 +15,14 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
+// Demo shortcuts are only for local development with the seed data.
+const SHOW_DEMO_LOGIN =
+  process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_SHOW_DEMO_LOGIN === 'true';
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? '';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
@@ -50,7 +54,7 @@ export default function LoginPage() {
 
   const fillDemo = (demoEmail: string) => {
     setEmail(demoEmail);
-    setPassword('Password1234!');
+    setPassword(DEMO_PASSWORD);
   };
 
   return (
@@ -431,38 +435,6 @@ export default function LoginPage() {
               />
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                marginBottom: '1.5rem',
-              }}
-            >
-              <input
-                id="rememberMe"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  accentColor: '#082B5C',
-                  cursor: 'pointer',
-                }}
-              />
-              <label
-                htmlFor="rememberMe"
-                style={{
-                  fontSize: '0.825rem',
-                  color: '#64748B',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                }}
-              >
-                Remember me on this device
-              </label>
-            </div>
 
             <button
               type="submit"
@@ -485,7 +457,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick Demo Switcher */}
+          {/* Demo accounts: local development only, never shown in production builds */}
+          {SHOW_DEMO_LOGIN && (
           <div
             style={{
               marginTop: '1.75rem',
@@ -532,6 +505,7 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+          )}
 
           <div
             style={{

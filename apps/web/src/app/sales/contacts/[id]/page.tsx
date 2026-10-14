@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { currencySymbol } from '@/lib/format';
 
 interface ContactPerson {
   id: string;
@@ -125,6 +126,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
   const contactId = resolvedParams.id;
   const router = useRouter();
   const { activeOrg, hasPermission } = useAuth();
+  const sym = currencySymbol(activeOrg?.baseCurrency);
 
   const [contact, setContact] = useState<ContactDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -413,7 +415,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
                 Receivable Balance
               </span>
               <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#102654', fontFamily: 'var(--font-mono)' }}>
-                £{parseFloat(contact.outstandingReceivableBalance || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {sym}{parseFloat(contact.outstandingReceivableBalance || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
             </div>
 
@@ -423,7 +425,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
                   Payable Balance
                 </span>
                 <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669', fontFamily: 'var(--font-mono)' }}>
-                  £{parseFloat(contact.outstandingPayableBalance || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {sym}{parseFloat(contact.outstandingPayableBalance || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </div>
             )}
@@ -530,7 +532,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
 
               <span style={{ color: '#64748B' }}>Credit Limit:</span>
               <span style={{ fontWeight: 600, color: '#0F172A' }}>
-                {contact.creditLimit ? `£${parseFloat(contact.creditLimit).toLocaleString()}` : 'No limit set'}
+                {contact.creditLimit ? `${sym}${parseFloat(contact.creditLimit).toLocaleString()}` : 'No limit set'}
               </span>
 
               <span style={{ color: '#64748B' }}>Base Currency:</span>
@@ -617,10 +619,10 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
                       <td>{inv.issueDate}</td>
                       <td>{inv.dueDate}</td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                        £{parseFloat(inv.totalAmount).toFixed(2)}
+                        {sym}{parseFloat(inv.totalAmount).toFixed(2)}
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>
-                        £{parseFloat(inv.amountPaid).toFixed(2)}
+                        {sym}{parseFloat(inv.amountPaid).toFixed(2)}
                       </td>
                       <td>
                         <span
@@ -710,7 +712,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase' }}>Opening Balance</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0F172A' }}>
-                  £{parseFloat(statement?.openingBalance || '0').toFixed(2)}
+                  {sym}{parseFloat(statement?.openingBalance || '0').toFixed(2)}
                 </div>
               </div>
             </div>
@@ -749,13 +751,13 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
                         <td><span className="badge badge-neutral">{item.sourceType}</span></td>
                         <td>{item.description}</td>
                         <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                          {parseFloat(item.debit) > 0 ? `£${item.debit}` : '—'}
+                          {parseFloat(item.debit) > 0 ? `${sym}${item.debit}` : '—'}
                         </td>
                         <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                          {parseFloat(item.credit) > 0 ? `£${item.credit}` : '—'}
+                          {parseFloat(item.credit) > 0 ? `${sym}${item.credit}` : '—'}
                         </td>
                         <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                          £{item.runningBalance}
+                          {sym}{item.runningBalance}
                         </td>
                       </tr>
                     ))
@@ -768,7 +770,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase' }}>Closing Balance Due</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#102654' }}>
-                  £{parseFloat(statement?.closingBalance || '0').toFixed(2)}
+                  {sym}{parseFloat(statement?.closingBalance || '0').toFixed(2)}
                 </div>
               </div>
             </div>
@@ -821,7 +823,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
                     </div>
                     {a.amount && (
                       <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#102654', marginTop: '0.2rem', fontFamily: 'var(--font-mono)' }}>
-                        Amount: £{a.amount}
+                        Amount: {sym}{a.amount}
                       </div>
                     )}
                   </div>
@@ -1049,7 +1051,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Credit Limit (£)</label>
+                  <label className="form-label">Credit Limit ({sym})</label>
                   <input
                     type="number"
                     step="0.01"

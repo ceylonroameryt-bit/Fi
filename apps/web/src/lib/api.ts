@@ -133,7 +133,7 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
   } catch (networkError: any) {
     throw new ApiError(
       'NETWORK_ERROR',
-      'Unable to connect to the backend server. If running in cloud production, please ensure API_URL is set in your AWS App Runner configuration.',
+      'Unable to reach the server. Check your connection and try again.',
       0,
     );
   }
@@ -185,7 +185,7 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
       }
     } else if (typeof data === 'string' && data.length > 0) {
       if (data.includes('DNS_HOSTNAME_RESOLVED_PRIVATE')) {
-        message = 'The backend API could not be reached. In your AWS App Runner configuration, ensure API_URL is set to your live backend (e.g. https://arpi2ujw2t.eu-west-2.awsapprunner.com).';
+        message = 'The service is temporarily unavailable. Please try again shortly.';
         code = 'CONFIG_ERROR';
       } else {
         try {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { currencySymbol } from '@/lib/format';
 import { Scale, Download, CheckCircle2, AlertTriangle, Building2, Calendar, Layers } from 'lucide-react';
 
 interface FinancialYear {
@@ -48,6 +49,7 @@ interface BalanceSheetReport {
   nonCurrentLiabilities: BalanceSheetSection;
   totalLiabilities: string;
   equity: BalanceSheetSection;
+  priorYearsEarnings?: string;
   currentYearEarnings: string;
   totalEquity: string;
   totalLiabilitiesAndEquity: string;
@@ -58,6 +60,7 @@ interface BalanceSheetReport {
 function BalanceSheetContent() {
   const router = useRouter();
   const { activeOrg } = useAuth();
+  const sym = currencySymbol(activeOrg?.baseCurrency);
 
   const [financialYears, setFinancialYears] = useState<FinancialYear[]>([]);
   const [periods, setPeriods] = useState<AccountingPeriod[]>([]);
@@ -366,7 +369,7 @@ function BalanceSheetContent() {
               <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>
                 {report.isBalanced
                   ? 'Double-Entry Invariant Verified: Total Assets exactly equal Total Liabilities + Equity.'
-                  : `Invariant Warning: Difference of £${report.difference} detected between Assets and Liabilities + Equity.`}
+                  : `Invariant Warning: Difference of ${sym}${report.difference} detected between Assets and Liabilities + Equity.`}
               </span>
             </div>
             <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>As of {report.asOfDate}</span>
@@ -395,7 +398,7 @@ function BalanceSheetContent() {
                 Total Assets
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
-                £{report.totalAssets}
+                {sym}{report.totalAssets}
               </div>
             </div>
 
@@ -413,7 +416,7 @@ function BalanceSheetContent() {
                 Total Liabilities
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
-                £{report.totalLiabilities}
+                {sym}{report.totalLiabilities}
               </div>
             </div>
 
@@ -431,7 +434,7 @@ function BalanceSheetContent() {
                 Total Equity
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
-                £{report.totalEquity}
+                {sym}{report.totalEquity}
               </div>
             </div>
 
@@ -446,7 +449,7 @@ function BalanceSheetContent() {
               <div
                 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}
               >
-                Current Period Net Income
+                Current Year Net Income
               </div>
               <div
                 style={{
@@ -456,7 +459,7 @@ function BalanceSheetContent() {
                   marginTop: '0.35rem',
                 }}
               >
-                £{report.currentYearEarnings}
+                {sym}{report.currentYearEarnings}
               </div>
             </div>
           </div>
@@ -492,7 +495,7 @@ function BalanceSheetContent() {
                     CURRENT ASSETS
                   </td>
                   <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                    £{report.currentAssets.total}
+                    {sym}{report.currentAssets.total}
                   </td>
                 </tr>
                 {report.currentAssets.accounts.map((a) => (
@@ -507,7 +510,7 @@ function BalanceSheetContent() {
                     <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
                       {a.accountName}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{a.amount}</td>
+                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>{sym}{a.amount}</td>
                   </tr>
                 ))}
 
@@ -521,7 +524,7 @@ function BalanceSheetContent() {
                         NON-CURRENT ASSETS
                       </td>
                       <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                        £{report.nonCurrentAssets.total}
+                        {sym}{report.nonCurrentAssets.total}
                       </td>
                     </tr>
                     {report.nonCurrentAssets.accounts.map((na) => (
@@ -536,7 +539,7 @@ function BalanceSheetContent() {
                         <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
                           {na.accountName}
                         </td>
-                        <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{na.amount}</td>
+                        <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>{sym}{na.amount}</td>
                       </tr>
                     ))}
                   </>
@@ -556,7 +559,7 @@ function BalanceSheetContent() {
                     TOTAL ASSETS
                   </td>
                   <td style={{ padding: '0.8rem 1.25rem', textAlign: 'right', color: '#312E81' }}>
-                    £{report.totalAssets}
+                    {sym}{report.totalAssets}
                   </td>
                 </tr>
 
@@ -566,7 +569,7 @@ function BalanceSheetContent() {
                     CURRENT LIABILITIES
                   </td>
                   <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                    £{report.currentLiabilities.total}
+                    {sym}{report.currentLiabilities.total}
                   </td>
                 </tr>
                 {report.currentLiabilities.accounts.map((l) => (
@@ -581,7 +584,7 @@ function BalanceSheetContent() {
                     <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
                       {l.accountName}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{l.amount}</td>
+                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>{sym}{l.amount}</td>
                   </tr>
                 ))}
 
@@ -595,7 +598,7 @@ function BalanceSheetContent() {
                         NON-CURRENT LIABILITIES
                       </td>
                       <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                        £{report.nonCurrentLiabilities.total}
+                        {sym}{report.nonCurrentLiabilities.total}
                       </td>
                     </tr>
                     {report.nonCurrentLiabilities.accounts.map((nl) => (
@@ -610,7 +613,7 @@ function BalanceSheetContent() {
                         <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
                           {nl.accountName}
                         </td>
-                        <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{nl.amount}</td>
+                        <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>{sym}{nl.amount}</td>
                       </tr>
                     ))}
                   </>
@@ -629,7 +632,7 @@ function BalanceSheetContent() {
                     TOTAL LIABILITIES
                   </td>
                   <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                    £{report.totalLiabilities}
+                    {sym}{report.totalLiabilities}
                   </td>
                 </tr>
 
@@ -639,7 +642,7 @@ function BalanceSheetContent() {
                     EQUITY
                   </td>
                   <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                    £{report.equity.total}
+                    {sym}{report.equity.total}
                   </td>
                 </tr>
                 {report.equity.accounts.map((eq) => (
@@ -654,19 +657,31 @@ function BalanceSheetContent() {
                     <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
                       {eq.accountName}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{eq.amount}</td>
+                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>{sym}{eq.amount}</td>
                   </tr>
                 ))}
+                {/* Prior years' profit not yet closed to an equity account */}
+                {report.priorYearsEarnings && Number(report.priorYearsEarnings) !== 0 && (
+                  <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>GL-RE</td>
+                    <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 600 }}>
+                      Retained Earnings (Prior Years)
+                    </td>
+                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right', fontWeight: 600 }}>
+                      {sym}{report.priorYearsEarnings}
+                    </td>
+                  </tr>
+                )}
                 {/* Current Year Net Income Line */}
                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                   <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
                     GL-INC
                   </td>
                   <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 600 }}>
-                    Current Period Retained Earnings (Net Profit)
+                    Current Year Earnings (Net Profit)
                   </td>
                   <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right', fontWeight: 600 }}>
-                    £{report.currentYearEarnings}
+                    {sym}{report.currentYearEarnings}
                   </td>
                 </tr>
 
@@ -683,7 +698,7 @@ function BalanceSheetContent() {
                     TOTAL EQUITY
                   </td>
                   <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                    £{report.totalEquity}
+                    {sym}{report.totalEquity}
                   </td>
                 </tr>
 
@@ -709,7 +724,7 @@ function BalanceSheetContent() {
                       color: report.isBalanced ? '#166534' : '#991B1B',
                     }}
                   >
-                    £{report.totalLiabilitiesAndEquity}
+                    {sym}{report.totalLiabilitiesAndEquity}
                   </td>
                 </tr>
               </tbody>

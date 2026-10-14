@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { currencySymbol } from '@/lib/format';
 import {
   FileText,
   Upload,
@@ -101,6 +102,7 @@ interface DetailedDoc {
 
 export default function DocumentIntelligencePage() {
   const { activeOrg } = useAuth();
+  const sym = currencySymbol(activeOrg?.baseCurrency);
   const [documents, setDocuments] = useState<AiDocItem[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<DetailedDoc | null>(null);
   const [loading, setLoading] = useState(true);
@@ -711,10 +713,10 @@ export default function DocumentIntelligencePage() {
                           <td style={{ padding: '0.65rem 0.85rem', color: '#334155' }}>
                             {l.account ? `${l.account.code} - ${l.account.name}` : 'Default Ledger'}
                           </td>
-                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>£{l.netAmount}</td>
-                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>£{l.taxAmount}</td>
+                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>{sym}{l.netAmount}</td>
+                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>{sym}{l.taxAmount}</td>
                           <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', fontWeight: 600 }}>
-                            £{l.totalAmount}
+                            {sym}{l.totalAmount}
                           </td>
                         </tr>
                       ))}
@@ -786,7 +788,7 @@ export default function DocumentIntelligencePage() {
                               fontWeight: Number(pl.debit) > 0 ? 600 : 400,
                             }}
                           >
-                            {Number(pl.debit) > 0 ? `£${pl.debit}` : '-'}
+                            {Number(pl.debit) > 0 ? `${sym}${pl.debit}` : '-'}
                           </td>
                           <td
                             style={{
@@ -795,7 +797,7 @@ export default function DocumentIntelligencePage() {
                               fontWeight: Number(pl.credit) > 0 ? 600 : 400,
                             }}
                           >
-                            {Number(pl.credit) > 0 ? `£${pl.credit}` : '-'}
+                            {Number(pl.credit) > 0 ? `${sym}${pl.credit}` : '-'}
                           </td>
                         </tr>
                       ))}
@@ -810,10 +812,10 @@ export default function DocumentIntelligencePage() {
                           Total Verified Invariant
                         </td>
                         <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                          £{accountingIntent.totalDebit}
+                          {sym}{accountingIntent.totalDebit}
                         </td>
                         <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                          £{accountingIntent.totalCredit}
+                          {sym}{accountingIntent.totalCredit}
                         </td>
                       </tr>
                     </tbody>

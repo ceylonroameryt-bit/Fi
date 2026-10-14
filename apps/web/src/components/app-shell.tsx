@@ -41,7 +41,6 @@ import {
   ChevronDown,
   ArrowRight,
   CheckCircle2,
-  AlertTriangle,
   Info,
   Shield,
   LogOut,
@@ -150,6 +149,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   interface NavItem {
     label: string;
     href: string;
+    /** Not built yet: shown with a "Soon" badge instead of linking to a missing page. */
+    soon?: boolean;
     icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
   }
 
@@ -168,25 +169,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       items: [
         { label: 'Customers', href: '/sales/contacts', icon: Users },
         { label: 'Invoices', href: '/sales/invoices', icon: FileText },
-        { label: 'Payments', href: '/sales/payments', icon: CreditCard },
-        { label: 'Credit Notes', href: '/sales/credit-notes', icon: Receipt },
+        { label: 'Payments', href: '/sales/payments', icon: CreditCard, soon: true },
+        { label: 'Credit Notes', href: '/sales/credit-notes', icon: Receipt, soon: true },
       ],
     },
     {
       title: 'PURCHASES',
       items: [
         { label: 'Suppliers', href: '/purchases/suppliers', icon: Truck },
-        { label: 'Bills', href: '/purchases/bills', icon: FileCheck },
-        { label: 'Expenses', href: '/purchases/expenses', icon: CreditCard },
-        { label: 'Supplier Payments', href: '/purchases/payments', icon: ArrowRightLeft },
+        { label: 'Bills', href: '/purchases/bills', icon: FileCheck, soon: true },
+        { label: 'Expenses', href: '/purchases/expenses', icon: CreditCard, soon: true },
+        { label: 'Supplier Payments', href: '/purchases/payments', icon: ArrowRightLeft, soon: true },
       ],
     },
     {
       title: 'BANKING',
       items: [
-        { label: 'Bank Accounts', href: '/banking/accounts', icon: Landmark },
-        { label: 'Transactions', href: '/banking/transactions', icon: ArrowRightLeft },
-        { label: 'Reconciliation', href: '/banking/reconciliation', icon: CheckCheck },
+        { label: 'Bank Accounts', href: '/banking/accounts', icon: Landmark, soon: true },
+        { label: 'Transactions', href: '/banking/transactions', icon: ArrowRightLeft, soon: true },
+        { label: 'Reconciliation', href: '/banking/reconciliation', icon: CheckCheck, soon: true },
       ],
     },
     {
@@ -206,10 +207,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       items: [
         { label: 'Profit & Loss', href: '/reports/profit-and-loss', icon: TrendingUp },
         { label: 'Balance Sheet', href: '/reports/balance-sheet', icon: Scale },
-        { label: 'Cash Flow', href: '/reports/cash-flow', icon: Activity },
-        { label: 'AR Ageing', href: '/reports/ar-ageing', icon: Clock },
-        { label: 'AP Ageing', href: '/reports/ap-ageing', icon: History },
-        { label: 'VAT Reports', href: '/reports/vat', icon: FileSpreadsheet },
+        { label: 'Cash Flow', href: '/reports/cash-flow', icon: Activity, soon: true },
+        { label: 'AR Ageing', href: '/reports/ar-ageing', icon: Clock, soon: true },
+        { label: 'AP Ageing', href: '/reports/ap-ageing', icon: History, soon: true },
+        { label: 'VAT Reports', href: '/reports/vat', icon: FileSpreadsheet, soon: true },
       ],
     },
     {
@@ -217,10 +218,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       items: [
         { label: 'Organisation', href: '/settings/organization', icon: Building2 },
         { label: 'Users', href: '/settings/users', icon: Users },
-        { label: 'Taxes', href: '/settings/taxes', icon: Percent },
-        { label: 'Invoice Settings', href: '/settings/invoice-settings', icon: Settings },
-        { label: 'Integrations', href: '/settings/integrations', icon: Layers },
-        { label: 'Security', href: '/settings/security', icon: ShieldCheck },
+        { label: 'Taxes', href: '/settings/taxes', icon: Percent, soon: true },
+        { label: 'Invoice Settings', href: '/settings/invoice-settings', icon: Settings, soon: true },
+        { label: 'Integrations', href: '/settings/integrations', icon: Layers, soon: true },
+        { label: 'Security', href: '/settings/security', icon: ShieldCheck, soon: true },
         { label: 'Audit Log', href: '/settings/audit-logs', icon: ScrollText },
       ],
     },
@@ -286,6 +287,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 const isActive =
                   pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
                 const Icon = item.icon;
+
+                if (item.soon) {
+                  return (
+                    <div
+                      key={item.label}
+                      className="nav-link"
+                      aria-disabled="true"
+                      title="Coming soon"
+                      style={{ opacity: 0.55, cursor: 'default' }}
+                    >
+                      <div className="nav-link-content">
+                        <Icon size={16} className="nav-link-icon" />
+                        <span>{item.label}</span>
+                      </div>
+                      <span className="sidebar-badge-soon">Soon</span>
+                    </div>
+                  );
+                }
 
                 return (
                   <Link key={item.label} href={item.href} className={`nav-link ${isActive ? 'active' : ''}`}>
@@ -490,41 +509,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 title="Financial alerts"
               >
                 <Bell size={16} />
-                <span className="bell-badge-count">3</span>
               </button>
 
               {showNotifications && (
                 <div className="notifications-dropdown" style={{ right: 0 }}>
                   <div className="notif-header">
                     <span>Financial Alerts</span>
-                    <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: 600 }}>Active</span>
                   </div>
                   <div className="notif-list">
-                    <div className="notif-item">
-                      <div className="notif-icon red">
-                        <AlertTriangle size={14} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div className="notif-title">3 invoices are overdue</div>
-                        <div className="notif-time">Total value £4,320.00</div>
-                      </div>
-                    </div>
-                    <div className="notif-item">
-                      <div className="notif-icon amber">
-                        <Clock size={14} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div className="notif-title">2 bills due within 7 days</div>
-                        <div className="notif-time">Total value £760.00</div>
-                      </div>
-                    </div>
+                    {/* Alerts were hard-coded sample data; show nothing until real alerts exist. */}
                     <div className="notif-item">
                       <div className="notif-icon blue">
                         <Info size={14} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div className="notif-title">VAT return due in 14 days</div>
-                        <div className="notif-time">Period ends 31 Dec 2024</div>
+                        <div className="notif-title">No alerts right now</div>
+                        <div className="notif-time">Overdue invoices and deadlines will appear here.</div>
                       </div>
                     </div>
                   </div>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { currencySymbol } from '@/lib/format';
 
 interface FinancialYear {
   id: string;
@@ -56,6 +57,7 @@ interface TrialBalanceReport {
 function TrialBalanceContent() {
   const router = useRouter();
   const { activeOrg, hasPermission } = useAuth();
+  const sym = currencySymbol(activeOrg?.baseCurrency);
 
   const [financialYears, setFinancialYears] = useState<FinancialYear[]>([]);
   const [periods, setPeriods] = useState<AccountingPeriod[]>([]);
@@ -219,8 +221,8 @@ function TrialBalanceContent() {
                 }}
               >
                 {report.isBalanced
-                  ? `Total Debits match Total Credits exactly at £${Number(report.totalDebit).toLocaleString('en-GB', { minimumFractionDigits: 2 })}. Difference: £0.00`
-                  : `Out of balance by £${Number(report.difference).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`}
+                  ? `Total Debits match Total Credits exactly at ${sym}${Number(report.totalDebit).toLocaleString('en-GB', { minimumFractionDigits: 2 })}. Difference: ${sym}0.00`
+                  : `Out of balance by ${sym}${Number(report.difference).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`}
               </div>
             </div>
           </div>
@@ -234,7 +236,7 @@ function TrialBalanceContent() {
                 color: report.isBalanced ? '#15803D' : '#B91C1C',
               }}
             >
-              £{Number(report.difference).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+              {sym}{Number(report.difference).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
             </div>
           </div>
         </div>
@@ -410,7 +412,7 @@ function TrialBalanceContent() {
                       color: report.isBalanced ? '#15803D' : '#B91C1C',
                     }}
                   >
-                    £{Number(report.difference).toLocaleString('en-GB', { minimumFractionDigits: 2 })}{' '}
+                    {sym}{Number(report.difference).toLocaleString('en-GB', { minimumFractionDigits: 2 })}{' '}
                     {report.isBalanced && (
                       <span style={{ marginLeft: '0.5rem', fontWeight: 500 }}>(Balanced)</span>
                     )}

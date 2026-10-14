@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { currencySymbol } from '@/lib/format';
 import {
   TrendingUp,
   Download,
@@ -64,6 +65,7 @@ interface ProfitAndLossReport {
 function ProfitAndLossContent() {
   const router = useRouter();
   const { activeOrg } = useAuth();
+  const sym = currencySymbol(activeOrg?.baseCurrency);
 
   const [financialYears, setFinancialYears] = useState<FinancialYear[]>([]);
   const [periods, setPeriods] = useState<AccountingPeriod[]>([]);
@@ -414,7 +416,7 @@ function ProfitAndLossContent() {
                 Operating Revenue
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
-                £{report.revenue.total}
+                {sym}{report.revenue.total}
               </div>
             </div>
 
@@ -432,7 +434,7 @@ function ProfitAndLossContent() {
                 Cost of Sales
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
-                £{report.costOfSales.total}
+                {sym}{report.costOfSales.total}
               </div>
             </div>
 
@@ -457,7 +459,7 @@ function ProfitAndLossContent() {
                   marginTop: '0.35rem',
                 }}
               >
-                £{report.grossProfit}
+                {sym}{report.grossProfit}
               </div>
             </div>
 
@@ -475,7 +477,7 @@ function ProfitAndLossContent() {
                 Operating Expenses
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
-                £{report.operatingExpenses.total}
+                {sym}{report.operatingExpenses.total}
               </div>
             </div>
 
@@ -505,7 +507,7 @@ function ProfitAndLossContent() {
                   marginTop: '0.35rem',
                 }}
               >
-                £{report.netProfit}
+                {sym}{report.netProfit}
               </div>
             </div>
           </div>
@@ -541,7 +543,7 @@ function ProfitAndLossContent() {
                     OPERATING REVENUE
                   </td>
                   <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                    £{report.revenue.total}
+                    {sym}{report.revenue.total}
                   </td>
                 </tr>
                 {report.revenue.accounts.map((r) => (
@@ -556,7 +558,7 @@ function ProfitAndLossContent() {
                     <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
                       {r.accountName}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{r.amount}</td>
+                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>{sym}{r.amount}</td>
                   </tr>
                 ))}
 
@@ -566,7 +568,7 @@ function ProfitAndLossContent() {
                     COST OF SALES (COGS)
                   </td>
                   <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                    £{report.costOfSales.total}
+                    {sym}{report.costOfSales.total}
                   </td>
                 </tr>
                 {report.costOfSales.accounts.map((c) => (
@@ -581,7 +583,7 @@ function ProfitAndLossContent() {
                     <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
                       {c.accountName}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{c.amount}</td>
+                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>{sym}{c.amount}</td>
                   </tr>
                 ))}
 
@@ -598,7 +600,7 @@ function ProfitAndLossContent() {
                     GROSS PROFIT
                   </td>
                   <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: '#3730A3' }}>
-                    £{report.grossProfit}
+                    {sym}{report.grossProfit}
                   </td>
                 </tr>
 
@@ -608,7 +610,7 @@ function ProfitAndLossContent() {
                     OPERATING EXPENSES
                   </td>
                   <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                    £{report.operatingExpenses.total}
+                    {sym}{report.operatingExpenses.total}
                   </td>
                 </tr>
                 {report.operatingExpenses.accounts.map((o) => (
@@ -623,7 +625,7 @@ function ProfitAndLossContent() {
                     <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
                       {o.accountName}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{o.amount}</td>
+                    <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>{sym}{o.amount}</td>
                   </tr>
                 ))}
 
@@ -640,7 +642,7 @@ function ProfitAndLossContent() {
                     OPERATING PROFIT (EBIT)
                   </td>
                   <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                    £{report.operatingProfit}
+                    {sym}{report.operatingProfit}
                   </td>
                 </tr>
 
@@ -652,7 +654,7 @@ function ProfitAndLossContent() {
                         OTHER EXPENSES & TAXES
                       </td>
                       <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
-                        £{report.otherExpenses.total}
+                        {sym}{report.otherExpenses.total}
                       </td>
                     </tr>
                     {report.otherExpenses.accounts.map((ot) => (
@@ -667,7 +669,7 @@ function ProfitAndLossContent() {
                         <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
                           {ot.accountName}
                         </td>
-                        <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{ot.amount}</td>
+                        <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>{sym}{ot.amount}</td>
                       </tr>
                     ))}
                   </>
@@ -695,7 +697,7 @@ function ProfitAndLossContent() {
                       color: report.isProfitable ? '#14532D' : '#7F1D1D',
                     }}
                   >
-                    £{report.netProfit}
+                    {sym}{report.netProfit}
                   </td>
                 </tr>
               </tbody>

@@ -21,7 +21,7 @@ export class OrganizationMembersController {
     @Body() dto: InviteMemberDto,
     @CurrentActor() actor: Actor,
   ) {
-    return this.members.inviteMember(org.organizationId, dto, actor);
+    return this.members.inviteMember(org.organizationId, dto, actor, org);
   }
 
   @Patch(':memberId')
@@ -32,7 +32,7 @@ export class OrganizationMembersController {
     @Body() dto: UpdateMemberRoleDto,
     @CurrentActor() actor: Actor,
   ) {
-    return this.members.updateMemberRole(org.organizationId, memberId, dto, actor);
+    return this.members.updateMemberRole(org.organizationId, memberId, dto, actor, org);
   }
 
   @Delete(':memberId')
@@ -42,6 +42,6 @@ export class OrganizationMembersController {
     @Param('memberId', ParseUUIDPipe) memberId: string,
     @CurrentActor() actor: Actor,
   ) {
-    return this.members.removeMember(org.organizationId, memberId, actor);
+    return this.members.removeMember(org.organizationId, memberId, actor, org);
   }
 }

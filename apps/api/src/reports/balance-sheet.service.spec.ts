@@ -86,6 +86,9 @@ describe('BalanceSheetService', () => {
     journalLine: {
       findMany: jest.fn().mockResolvedValue(mockLines),
     },
+    financialYear: {
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
   };
 
   beforeEach(() => {
@@ -95,6 +98,7 @@ describe('BalanceSheetService', () => {
     mockPrisma.organization.findUnique.mockResolvedValue(mockOrg);
     mockPrisma.account.findMany.mockResolvedValue(mockAccounts);
     mockPrisma.journalLine.findMany.mockResolvedValue(mockLines);
+    mockPrisma.financialYear.findFirst.mockResolvedValue(null);
   });
 
   it('correctly aggregates Assets, Liabilities, and Equity and satisfies the fundamental accounting invariant', async () => {
@@ -121,5 +125,25 @@ describe('BalanceSheetService', () => {
     expect(csv).toContain('TOTAL ASSETS');
     expect(csv).toContain('TOTAL LIABILITIES & EQUITY');
     expect(csv).toContain('BALANCED');
+  });
+
+  it('separates prior-year profit from current-year profit', async () => {
+    mockPrisma.financialYear.findFirst.mockResolvedValue({ startDate: new Date('2026-04-01T00:00:00Z') });
+    mockPrisma.journalLine.findMany.mockResolvedValue([
+      { accountId: 'acc-bank', debit: '35000.00', credit: '0.00', journalEntry: { postingDate: new Date('2026-06-01T00:00:00Z') } },
+      { accountId: 'acc-ar', debit: '15000.00', credit: '0.00', journalEntry: { postingDate: new Date('2026-06-01T00:00:00Z') } },
+      { accountId: 'acc-ap', debit: '0.00', credit: '10000.00', journalEntry: { postingDate: new Date('2026-06-01T00:00:00Z') } },
+      { accountId: 'acc-equity', debit: '0.00', credit: '20000.00', journalEntry: { postingDate: new Date('2026-06-01T00:00:00Z') } },
+      // Last year's revenue, this year's expense.
+      { accountId: 'acc-revenue', debit: '0.00', credit: '30000.00', journalEntry: { postingDate: new Date('2026-01-15T00:00:00Z') } },
+      { accountId: 'acc-expense', debit: '10000.00', credit: '0.00', journalEntry: { postingDate: new Date('2026-06-01T00:00:00Z') } },
+    ]);
+
+    const report = await service.generateBalanceSheet('org-1', { asOfDate: '2026-12-31' });
+
+    expect(report.priorYearsEarnings).toBe('30000.00');
+    expect(report.currentYearEarnings).toBe('-10000.00');
+    expect(report.totalEquity).toBe('40000.00');
+    expect(report.isBalanced).toBe(true);
   });
 });

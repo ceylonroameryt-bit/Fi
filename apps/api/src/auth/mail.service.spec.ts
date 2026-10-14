@@ -13,6 +13,7 @@ describe('MailService (Production Safety & Transports)', () => {
     CORS_ALLOWED_ORIGINS: '',
     COOKIE_SECURE: false,
     REDIS_URL: '',
+    TRUST_PROXY: 'false',
     LOG_LEVEL: 'info',
     RATE_LIMIT_PER_MINUTE: 300,
     AUTH_RATE_LIMIT_PER_MINUTE: 10,
@@ -25,6 +26,7 @@ describe('MailService (Production Safety & Transports)', () => {
     isProduction: false,
     isTest: true,
     cookieSecure: false,
+    requireEmailVerification: false,
   };
 
   it('records outgoing messages in-memory when in test mode', async () => {
@@ -92,5 +94,18 @@ describe('MailService (Production Safety & Transports)', () => {
     const last = service.lastMailTo('audit@example.com');
     expect(last).toBeDefined();
     expect(last?.subject).toBe('Security Alert');
+  });
+
+  it('fails closed in production when the provider is console (nothing would be delivered)', async () => {
+    const service = new MailService({ ...baseConfig, isProduction: true, isTest: false, MAIL_PROVIDER: 'console' });
+    await expect(
+      service.send({ to: 'someone@example.com', subject: 'Reset', text: 'x', link: 'https://x/reset?token=t' }),
+    ).rejects.toMatchObject({ code: 'SERVICE_UNAVAILABLE' });
+  });
+
+  it('buffers but does not deliver in development without a provider', async () => {
+    const service = new MailService({ ...baseConfig, isTest: false, MAIL_PROVIDER: 'none' });
+    await service.send({ to: 'dev@example.com', subject: 'Hello', text: 'x' });
+    expect(service.lastMailTo('dev@example.com')?.subject).toBe('Hello');
   });
 });

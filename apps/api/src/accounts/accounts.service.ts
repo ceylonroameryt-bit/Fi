@@ -1,11 +1,12 @@
+import { auditDiff } from '../audit/audit-diff';
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { AccountSubtype, AccountType, JournalStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
 import type { Actor } from '../common/types/request-context.types';
 import { AuditService } from '../audit/audit.service';
 import { AuditEvents } from '../audit/audit-events';
-import { getExpectedNormalBalance, DEFAULT_CHART_OF_ACCOUNTS } from './accounts.constants';
+import { getExpectedNormalBalance, DEFAULT_CHART_OF_ACCOUNTS, SUBTYPE_ACCOUNT_TYPE } from './accounts.constants';
 import type { CreateAccountDto, UpdateAccountDto, AccountFilterQueryDto } from './dto/account.dto';
 
 @Injectable()
@@ -72,13 +73,18 @@ export class AccountsService {
       );
     }
 
-    // 2. Validate parent account if provided (must belong to same organization)
+    this.assertSubtypeMatchesType(dto.accountType, dto.accountSubtype);
+
+    // 2. Validate parent account if provided (must belong to same organization and type)
     if (dto.parentAccountId) {
       const parent = await this.prisma.account.findFirst({
         where: { id: dto.parentAccountId, organizationId },
       });
       if (!parent) {
         throw new DomainException('ACCOUNT_INVALID_PARENT', 'Parent account not found in this organisation');
+      }
+      if (parent.accountType !== dto.accountType) {
+        throw new DomainException('ACCOUNT_INVALID_PARENT', 'A parent account must have the same account type');
       }
     }
 
@@ -125,6 +131,10 @@ export class AccountsService {
       throw new DomainException('ACCOUNT_PROTECTED', 'System accounts cannot be modified');
     }
 
+    if (dto.accountSubtype !== undefined) {
+      this.assertSubtypeMatchesType(account.accountType, dto.accountSubtype);
+    }
+
     if (dto.parentAccountId) {
       if (dto.parentAccountId === accountId) {
         throw new DomainException('ACCOUNT_INVALID_PARENT', 'An account cannot be its own parent');
@@ -135,6 +145,10 @@ export class AccountsService {
       if (!parent) {
         throw new DomainException('ACCOUNT_INVALID_PARENT', 'Parent account not found in this organisation');
       }
+      if (parent.accountType !== account.accountType) {
+        throw new DomainException('ACCOUNT_INVALID_PARENT', 'A parent account must have the same account type');
+      }
+      await this.assertNoHierarchyCycle(organizationId, accountId, dto.parentAccountId);
     }
 
     const updated = await this.prisma.transaction(async (tx) => {
@@ -156,8 +170,7 @@ export class AccountsService {
         eventType: AuditEvents.ACCOUNT_UPDATED,
         entityType: 'ACCOUNT',
         entityId: accountId,
-        oldValues: account,
-        newValues: res,
+        ...auditDiff(account as unknown as Record<string, unknown>, res as unknown as Record<string, unknown>),
       });
 
       return res;
@@ -175,6 +188,8 @@ export class AccountsService {
     if (!account.isActive) {
       return account; // already archived
     }
+
+    await this.assertArchivable(organizationId, account);
 
     const updated = await this.prisma.transaction(async (tx) => {
       const res = await tx.account.update({
@@ -291,5 +306,85 @@ export class AccountsService {
     }
 
     return { createdCount: toCreate.length, totalTemplateCount: DEFAULT_CHART_OF_ACCOUNTS.length };
+  }
+
+  private assertSubtypeMatchesType(type: AccountType, subtype?: AccountSubtype | null): void {
+    if (subtype && SUBTYPE_ACCOUNT_TYPE[subtype] !== type) {
+      throw new DomainException(
+        'VALIDATION_FAILED',
+        `Subtype ${subtype} belongs to ${SUBTYPE_ACCOUNT_TYPE[subtype]} accounts, not ${type}`,
+        { fields: { accountSubtype: ['does not match the account type'] } },
+      );
+    }
+  }
+
+  /** Walks up from the proposed parent; reaching this account again would create a loop. */
+  private async assertNoHierarchyCycle(organizationId: string, accountId: string, parentId: string): Promise<void> {
+    let current: string | null = parentId;
+    for (let depth = 0; current && depth < 50; depth++) {
+      if (current === accountId) {
+        throw new DomainException('ACCOUNT_INVALID_PARENT', 'That parent would create a loop in the account hierarchy');
+      }
+      const next: { parentAccountId: string | null } | null = await this.prisma.account.findFirst({
+        where: { id: current, organizationId },
+        select: { parentAccountId: true },
+      });
+      current = next?.parentAccountId ?? null;
+    }
+  }
+
+  /**
+   * An account can be archived only when nothing depends on it: no balance, no active
+   * sub-accounts, no customer/supplier using it as a control account, and it is not the
+   * last active receivables or VAT account (invoice posting needs those).
+   */
+  private async assertArchivable(
+    organizationId: string,
+    account: { id: string; code: string; accountSubtype: AccountSubtype | null },
+  ): Promise<void> {
+    const totals = await this.prisma.journalLine.aggregate({
+      where: {
+        organizationId,
+        accountId: account.id,
+        journalEntry: { status: { in: [JournalStatus.POSTED, JournalStatus.REVERSED] } },
+      },
+      _sum: { debit: true, credit: true },
+    });
+    const balance = new Prisma.Decimal(totals._sum.debit ?? 0).sub(new Prisma.Decimal(totals._sum.credit ?? 0));
+    if (!balance.isZero()) {
+      throw new DomainException('ACCOUNT_HAS_BALANCE', `Account ${account.code} has a balance of ${balance.toFixed(2)}; clear it before archiving`);
+    }
+
+    const activeChildren = await this.prisma.account.count({
+      where: { organizationId, parentAccountId: account.id, isActive: true },
+    });
+    if (activeChildren > 0) {
+      throw new DomainException('ACCOUNT_HAS_CHILDREN', `Account ${account.code} has active sub-accounts; archive those first`);
+    }
+
+    const contactsUsing = await this.prisma.contact.count({
+      where: {
+        organizationId,
+        OR: [{ receivableAccountId: account.id }, { payableAccountId: account.id }],
+      },
+    });
+    if (contactsUsing > 0) {
+      throw new DomainException('ACCOUNT_IN_USE', `Account ${account.code} is the control account for ${contactsUsing} contact(s)`);
+    }
+
+    if (
+      account.accountSubtype === AccountSubtype.ACCOUNTS_RECEIVABLE ||
+      account.accountSubtype === AccountSubtype.TAX_PAYABLE
+    ) {
+      const others = await this.prisma.account.count({
+        where: { organizationId, accountSubtype: account.accountSubtype, isActive: true, id: { not: account.id } },
+      });
+      if (others === 0) {
+        throw new DomainException(
+          'ACCOUNT_IN_USE',
+          `Account ${account.code} is the only active ${account.accountSubtype === AccountSubtype.TAX_PAYABLE ? 'VAT' : 'receivables'} account; invoices need it`,
+        );
+      }
+    }
   }
 }
