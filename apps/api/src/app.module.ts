@@ -23,6 +23,7 @@ import { TaxModule } from './tax/tax.module';
 import { JobsModule } from './jobs/jobs.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { InvoicesModule } from './invoices/invoices.module';
+import { BillsModule } from './bills/bills.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
 import { StorageModule } from './common/storage/storage.module';
@@ -59,6 +60,7 @@ import { AllExceptionsFilter } from './common/errors/all-exceptions.filter';
     JobsModule,
     ContactsModule,
     InvoicesModule,
+    BillsModule,
     AdminModule,
     HealthModule,
     StorageModule,

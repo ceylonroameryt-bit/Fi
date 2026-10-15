@@ -85,15 +85,18 @@ describe('AI safety fixes (Stage 4 E2E)', () => {
     await prisma.organization.update({ where: { id: orgId }, data: { aiEnabled: true } });
   });
 
-  it('BUG-12/15: a supplier bill naming our VAT as customer is a PURCHASE and approving it never creates a sales invoice', async () => {
+  it('BUG-12/15: a supplier bill naming our VAT as customer is a PURCHASE and can never become a sales invoice', async () => {
     const doc = await ingest(CUSTOMER_VAT_ON_SUPPLIER_BILL_TEXT);
     expect(doc.direction).toBe('PURCHASE');
     expect(doc.status).toBe('AWAITING_REVIEW');
 
     const before = await invoiceCount();
-    const res = await auth(http().post(`/api/v1/organizations/${orgId}/ai/documents/${doc.id}/approve`)).send({}).expect(422);
-    expect(JSON.stringify(res.body)).toContain('AI_BILLS_NOT_AVAILABLE');
+    const billsBefore = await prisma.bill.count({ where: { organizationId: orgId } });
+    // Since Stage 11 a purchase can only become a draft supplier bill; this supplier is unknown, so a reviewer must pick one first.
+    const res = await auth(http().post(`/api/v1/organizations/${orgId}/ai/documents/${doc.id}/approve`)).send({}).expect(400);
+    expect(JSON.stringify(res.body)).toContain('supplier must be chosen');
     expect(await invoiceCount()).toBe(before);
+    expect(await prisma.bill.count({ where: { organizationId: orgId } })).toBe(billsBefore);
   });
 
   it('BUG-04/07: a document with no identifiable parties stays UNKNOWN with nothing invented, and cannot be approved', async () => {

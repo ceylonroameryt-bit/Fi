@@ -68,6 +68,14 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDef[] = [
   { code: 'invoice.post', description: 'Approve and post sales invoices to General Ledger', category: 'Invoicing' },
   { code: 'invoice.void', description: 'Void posted sales invoices and reverse ledger journals', category: 'Invoicing' },
 
+  // Supplier bills
+  { code: 'bill.view', description: 'View supplier bills', category: 'Purchases' },
+  { code: 'bill.create', description: 'Create draft supplier bills', category: 'Purchases' },
+  { code: 'bill.edit_draft', description: 'Edit draft supplier bills', category: 'Purchases' },
+  { code: 'bill.delete_draft', description: 'Delete draft supplier bills', category: 'Purchases' },
+  { code: 'bill.approve', description: 'Approve and post supplier bills to the General Ledger', category: 'Purchases' },
+  { code: 'bill.void', description: 'Void posted supplier bills by reversing their journals', category: 'Purchases' },
+
   // Audit
   { code: 'audit.view', description: 'View audit logs', category: 'Audit' },
 
@@ -113,6 +121,12 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'invoice.delete_draft',
     'invoice.post',
     'invoice.void',
+    'bill.view',
+    'bill.create',
+    'bill.edit_draft',
+    'bill.delete_draft',
+    'bill.approve',
+    'bill.void',
     'ledger.view',
     'ledger.export',
     'trial_balance.view',
@@ -138,6 +152,9 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'invoice.view',
     'invoice.create',
     'invoice.edit_draft',
+    'bill.view',
+    'bill.create',
+    'bill.edit_draft',
     'ledger.view',
     'ledger.export',
     'trial_balance.view',
@@ -151,6 +168,7 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'journal.view',
     'contact.view',
     'invoice.view',
+    'bill.view',
     'ledger.view',
     'trial_balance.view',
   ],

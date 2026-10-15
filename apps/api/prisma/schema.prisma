@@ -291,6 +291,7 @@ model Organization {
   aiFeedbacks     AiFeedback[]
   aiUsageLogs     AiUsageLog[]
   jobs            Job[]
+  bills           Bill[]
 
   @@index([status])
   @@map("organizations")
@@ -400,6 +401,7 @@ model Account {
   receivableContacts    Contact[]              @relation("ContactReceivableAccount")
   payableContacts       Contact[]              @relation("ContactPayableAccount")
   aiLineClassifications AiLineClassification[] @relation("AiLineResolvedAccount")
+  billLines             BillLine[]             @relation("BillLineAccount")
 
   @@unique([organizationId, code])
   @@unique([organizationId, id])
@@ -500,6 +502,7 @@ model JournalEntry {
   reverses          JournalEntry?     @relation("JournalReversal")
   lines             JournalLine[]
   invoice           Invoice?          @relation("InvoiceJournal")
+  bill              Bill?             @relation("BillJournal")
 
   @@unique([organizationId, journalNumber])
   @@unique([organizationId, idempotencyKey])
@@ -585,6 +588,7 @@ model TaxCode {
   journalLines      JournalLine[]
   invoiceLines      InvoiceLine[]
   aiLineSuggestions AiLineClassification[] @relation("AiLineSuggestedTaxCode")
+  billLines         BillLine[]             @relation("BillLineTaxCode")
 
   @@map("tax_codes")
 }
@@ -687,6 +691,7 @@ model Contact {
   people            ContactPerson[]
   journalLines      JournalLine[]
   aiClassifications AiClassification[] @relation("AiClassificationContact")
+  bills             Bill[]             @relation("BillContact")
 
   @@unique([organizationId, id])
   @@index([organizationId, type])
@@ -903,6 +908,7 @@ model AiDocument {
   suggestions         AiSuggestion[]
   auditEvents         AiAuditEvent[]
   pages               AiDocumentPage[]
+  bill                Bill?                  @relation("BillSourceDocument")
 
   @@unique([organizationId, id])
   @@unique([organizationId, contentSha256])
@@ -1012,6 +1018,7 @@ model AiSuggestion {
   reviewNote         String?            @map("review_note") @db.VarChar(500)
   resultingInvoiceId String?            @map("resulting_invoice_id") @db.Uuid
   resultingJournalId String?            @map("resulting_journal_id") @db.Uuid
+  resultingBillId    String?            @map("resulting_bill_id") @db.Uuid
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
@@ -1174,4 +1181,91 @@ model Job {
   @@index([organizationId, status])
   @@index([organizationId, startedAt])
   @@map("jobs")
+}
+
+// ─────────────────────────── Supplier bills (Stage 11) ───────────────────────────
+
+enum BillStatus {
+  DRAFT
+  /// Approved by a person with bill.approve; posting happens in the same transaction.
+  APPROVED
+  POSTED
+  VOIDED
+}
+
+model Bill {
+  id                    String     @id @default(uuid()) @db.Uuid
+  organizationId        String     @map("organization_id") @db.Uuid
+  contactId             String     @map("contact_id") @db.Uuid
+  /// Internal sequential reference (BILL-YYYY-NNNNNN).
+  billNumber            String     @map("bill_number") @db.VarChar(30)
+  /// The supplier's own invoice number as printed.
+  supplierInvoiceNumber String     @map("supplier_invoice_number") @db.VarChar(100)
+  issueDate             DateTime   @map("issue_date") @db.Date
+  dueDate               DateTime   @map("due_date") @db.Date
+  currency              String     @db.Char(3)
+  subtotal              Decimal    @default(0) @db.Decimal(19, 4)
+  taxTotal              Decimal    @default(0) @map("tax_total") @db.Decimal(19, 4)
+  totalAmount           Decimal    @default(0) @map("total_amount") @db.Decimal(19, 4)
+  amountPaid            Decimal    @default(0) @map("amount_paid") @db.Decimal(19, 4)
+  status                BillStatus @default(DRAFT)
+  notes                 String?    @db.VarChar(1000)
+  journalEntryId        String?    @unique @map("journal_entry_id") @db.Uuid
+  /// The uploaded document this bill came from (AI pipeline or manual attachment).
+  sourceDocumentId      String?    @unique @map("source_document_id") @db.Uuid
+  createdById           String     @map("created_by") @db.Uuid
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedById           String?    @map("updated_by") @db.Uuid
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+  approvedById          String?    @map("approved_by") @db.Uuid
+  approvedAt            DateTime?  @map("approved_at")
+  postedById            String?    @map("posted_by") @db.Uuid
+  postedAt              DateTime?  @map("posted_at")
+  voidedById            String?    @map("voided_by") @db.Uuid
+  voidedAt              DateTime?  @map("voided_at")
+  voidReason            String?    @map("void_reason") @db.VarChar(255)
+
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contact        Contact       @relation("BillContact", fields: [organizationId, contactId], references: [organizationId, id], onDelete: Restrict)
+  journalEntry   JournalEntry? @relation("BillJournal", fields: [organizationId, journalEntryId], references: [organizationId, id], onDelete: Restrict)
+  sourceDocument AiDocument?   @relation("BillSourceDocument", fields: [organizationId, sourceDocumentId], references: [organizationId, id], onDelete: Restrict)
+  lines          BillLine[]
+
+  @@unique([organizationId, billNumber])
+  @@unique([organizationId, id])
+  @@unique([organizationId, journalEntryId])
+  @@unique([organizationId, sourceDocumentId])
+  @@index([organizationId, status])
+  @@index([organizationId, contactId, supplierInvoiceNumber])
+  @@index([organizationId, issueDate])
+  @@map("bills")
+}
+
+model BillLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  billId         String   @map("bill_id") @db.Uuid
+  lineNumber     Int      @map("line_number") @db.SmallInt
+  accountId      String   @map("account_id") @db.Uuid
+  description    String   @db.VarChar(255)
+  /// Null when the document shows only a net amount for the line (never invented).
+  quantity       Decimal? @db.Decimal(19, 4)
+  unitPrice      Decimal? @map("unit_price") @db.Decimal(19, 4)
+  netAmount      Decimal  @map("net_amount") @db.Decimal(19, 4)
+  /// Required before approval; never defaulted.
+  taxCodeId      String?  @map("tax_code_id") @db.Uuid
+  taxRate        Decimal  @default(0) @map("tax_rate") @db.Decimal(7, 4)
+  /// VAT charged by the supplier (0 for reverse charge / PIVA, which is self-accounted on posting).
+  taxAmount      Decimal  @default(0) @map("tax_amount") @db.Decimal(19, 4)
+  lineTotal      Decimal  @map("line_total") @db.Decimal(19, 4)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  bill    Bill     @relation(fields: [organizationId, billId], references: [organizationId, id], onDelete: Cascade)
+  account Account  @relation("BillLineAccount", fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
+  taxCode TaxCode? @relation("BillLineTaxCode", fields: [taxCodeId], references: [id], onDelete: Restrict)
+
+  @@unique([billId, lineNumber])
+  @@index([organizationId, accountId])
+  @@map("bill_lines")
 }

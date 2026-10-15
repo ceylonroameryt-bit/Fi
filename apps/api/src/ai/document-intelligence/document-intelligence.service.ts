@@ -8,6 +8,8 @@ import { DomainException } from '../../common/errors/domain.exception';
 import type { Actor, OrgContext } from '../../common/types/request-context.types';
 import { InvoicesService } from '../../invoices/invoices.service';
 import type { CreateInvoiceDto } from '../../invoices/dto/invoice.dto';
+import { BillsService } from '../../bills/bills.service';
+import type { CreateBillDto } from '../../bills/dto/bill.dto';
 import { BusinessContextService } from '../business-context/business-context.service';
 import { HeuristicLlmProvider } from '../providers/heuristic-llm.provider';
 import { RawExtractionResult } from '../providers/llm-provider.interface';
@@ -77,6 +79,7 @@ export class DocumentIntelligenceService {
     private readonly validator: ExtractionValidationService,
     private readonly directionFallback: DirectionFallbackService,
     private readonly coding: CodingSuggestionService,
+    private readonly bills: BillsService,
     @Optional() @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider | null,
   ) {}
 
@@ -393,16 +396,15 @@ export class DocumentIntelligenceService {
     if (payload.direction === AiDirection.UNKNOWN) {
       throw new DomainException('AI_DIRECTION_UNRESOLVED', 'Sales or purchase could not be determined; nothing was created.');
     }
-    if (payload.direction === AiDirection.PURCHASE) {
-      throw new DomainException(
-        'AI_BILLS_NOT_AVAILABLE',
-        'This is a supplier bill. Supplier bills are not available yet, so nothing was created (it will never be turned into a sales invoice).',
-      );
-    }
-
     const contactId = targetContactId ?? payload.entity?.id;
     if (!contactId) {
-      throw new BadRequestException('A customer must be chosen to approve this draft.');
+      throw new BadRequestException(
+        `A ${payload.direction === AiDirection.PURCHASE ? 'supplier' : 'customer'} must be chosen to approve this draft.`,
+      );
+    }
+    if (payload.direction === AiDirection.PURCHASE) {
+      // A purchase only ever becomes a DRAFT supplier bill; posting needs bill.approve.
+      return this.approveAsBill(organizationId, documentId, suggestion.id, payload, contactId, accountOverrides, orgContext, actor);
     }
     const contact = await this.db.contact.findFirst({ where: { organizationId, id: contactId, status: 'ACTIVE' } });
     if (!contact) {
@@ -444,6 +446,88 @@ export class DocumentIntelligenceService {
     });
 
     return { success: true, documentId, suggestionId: suggestion.id, invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber };
+  }
+
+  private async approveAsBill(
+    organizationId: string,
+    documentId: string,
+    suggestionId: string,
+    payload: SuggestionPayload,
+    contactId: string,
+    accountOverrides: Map<number, string>,
+    orgContext: OrgContext,
+    actor: Actor,
+  ) {
+    const { extraction, lines } = payload;
+    const missing: string[] = [];
+    if (!extraction.invoiceNumber) missing.push("supplier's invoice number");
+    if (!extraction.invoiceDate) missing.push('invoice date');
+    if (!extraction.currency) missing.push('currency');
+    if (lines.length === 0) missing.push('line items');
+
+    const coded = new Map((payload.coding ?? []).map((c) => [c.lineNumber, c]));
+    const taxIds = new Map(
+      (await this.db.taxCode.findMany({ where: { code: { in: lines.map((l) => l.taxClassification).filter((c): c is string => !!c) } }, select: { id: true, code: true } })).map(
+        (t) => [t.code, t.id],
+      ),
+    );
+    const billLines = lines.map((line) => {
+      const label = `line ${line.lineNumber}`;
+      const accountId =
+        accountOverrides.get(line.lineNumber) ??
+        coded.get(line.lineNumber)?.accountId ??
+        payload.accountingIntent?.lines.find((l) => l.sourceLineNumber === line.lineNumber)?.accountId ??
+        null;
+      const taxCodeId = coded.get(line.lineNumber)?.taxCodeId ?? (line.taxClassification ? taxIds.get(line.taxClassification) : undefined) ?? null;
+      if (!accountId) missing.push(`${label}: account`);
+      if (!taxCodeId) missing.push(`${label}: tax code`);
+      if (line.netAmount === null && (line.quantity === null || line.unitPrice === null)) missing.push(`${label}: amount`);
+      return {
+        accountId: accountId ?? '',
+        description: line.description,
+        ...(line.quantity !== null && line.unitPrice !== null ? { quantity: line.quantity, unitPrice: line.unitPrice } : {}),
+        ...(line.netAmount !== null ? { netAmount: line.netAmount } : {}),
+        taxCodeId: taxCodeId ?? undefined,
+      };
+    });
+    if (missing.length > 0) {
+      throw new DomainException('AI_DRAFT_INCOMPLETE', `The document is missing: ${missing.join('; ')}`, { missing });
+    }
+
+    const duplicate = await this.db.bill.findFirst({
+      where: { organizationId, contactId, status: { not: 'VOIDED' }, supplierInvoiceNumber: { equals: extraction.invoiceNumber!, mode: 'insensitive' } },
+      select: { id: true, billNumber: true },
+    });
+    if (duplicate) {
+      throw new DomainException('AI_DUPLICATE_DOCUMENT', `Supplier invoice ${extraction.invoiceNumber} is already bill ${duplicate.billNumber}.`, {
+        billId: duplicate.id,
+      });
+    }
+
+    return this.db.transaction(async (tx) => {
+      const bill = await this.bills.create(
+        organizationId,
+        {
+          contactId,
+          supplierInvoiceNumber: extraction.invoiceNumber!,
+          issueDate: extraction.invoiceDate!,
+          dueDate: extraction.dueDate,
+          currency: extraction.currency!,
+          sourceDocumentId: documentId,
+          lines: billLines,
+        } as CreateBillDto,
+        orgContext,
+        actor,
+        tx,
+      );
+      await tx.aiSuggestion.update({
+        where: { id: suggestionId },
+        data: { status: AiSuggestionStatus.APPROVED, reviewedById: actor.userId, reviewedAt: new Date(), resultingBillId: bill.id },
+      });
+      await tx.aiDocument.update({ where: { id: documentId }, data: { status: AiDocumentStatus.DRAFT_CREATED } });
+      await this.audit.logEvent(organizationId, documentId, 'APPROVED', actor.userId ?? undefined, { billId: bill.id, billNumber: bill.billNumber, contactId });
+      return { success: true, documentId, suggestionId, billId: bill.id, billNumber: bill.billNumber, warnings: bill.warnings };
+    });
   }
 
   async editAndApproveSuggestion(
