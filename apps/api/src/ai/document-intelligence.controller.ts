@@ -13,8 +13,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { AiDocumentStatus } from '@prisma/client';
 import { DocumentIntakeService } from '../documents/document-intake.service';
+import { DocumentPipelineService } from './pipeline/document-pipeline.service';
 import { CurrentActor, CurrentOrg, RequirePermission } from '../common/decorators';
 import type { Actor, OrgContext } from '../common/types/request-context.types';
 import { DocumentIntelligenceService } from './document-intelligence/document-intelligence.service';
@@ -34,11 +34,12 @@ export class DocumentIntelligenceController {
     private readonly businessContext: BusinessContextService,
     private readonly feedback: AiFeedbackService,
     private readonly intake: DocumentIntakeService,
+    private readonly pipeline: DocumentPipelineService,
   ) {}
 
   /** Multipart upload (field "file"): PDF, JPEG, PNG or TIFF. */
   @Post('documents')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.ACCEPTED)
   @RequirePermission('invoice.create')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MULTER_HARD_LIMIT_BYTES, files: 1 } }))
   async uploadFile(
@@ -52,7 +53,7 @@ export class DocumentIntelligenceController {
 
   /** JSON text upload (development / pasted documents). */
   @Post('documents/upload')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.ACCEPTED)
   @RequirePermission('invoice.create')
   async uploadText(@CurrentOrg() org: OrgContext, @CurrentActor() actor: Actor, @Body() dto: UploadDocumentDto) {
     if (!dto.text) throw new BadRequestException('text is required');
@@ -63,7 +64,10 @@ export class DocumentIntelligenceController {
     });
   }
 
-  /** Intake (validate, store, dedupe, extract text) then propose; duplicates are not reprocessed. */
+  /**
+   * Validates, stores and de-duplicates the file, then queues background processing
+   * (text -> AI extraction -> validation -> awaiting review). Responds 202 with the document.
+   */
   private async receive(
     org: OrgContext,
     actor: Actor,
@@ -71,15 +75,29 @@ export class DocumentIntelligenceController {
   ) {
     await this.docAi.assertAiEnabled(org.organizationId);
     const { document, duplicate } = await this.intake.intake({ organizationId: org.organizationId, userId: actor.userId!, ...file });
-    if (duplicate) {
-      return { ...(await this.docAi.getDocument(org.organizationId, document.id)), duplicate: true };
-    }
-    if (document.status === AiDocumentStatus.FAILED) {
-      return { ...document, duplicate: false };
-    }
-    // Suggestions only: a person must approve every draft.
-    const processed = await this.docAi.processDocument(org.organizationId, document.id);
-    return { ...processed, duplicate: false };
+    return { ...(await this.docAi.getDocument(org.organizationId, document.id)), duplicate };
+  }
+
+  @Post('documents/:docId/retry')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RequirePermission('invoice.create')
+  async retryDocument(@CurrentOrg() org: OrgContext, @Param('docId', ParseUUIDPipe) docId: string) {
+    await this.pipeline.retryDocument(org.organizationId, docId);
+    return this.docAi.getDocument(org.organizationId, docId);
+  }
+
+  /** Dead-letter queue: jobs that failed permanently or ran out of retries. */
+  @Get('jobs/dead')
+  @RequirePermission('ai.manage')
+  listDeadJobs(@CurrentOrg() org: OrgContext) {
+    return this.pipeline.listDeadJobs(org.organizationId);
+  }
+
+  @Post('jobs/:jobId/requeue')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RequirePermission('ai.manage')
+  requeueJob(@CurrentOrg() org: OrgContext, @Param('jobId', ParseUUIDPipe) jobId: string) {
+    return this.pipeline.requeueDeadJob(org.organizationId, jobId);
   }
 
   @Get('documents')

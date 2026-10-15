@@ -267,6 +267,8 @@ model Organization {
   postcode                String?            @db.VarChar(20)
   // Master switch for every AI feature in this organisation (off until an admin enables it).
   aiEnabled               Boolean            @default(false) @map("ai_enabled")
+  /// Per-organisation monthly AI spend cap in USD (null = use AI_MONTHLY_COST_LIMIT_USD).
+  aiMonthlyCostLimitUsd   Decimal?           @map("ai_monthly_cost_limit_usd") @db.Decimal(12, 2)
   status                  OrganizationStatus @default(ACTIVE)
   createdById             String             @map("created_by") @db.Uuid
   createdAt               DateTime           @default(now()) @map("created_at")
@@ -288,6 +290,7 @@ model Organization {
   aiExtractions   AiExtraction[]
   aiFeedbacks     AiFeedback[]
   aiUsageLogs     AiUsageLog[]
+  jobs            Job[]
 
   @@index([status])
   @@map("organizations")
@@ -804,12 +807,14 @@ enum AiDocumentType {
   UNKNOWN
 }
 
+/// Document pipeline states (Stage 6). Each background step moves a document forward exactly once.
 enum AiDocumentStatus {
-  PENDING
-  PROCESSING
-  REQUIRES_REVIEW
-  DRAFTED
-  APPROVED
+  UPLOADED
+  TEXT_EXTRACTED
+  AI_EXTRACTED
+  VALIDATED
+  AWAITING_REVIEW
+  DRAFT_CREATED
   REJECTED
   FAILED
 }
@@ -873,10 +878,12 @@ model AiDocument {
   mimeType        String              @map("mime_type") @db.VarChar(100)
   documentType    AiDocumentType      @default(UNKNOWN) @map("document_type")
   direction       AiDirection         @default(UNKNOWN)
-  status          AiDocumentStatus    @default(PENDING)
+  status          AiDocumentStatus    @default(UPLOADED)
   confidenceScore Decimal?            @map("confidence_score") @db.Decimal(5, 4)
   confidenceLevel AiConfidenceLevel   @default(MEDIUM) @map("confidence_level")
   errorMessage    String?             @map("error_message") @db.VarChar(500)
+  /// Machine-readable reason when status = FAILED (e.g. OCR_UNAVAILABLE, RETRIES_EXHAUSTED).
+  failureCode     String?             @map("failure_code") @db.VarChar(64)
   /// sha256 of the stored bytes; unique per organisation (duplicate uploads return the existing document).
   contentSha256   String?             @map("content_sha256") @db.Char(64)
   textSource      DocumentTextSource? @map("text_source")
@@ -1121,4 +1128,40 @@ model AiDocumentPage {
   @@unique([documentId, pageNumber])
   @@index([organizationId, documentId])
   @@map("ai_document_pages")
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  /// Exhausted its retries or failed permanently; kept for inspection and manual requeue.
+  DEAD
+}
+
+/// Postgres-backed work queue (claimed with FOR UPDATE SKIP LOCKED).
+model Job {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  type           String    @db.VarChar(64)
+  payload        Json      @default("{}")
+  /// Enqueuing the same key twice is a no-op (idempotent producers).
+  idempotencyKey String    @unique @map("idempotency_key") @db.VarChar(200)
+  status         JobStatus @default(QUEUED)
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(5) @map("max_attempts")
+  runAt          DateTime  @default(now()) @map("run_at")
+  startedAt      DateTime? @map("started_at")
+  lockedAt       DateTime? @map("locked_at")
+  lockedBy       String?   @map("locked_by") @db.VarChar(100)
+  finishedAt     DateTime? @map("finished_at")
+  lastError      String?   @map("last_error") @db.VarChar(1000)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([status, runAt])
+  @@index([organizationId, status])
+  @@index([organizationId, startedAt])
+  @@map("jobs")
 }

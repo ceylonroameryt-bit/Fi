@@ -37,7 +37,7 @@ Monorepo (npm workspaces): `apps/api` (NestJS 11 + Prisma 6 + PostgreSQL, Jest),
 | 3 | AI gateway + business profile | **done** (feature/ai-gateway) — was partial: | `ILlmProvider` interface exists; only a heuristic regex provider. No prompt versioning, usage/cost log, or per-org AI switch. `OrganizationBusinessContext` exists (industry, inventory) but no VAT scheme/supplier habits/refresh job. |
 | 4 | AI safety fixes | **done** (feature/ai-safety) — was missing: | See risks below. |
 | 5 | Upload/storage/OCR | **done** (feature/document-upload) — was partial: | Storage service exists; `AiDocument` has no content hash; no PDF text layer / OCR / word positions. |
-| 6 | Background processing | **missing** | `processDocument` runs synchronously in the upload request (`document-intelligence.controller.ts:45`). No queue. |
+| 6 | Background processing | **done** (feature/document-pipeline) — was missing: | `processDocument` runs synchronously in the upload request (`document-intelligence.controller.ts:45`). No queue. |
 | 7 | LLM extraction | **missing** | No real model; no schema, source quotes, or prompt-injection handling. |
 | 8 | Validation | **missing** | No arithmetic/VAT-number/duplicate checks on extractions. |
 | 9 | Direction & supplier matching | **partial** | `transaction-direction.service.ts` (name/VAT rules), `entity-resolution.service.ts`; no company-number or thresholded fuzzy match. |
@@ -45,6 +45,7 @@ Monorepo (npm workspaces): `apps/api` (NestJS 11 + Prisma 6 + PostgreSQL, Jest),
 | 11 | Supplier bills | **missing** | No bill model. `JournalSourceType.BILL` enum value exists only. |
 | 12 | Human review & permissions | **partial** | `AiSuggestion` approve/edit/reject endpoints; no `ai_draft.approve` permission, no side-by-side log, no review UI with highlights. |
 | 13 | E2E test | **missing** | |
+| 14 | Email ingestion (added 2026-10-15) | **missing** | Not in the original stage list; deferred from Stage 5 at the user's request. |
 
 ## c) Risks found (existing AI prototype)
 
@@ -76,6 +77,7 @@ Every stage: branch `feature/<stage>`, tests first, full unit + e2e suite green,
 11. **supplier-bills** – `src/bills/`: `Bill`, `BillLine` (tax code, net, VAT), status draft→approved→posted, due date from contact terms, duplicate warning, post via `JournalPostingService` (Dr expense/asset, Dr VAT input, Cr Creditors control), `source_document_id`. Tests incl. TB balance + VAT box 4/7.
 12. **ai-review** – permission `ai_draft.approve`; `ai_review_decisions` (suggested vs approved JSON); web review screen `apps/web/src/app/purchases/review/[id]` with PDF + bbox highlights; queue sorted by confidence only.
 13. **e2e-supplier-bills** – 10 fixtures in `apps/api/test/fixtures/bills/`, e2e spec producing a results table into `docs/e2e-results.md`.
+14. **email-ingestion** (after Stage 13) – per-organisation inbound address (e.g. `<org-token>@bills.blynt…`) via an inbound-mail provider webhook (SES/SendGrid/Postmark, to decide) plus `.eml` upload; verify sender auth (SPF/DKIM result from provider), parse MIME, feed each PDF/image attachment (and the body when it is the invoice) through Stage 5 intake with the email as provenance; size/attachment-count limits; dedupe by attachment hash and Message-ID; reject/quarantine unknown senders per org setting. Tests: multipart .eml fixtures, forwarded emails, inline images, zip attachments rejected. Done when: emailing a supplier PDF produces the same awaiting-review document as uploading it.
 
 ## e) Open questions
 
@@ -163,3 +165,15 @@ Every defect is a named fixture in `src/ai/__fixtures__/safety-fixtures.ts` with
 - Endpoints: `POST /ai/documents` is now a real multipart upload (field `file`), fixing the unreachable stacked route; `POST /ai/documents/upload` keeps the JSON text path the web page uses. AI switch checked before anything is stored. The pipeline reads the stored text.
 - Decisions: Tesseract dropped for now. tesseract.js downloads language data at runtime (no network in CI) and cannot read PDFs, so tests use the fake provider and production uses Textract.
 - Deferred: email ingestion (.eml / inbound mailbox, attachments): not in the Stage 5 list; propose a separate stage. Multi-page scanned PDFs need Textract's async S3 API (Stage 6 jobs). Web file picker (the page still posts pasted text) moves to Stage 12. Textract not exercised against live AWS.
+
+### Stage 6 – Background processing: done (branch `feature/document-pipeline`, stacked on `feature/document-upload`)
+- **Queue decision:** a Postgres `jobs` table claimed with `FOR UPDATE SKIP LOCKED` (`src/jobs/`), one of the two options agreed for Q1, instead of pg-boss. No new library or schema; idempotency is a unique `idempotency_key`; the dead-letter queue is `status = DEAD`; per-organisation rate limiting happens at claim time. Any number of API/worker processes can share it.
+- `JobQueueService`: idempotent `enqueue` (also inside a caller's transaction), `claim`, exponential backoff (`JOB_RETRY_BASE_MS` × 2^(n-1), capped at `JOB_RETRY_MAX_MS`), `bury` (DLQ), `defer` (rate limit, attempt not counted), stale-lock recovery (`JOB_LOCK_TIMEOUT_MS`), dead-letter list and requeue.
+- `JobWorkerService`: in-process poller (`JOB_WORKER_ENABLED`, `JOB_POLL_INTERVAL_MS`); handlers register themselves. `PermanentJobError`/`DomainException` = dead-letter immediately; anything else retries. `onDead` lets a handler record the failure. `drain()` runs jobs deterministically in tests.
+- Document states: UPLOADED → TEXT_EXTRACTED → AI_EXTRACTED → VALIDATED → AWAITING_REVIEW → DRAFT_CREATED | REJECTED | FAILED (`failure_code` + message). The migration maps prototype states (PENDING/PROCESSING → UPLOADED, REQUIRES_REVIEW → AWAITING_REVIEW, DRAFTED/APPROVED → DRAFT_CREATED).
+- Jobs: `document.extract_text` (UPLOADED → TEXT_EXTRACTED; queued in the same transaction as the upload) and `document.analyse` (→ AWAITING_REVIEW). Both are idempotent: they check state, use conditional updates, and analysis discards partial rows from an interrupted run.
+- Upload endpoints now return **202** with the UPLOADED document. `POST /ai/documents/:id/retry` (failed docs), `GET /ai/jobs/dead`, `POST /ai/jobs/:id/requeue` (`ai.manage`) reset the document to the state the job expects.
+- Limits: `DOCUMENT_JOBS_PER_ORG_PER_MINUTE` (default 30) on document jobs; monthly AI cost cap enforced in `AiGatewayService` (`AI_MONTHLY_COST_LIMIT_USD`, default $50, per-org `organizations.ai_monthly_cost_limit_usd`) → `AI_COST_LIMIT_REACHED`, logged as BLOCKED.
+- Bug found and fixed while testing: raw SQL `now()` uses the DB session time zone while Prisma stores UTC, which would have shifted job timing by the UTC offset. The claim SQL now uses `timezone('UTC', now())`, with a test asserting it.
+- Note: `.env.test` (untracked) sets `JOB_WORKER_ENABLED=false` and `JOB_RETRY_BASE_MS=0`; CI needs the same.
+- Deferred: a separate worker entrypoint (`node dist/worker.js`) for production scaling; async Textract for multi-page scans; a web pipeline/DLQ view; Stage 8 will put real checks into the VALIDATED step (currently pass-through).

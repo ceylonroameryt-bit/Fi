@@ -20,13 +20,16 @@ describe('AiGatewayService', () => {
   let provider: FakeAiProvider;
 
   const gateway = (p: AiProvider | null = provider) =>
-    new AiGatewayService(prisma, p, { AI_MODEL: 'claude-opus-5-5' } as any);
+    new AiGatewayService(prisma, p, { AI_MODEL: 'claude-opus-5-5', AI_MONTHLY_COST_LIMIT_USD: 50 } as any);
   const logged = () => prisma.aiUsageLog.create.mock.calls.map((c: any) => c[0].data);
 
   beforeEach(() => {
     prisma = {
-      organization: { findUnique: jest.fn().mockResolvedValue({ aiEnabled: true }) },
-      aiUsageLog: { create: jest.fn().mockResolvedValue({}) },
+      organization: { findUnique: jest.fn().mockResolvedValue({ aiEnabled: true, aiMonthlyCostLimitUsd: null }) },
+      aiUsageLog: {
+        create: jest.fn().mockResolvedValue({}),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { costUsd: null } }),
+      },
     };
     provider = new FakeAiProvider();
   });
@@ -112,6 +115,27 @@ describe('AiGatewayService', () => {
     provider.enqueue({ output: { word: 'x' }, model: 'some-new-model', inputTokens: 10, outputTokens: 5 });
     await gateway().run({ organizationId: 'org-1', prompt: ECHO, vars: { word: 'x' } });
     expect(logged()[0].costUsd).toBeNull();
+  });
+
+  it('blocks calls once the organisation reaches its monthly cost limit (default from config)', async () => {
+    const { Prisma } = jest.requireActual('@prisma/client');
+    prisma.aiUsageLog.aggregate.mockResolvedValue({ _sum: { costUsd: new Prisma.Decimal('50.00') } });
+    await expect(gateway().run({ organizationId: 'org-1', prompt: ECHO, vars: { word: 'x' } })).rejects.toMatchObject({
+      code: 'AI_COST_LIMIT_REACHED',
+    });
+    expect(provider.requests).toHaveLength(0);
+    expect(logged()[0]).toMatchObject({ status: 'BLOCKED', errorCode: 'AI_COST_LIMIT_REACHED' });
+    const where = prisma.aiUsageLog.aggregate.mock.calls[0][0].where;
+    expect(where.organizationId).toBe('org-1');
+    expect(where.createdAt.gte.getUTCDate()).toBe(1);
+  });
+
+  it('uses the organisation override when set', async () => {
+    const { Prisma } = jest.requireActual('@prisma/client');
+    prisma.organization.findUnique.mockResolvedValue({ aiEnabled: true, aiMonthlyCostLimitUsd: new Prisma.Decimal('100.00') });
+    prisma.aiUsageLog.aggregate.mockResolvedValue({ _sum: { costUsd: new Prisma.Decimal('60.00') } });
+    provider.enqueue({ output: { word: 'x' }, model: 'claude-opus-5-5', inputTokens: 1, outputTokens: 1 });
+    await expect(gateway().run({ organizationId: 'org-1', prompt: ECHO, vars: { word: 'x' } })).resolves.toEqual({ word: 'x' });
   });
 
   it('rejects missing template variables instead of sending a half-filled prompt', async () => {

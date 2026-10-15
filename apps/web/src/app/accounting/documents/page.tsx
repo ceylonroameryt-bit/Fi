@@ -26,7 +26,15 @@ interface AiDocItem {
   fileName: string;
   documentType: string;
   direction: 'PURCHASE' | 'SALE' | 'UNKNOWN';
-  status: 'PENDING' | 'PROCESSING' | 'REQUIRES_REVIEW' | 'DRAFTED' | 'APPROVED' | 'REJECTED' | 'FAILED';
+  status:
+    | 'UPLOADED'
+    | 'TEXT_EXTRACTED'
+    | 'AI_EXTRACTED'
+    | 'VALIDATED'
+    | 'AWAITING_REVIEW'
+    | 'DRAFT_CREATED'
+    | 'REJECTED'
+    | 'FAILED';
   confidenceScore: string | null;
   confidenceLevel: 'HIGH' | 'MEDIUM' | 'LOW';
   createdAt: string;
@@ -176,7 +184,7 @@ export default function DocumentIntelligencePage() {
         }),
       });
       setShowUploadModal(false);
-      setSuccessMsg(`Document ${uploadFileName} uploaded and processed.`);
+      setSuccessMsg(`Document ${uploadFileName} uploaded. It is being processed in the background; refresh to see the suggestion.`);
       await loadDocuments();
       if (created?.id) {
         await loadDocDetails(created.id);
@@ -442,9 +450,9 @@ export default function DocumentIntelligencePage() {
                       <span
                         style={{
                           color:
-                            d.status === 'APPROVED' || d.status === 'DRAFTED'
+                            d.status === 'DRAFT_CREATED'
                               ? '#16A34A'
-                              : d.status === 'REQUIRES_REVIEW'
+                              : d.status === 'AWAITING_REVIEW'
                                 ? '#D97706'
                                 : '#475569',
                           fontWeight: 500,
@@ -542,7 +550,7 @@ export default function DocumentIntelligencePage() {
 
                 {/* Review Actions */}
                 <div style={{ display: 'flex', gap: '0.65rem' }}>
-                  {selectedDoc.status === 'REQUIRES_REVIEW' || selectedDoc.status === 'PENDING' ? (
+                  {selectedDoc.status === 'AWAITING_REVIEW' ? (
                     <>
                       <button
                         onClick={handleReject}

@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { DocumentIntakeService } from './document-intake.service';
-import { DocumentTextService } from './document-text.service';
 import { makeTextPdf, PNG_BYTES } from './__fixtures__/pdf-builder';
 
 describe('DocumentIntakeService', () => {
@@ -9,6 +8,7 @@ describe('DocumentIntakeService', () => {
   let storage: any;
   let service: DocumentIntakeService;
   let created: Record<string, unknown> = {};
+  let queue: { enqueue: jest.Mock };
   const pdf = makeTextPdf(['Supplier: ABC Fuel Ltd', 'Invoice No: ABC-1001', 'Total: 1200.00']);
   const input = (over: Record<string, unknown> = {}) => ({
     organizationId: 'org-1',
@@ -29,11 +29,11 @@ describe('DocumentIntakeService', () => {
         }),
         update: jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...created, ...data })),
       },
-      aiDocumentPage: { createMany: jest.fn() },
       transaction: jest.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
     };
     storage = { putObject: jest.fn().mockResolvedValue({}), deleteObject: jest.fn().mockResolvedValue({ deleted: true }) };
-    service = new DocumentIntakeService(prisma, storage, new DocumentTextService(null), { DOCUMENT_MAX_BYTES: 1024 * 1024 } as any);
+    queue = { enqueue: jest.fn().mockResolvedValue(true) };
+    service = new DocumentIntakeService(prisma, storage, queue as any, { DOCUMENT_MAX_BYTES: 1024 * 1024 } as any);
   });
 
   it('stores the file under a private, organisation-scoped key that never contains the file name', async () => {
@@ -46,11 +46,14 @@ describe('DocumentIntakeService', () => {
       organizationId: 'org-1',
       mimeType: 'application/pdf',
       contentSha256: createHash('sha256').update(pdf).digest('hex'),
-      textSource: 'PDF_TEXT',
-      pageCount: 1,
+      status: 'UPLOADED',
     });
     expect(document.fileName).toBe('passwd invoice.pdf');
-    expect(prisma.aiDocumentPage.createMany.mock.calls[0][0].data[0]).toMatchObject({ organizationId: 'org-1', pageNumber: 1 });
+    // Text extraction is queued in the same transaction, keyed so it can only be queued once.
+    expect(queue.enqueue).toHaveBeenCalledWith(
+      { organizationId: 'org-1', type: 'document.extract_text', payload: { documentId: 'doc-1' }, idempotencyKey: 'document.extract_text:doc-1:initial' },
+      prisma,
+    );
   });
 
   it('returns the existing document for an identical upload (same organisation) without storing it again', async () => {
@@ -81,11 +84,5 @@ describe('DocumentIntakeService', () => {
   ])('rejects %s', async (_, over, code) => {
     await expect(service.intake(input(over))).rejects.toMatchObject({ code });
     expect(storage.putObject).not.toHaveBeenCalled();
-  });
-
-  it('keeps the document but records why when text cannot be obtained (photo without OCR)', async () => {
-    const { document } = await service.intake(input({ bytes: PNG_BYTES, declaredMimeType: 'image/png', fileName: 'p.png' }));
-    expect(storage.putObject).toHaveBeenCalled();
-    expect(document).toMatchObject({ status: 'FAILED', errorMessage: expect.stringContaining('OCR_UNAVAILABLE') });
   });
 });

@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/database/prisma.service';
 import { createValidationPipe } from '../src/common/validation/validation.pipe';
 import { RolesService } from '../src/roles/roles.service';
+import { JobWorkerService } from '../src/jobs/job-worker.service';
 import { CUSTOMER_VAT_ON_SUPPLIER_BILL_TEXT, SPARSE_DOCUMENT_TEXT } from '../src/ai/__fixtures__/safety-fixtures';
 
 /** Stage 4 (Phase 41): the AI document pipeline end to end, one test per prototype defect. */
@@ -25,6 +26,13 @@ describe('AI safety fixes (Stage 4 E2E)', () => {
   const auth = (r: request.Test) => r.set('Authorization', `Bearer ${token}`).set('x-organization-id', orgId);
   const upload = (text: string) =>
     auth(http().post(`/api/v1/organizations/${orgId}/ai/documents/upload`)).send({ fileName: 'doc.txt', mimeType: 'text/plain', text });
+  /** Upload, run the background pipeline, and return the processed document. */
+  const ingest = async (text: string) => {
+    const accepted = (await upload(text).expect(202)).body;
+    await app.get(JobWorkerService).drain();
+    const doc = (await auth(http().get(`/api/v1/organizations/${orgId}/ai/documents/${accepted.id}`)).expect(200)).body;
+    return { ...doc, duplicate: accepted.duplicate };
+  };
   const invoiceCount = () => prisma.invoice.count({ where: { organizationId: orgId } });
 
   const ownSalesInvoiceText = () =>
@@ -78,9 +86,9 @@ describe('AI safety fixes (Stage 4 E2E)', () => {
   });
 
   it('BUG-12/15: a supplier bill naming our VAT as customer is a PURCHASE and approving it never creates a sales invoice', async () => {
-    const doc = (await upload(CUSTOMER_VAT_ON_SUPPLIER_BILL_TEXT).expect(201)).body;
+    const doc = await ingest(CUSTOMER_VAT_ON_SUPPLIER_BILL_TEXT);
     expect(doc.direction).toBe('PURCHASE');
-    expect(doc.status).toBe('REQUIRES_REVIEW');
+    expect(doc.status).toBe('AWAITING_REVIEW');
 
     const before = await invoiceCount();
     const res = await auth(http().post(`/api/v1/organizations/${orgId}/ai/documents/${doc.id}/approve`)).send({}).expect(422);
@@ -89,7 +97,7 @@ describe('AI safety fixes (Stage 4 E2E)', () => {
   });
 
   it('BUG-04/07: a document with no identifiable parties stays UNKNOWN with nothing invented, and cannot be approved', async () => {
-    const doc = (await upload(SPARSE_DOCUMENT_TEXT).expect(201)).body;
+    const doc = await ingest(SPARSE_DOCUMENT_TEXT);
     expect(doc.direction).toBe('UNKNOWN');
     const [extraction] = doc.extractions;
     expect(extraction).toMatchObject({ invoiceNumber: null, invoiceDate: null, currency: null });
@@ -99,9 +107,9 @@ describe('AI safety fixes (Stage 4 E2E)', () => {
 
   it('BUG-14: a high-confidence sale is never auto-drafted; a reviewer approves it into a DRAFT invoice calculated by code', async () => {
     const before = await invoiceCount();
-    const doc = (await upload(ownSalesInvoiceText()).expect(201)).body;
+    const doc = await ingest(ownSalesInvoiceText());
     expect(doc.direction).toBe('SALE');
-    expect(doc.status).toBe('REQUIRES_REVIEW');
+    expect(doc.status).toBe('AWAITING_REVIEW');
     expect(doc.suggestions[0].status).toBe('PENDING_REVIEW');
     expect(await invoiceCount()).toBe(before);
 
@@ -129,12 +137,12 @@ describe('AI safety fixes (Stage 4 E2E)', () => {
 
   it('BUG-16: re-sending the same document is caught, never renamed', async () => {
     // Byte-identical file: de-duplicated at upload (Stage 5), same document returned.
-    const again = (await upload(ownSalesInvoiceText()).expect(201)).body;
+    const again = await ingest(ownSalesInvoiceText());
     expect(again.duplicate).toBe(true);
 
     // Different file (e.g. a re-scan) carrying the same invoice number: refused at approval.
-    const doc = (await upload(`${ownSalesInvoiceText()}
-Thank you`).expect(201)).body;
+    const doc = await ingest(`${ownSalesInvoiceText()}
+Thank you`);
     expect(doc.duplicate).toBe(false);
     const res = await auth(http().post(`/api/v1/organizations/${orgId}/ai/documents/${doc.id}/edit`))
       .send({ contactId: customerId, lines: [{ lineNumber: 1, description: 'Consulting', accountId: salesAccountId }] })
@@ -146,7 +154,7 @@ Thank you`).expect(201)).body;
     const text = ownSalesInvoiceText()
       .replace(/Invoice No: .*/, `Invoice No: ${ourInvoiceNumber}-B`)
       .replace(/Due Date: .*\n/, '');
-    const doc = (await upload(text).expect(201)).body;
+    const doc = await ingest(text);
     const res = await auth(http().post(`/api/v1/organizations/${orgId}/ai/documents/${doc.id}/edit`))
       .send({ contactId: customerId, lines: [{ lineNumber: 1, description: 'Consulting', accountId: salesAccountId }] })
       .expect(422);

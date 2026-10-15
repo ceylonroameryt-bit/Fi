@@ -8,6 +8,7 @@ import { StorageService } from '../src/common/storage/storage.service';
 import { createValidationPipe } from '../src/common/validation/validation.pipe';
 import { RolesService } from '../src/roles/roles.service';
 import { OCR_PROVIDER } from '../src/documents/ocr/ocr-provider.interface';
+import { JobWorkerService } from '../src/jobs/job-worker.service';
 import { FakeOcrProvider } from '../src/documents/ocr/fake-ocr.provider';
 import { makeTextPdf, PNG_BYTES } from '../src/documents/__fixtures__/pdf-builder';
 
@@ -23,6 +24,20 @@ describe('Document upload & text extraction (Stage 5 E2E)', () => {
   const run = Date.now();
 
   const http = () => request(app.getHttpServer());
+  const getDoc = async (id: string) =>
+    (
+      await http()
+        .get(`/api/v1/organizations/${orgId}/ai/documents/${id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('x-organization-id', orgId)
+        .expect(200)
+    ).body;
+  /** Upload (202), run the background pipeline, return the processed document. */
+  const ingest = async (bytes: Buffer, filename: string, contentType: string) => {
+    const accepted = (await uploadFile(bytes, filename, contentType).expect(202)).body;
+    await app.get(JobWorkerService).drain();
+    return { ...(await getDoc(accepted.id)), duplicate: accepted.duplicate, acceptedStatus: accepted.status };
+  };
   const uploadFile = (bytes: Buffer, filename: string, contentType: string) =>
     http()
       .post(`/api/v1/organizations/${orgId}/ai/documents`)
@@ -69,9 +84,11 @@ describe('Document upload & text extraction (Stage 5 E2E)', () => {
   });
 
   it('accepts a digital PDF, stores it privately, reads its text layer with word positions and proposes from it', async () => {
-    const doc = (await uploadFile(supplierBillPdf, 'abc-bill.pdf', 'application/pdf').expect(201)).body;
+    const doc = await ingest(supplierBillPdf, 'abc-bill.pdf', 'application/pdf');
 
     expect(doc.duplicate).toBe(false);
+    expect(doc.acceptedStatus).toBe('UPLOADED'); // processing happens in the background
+    expect(doc.status).toBe('AWAITING_REVIEW');
     expect(ocr.calls).toHaveLength(0);
     expect(doc.direction).toBe('PURCHASE');
     expect(doc.extractions[0]).toMatchObject({ invoiceNumber: `ABC-${run}`, issuerTaxId: 'GB123456789' });
@@ -89,7 +106,7 @@ describe('Document upload & text extraction (Stage 5 E2E)', () => {
 
   it('returns the existing document for the same file instead of processing it twice', async () => {
     const before = await prisma.aiDocument.count({ where: { organizationId: orgId } });
-    const again = (await uploadFile(supplierBillPdf, 'renamed.pdf', 'application/pdf').expect(201)).body;
+    const again = (await uploadFile(supplierBillPdf, 'renamed.pdf', 'application/pdf').expect(202)).body;
     expect(again.duplicate).toBe(true);
     expect(await prisma.aiDocument.count({ where: { organizationId: orgId } })).toBe(before);
   });
@@ -105,7 +122,7 @@ describe('Document upload & text extraction (Stage 5 E2E)', () => {
         words: [{ text: `PHOTO-${run}`, x0: 0.4, y0: 0.1, x1: 0.6, y1: 0.12, confidence: 0.97 }],
       },
     ]);
-    const doc = (await uploadFile(photo, 'receipt.png', 'image/png').expect(201)).body;
+    const doc = await ingest(photo, 'receipt.png', 'image/png');
     expect(ocr.calls.at(-1)).toMatchObject({ mimeType: 'image/png' });
     const stored = await prisma.aiDocument.findUniqueOrThrow({ where: { id: doc.id }, include: { pages: true } });
     expect(stored.textSource).toBe('OCR');
@@ -126,5 +143,72 @@ describe('Document upload & text extraction (Stage 5 E2E)', () => {
       .set('Authorization', `Bearer ${token}`)
       .set('x-organization-id', orgId)
       .expect(400);
+  });
+
+  describe('background pipeline (Stage 6)', () => {
+    const api = (method: 'get' | 'post', path: string) =>
+      http()[method](`/api/v1/organizations/${orgId}/ai${path}`).set('Authorization', `Bearer ${token}`).set('x-organization-id', orgId);
+    const drain = () => app.get(JobWorkerService).drain();
+
+    it('a permanent failure (AI switched off mid-flight) fails the document with a reason and dead-letters the job; retry recovers it', async () => {
+      const pdf = makeTextPdf(['Supplier: ABC Fuel Ltd', `Invoice No: OFF-${run}`, 'Total: 10.00']);
+      const accepted = (await uploadFile(pdf, 'off.pdf', 'application/pdf').expect(202)).body;
+      await prisma.organization.update({ where: { id: orgId }, data: { aiEnabled: false } });
+      await drain();
+      const failed = await prisma.aiDocument.findUniqueOrThrow({ where: { id: accepted.id } });
+      expect(failed).toMatchObject({ status: 'FAILED', failureCode: 'AI_DISABLED', textSource: 'PDF_TEXT' });
+
+      const deadJobs = (await api('get', '/jobs/dead').expect(200)).body;
+      expect(deadJobs.find((j: any) => j.payload.documentId === accepted.id)).toMatchObject({ type: 'document.analyse', status: 'DEAD' });
+
+      await prisma.organization.update({ where: { id: orgId }, data: { aiEnabled: true } });
+      await api('post', `/documents/${accepted.id}/retry`).expect(202);
+      await drain();
+      expect(await prisma.aiDocument.findUniqueOrThrow({ where: { id: accepted.id } })).toMatchObject({ status: 'AWAITING_REVIEW', failureCode: null });
+    });
+
+    it('transient failures are retried with backoff until exhausted, then the job can be requeued from the dead-letter queue', async () => {
+      const photo = Buffer.concat([PNG_BYTES, Buffer.from(`retry-${run}`)]);
+      // No OCR result queued: the fake provider errors like a flaky remote service.
+      const accepted = (await uploadFile(photo, 'flaky.png', 'image/png').expect(202)).body;
+      await drain();
+      const failed = await prisma.aiDocument.findUniqueOrThrow({ where: { id: accepted.id } });
+      expect(failed).toMatchObject({ status: 'FAILED', failureCode: 'RETRIES_EXHAUSTED' });
+      const job = await prisma.job.findFirstOrThrow({ where: { type: 'document.extract_text', payload: { path: ['documentId'], equals: accepted.id } } });
+      expect(job).toMatchObject({ status: 'DEAD', attempts: job.maxAttempts });
+
+      ocr.enqueue([{ pageNumber: 1, width: null, height: null, text: `Invoice No: RETRY-${run}`, words: [] }]);
+      await api('post', `/jobs/${job.id}/requeue`).expect(202);
+      await drain();
+      const recovered = await getDoc(accepted.id);
+      expect(recovered.status).toBe('AWAITING_REVIEW');
+      expect(recovered.extractions[0].invoiceNumber).toBe(`RETRY-${run}`);
+    });
+
+    it('steps are idempotent: a duplicate job for an already-processed document changes nothing', async () => {
+      const doc = await prisma.aiDocument.findFirstOrThrow({
+        where: { organizationId: orgId, status: 'AWAITING_REVIEW', textSource: 'PDF_TEXT' },
+        orderBy: { createdAt: 'desc' },
+        include: { pages: true, suggestions: true },
+      });
+      await prisma.job.createMany({
+        data: ['document.extract_text', 'document.analyse'].map((type) => ({
+          organizationId: orgId,
+          type,
+          payload: { documentId: doc.id },
+          idempotencyKey: `${type}:${doc.id}:dup-${run}`,
+        })),
+      });
+      await drain();
+      const after = await prisma.aiDocument.findUniqueOrThrow({ where: { id: doc.id }, include: { pages: true, suggestions: true } });
+      expect(after.status).toBe('AWAITING_REVIEW');
+      expect(after.pages.map((p) => p.id)).toEqual(doc.pages.map((p) => p.id));
+      expect(after.suggestions.map((x) => x.id)).toEqual(doc.suggestions.map((x) => x.id));
+    });
+
+    it('only failed documents can be retried', async () => {
+      const doc = await prisma.aiDocument.findFirstOrThrow({ where: { organizationId: orgId, status: 'AWAITING_REVIEW' } });
+      await api('post', `/documents/${doc.id}/retry`).expect(409);
+    });
   });
 });

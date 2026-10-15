@@ -28,6 +28,8 @@ import { AiUsageService } from './gateway/ai-usage.service';
 import { BusinessProfileService } from './business-profile/business-profile.service';
 import { BusinessProfileScheduler } from './business-profile/business-profile.scheduler';
 import { AiGatewayController } from './ai-gateway.controller';
+import { AnalyseDocumentJobHandler, ExtractTextJobHandler } from './pipeline/document-pipeline.handlers';
+import { DocumentPipelineService } from './pipeline/document-pipeline.service';
 
 /** Picks the model provider from AI_PROVIDER; null means AI calls are blocked (and logged as such). */
 function createAiProvider(config: AppEnv): AiProvider | null {
@@ -67,6 +69,9 @@ function createAiProvider(config: AppEnv): AiProvider | null {
     AiUsageService,
     BusinessProfileService,
     BusinessProfileScheduler,
+    ExtractTextJobHandler,
+    AnalyseDocumentJobHandler,
+    DocumentPipelineService,
   ],
   exports: [
     DocumentIntelligenceService,

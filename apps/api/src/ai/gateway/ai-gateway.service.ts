@@ -28,7 +28,7 @@ export class AiGatewayService {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() @Inject(AI_PROVIDER) private readonly provider: AiProvider | null,
-    @Inject(APP_CONFIG) private readonly config: Pick<AppEnv, 'AI_MODEL'>,
+    @Inject(APP_CONFIG) private readonly config: Pick<AppEnv, 'AI_MODEL' | 'AI_MONTHLY_COST_LIMIT_USD'>,
   ) {}
 
   async run<T>(input: AiRunInput<T>): Promise<T> {
@@ -38,11 +38,22 @@ export class AiGatewayService {
 
     const org = await this.prisma.organization.findUnique({
       where: { id: input.organizationId },
-      select: { aiEnabled: true },
+      select: { aiEnabled: true, aiMonthlyCostLimitUsd: true },
     });
     if (!org?.aiEnabled) {
       await this.log(input, { status: AiCallStatus.BLOCKED, errorCode: 'AI_DISABLED' });
       throw new DomainException('AI_DISABLED', 'AI features are switched off for this organisation');
+    }
+    const limit = new Prisma.Decimal(org.aiMonthlyCostLimitUsd ?? this.config.AI_MONTHLY_COST_LIMIT_USD);
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const spent = await this.prisma.aiUsageLog.aggregate({
+      where: { organizationId: input.organizationId, createdAt: { gte: monthStart } },
+      _sum: { costUsd: true },
+    });
+    if (new Prisma.Decimal(spent._sum.costUsd ?? 0).greaterThanOrEqualTo(limit)) {
+      await this.log(input, { status: AiCallStatus.BLOCKED, errorCode: 'AI_COST_LIMIT_REACHED' });
+      throw new DomainException('AI_COST_LIMIT_REACHED', `Monthly AI spend limit of $${limit.toFixed(2)} reached for this organisation`);
     }
     if (!this.provider) {
       await this.log(input, { status: AiCallStatus.BLOCKED, errorCode: 'AI_PROVIDER_UNAVAILABLE' });

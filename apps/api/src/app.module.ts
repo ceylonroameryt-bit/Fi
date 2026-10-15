@@ -20,6 +20,7 @@ import { JournalsModule } from './journals/journals.module';
 import { LedgerModule } from './ledger/ledger.module';
 import { ReportsModule } from './reports/reports.module';
 import { TaxModule } from './tax/tax.module';
+import { JobsModule } from './jobs/jobs.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { AdminModule } from './admin/admin.module';
@@ -55,6 +56,7 @@ import { AllExceptionsFilter } from './common/errors/all-exceptions.filter';
     LedgerModule,
     ReportsModule,
     TaxModule,
+    JobsModule,
     ContactsModule,
     InvoicesModule,
     AdminModule,

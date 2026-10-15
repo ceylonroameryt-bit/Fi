@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import { AiDocument, AiDocumentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
@@ -7,7 +7,8 @@ import { DomainException } from '../common/errors/domain.exception';
 import { APP_CONFIG } from '../config/config.module';
 import type { AppEnv } from '../config/env';
 import { detectFileType, EXTENSION_FOR } from './file-type';
-import { DocumentTextService } from './document-text.service';
+import { JobQueueService } from '../jobs/job-queue.service';
+import { DOCUMENT_JOB } from './document-jobs';
 
 export interface IntakeInput {
   organizationId: string;
@@ -28,16 +29,14 @@ const UNSPECIFIED_TYPES = new Set(['', 'application/octet-stream']);
 
 /**
  * Receives an uploaded document: validates size and real type, stores it privately under the
- * organisation's prefix, de-duplicates by content hash, and extracts text with word positions.
+ * organisation's prefix, de-duplicates by content hash, and queues text extraction.
  */
 @Injectable()
 export class DocumentIntakeService {
-  private readonly logger = new Logger(DocumentIntakeService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
-    private readonly text: DocumentTextService,
+    private readonly queue: JobQueueService,
     @Inject(APP_CONFIG) private readonly config: Pick<AppEnv, 'DOCUMENT_MAX_BYTES'>,
   ) {}
 
@@ -67,16 +66,30 @@ export class DocumentIntakeService {
 
     let document: AiDocument;
     try {
-      document = await this.prisma.aiDocument.create({
-        data: {
-          organizationId,
-          fileKey,
-          fileName: safeFileName(input.fileName),
-          fileSize: bytes.length,
-          mimeType,
-          contentSha256,
-          createdById: input.userId,
-        },
+      // Document row and its first pipeline job are created together.
+      document = await this.prisma.transaction(async (tx) => {
+        const created = await tx.aiDocument.create({
+          data: {
+            organizationId,
+            fileKey,
+            fileName: safeFileName(input.fileName),
+            fileSize: bytes.length,
+            mimeType,
+            contentSha256,
+            createdById: input.userId,
+            status: AiDocumentStatus.UPLOADED,
+          },
+        });
+        await this.queue.enqueue(
+          {
+            organizationId,
+            type: DOCUMENT_JOB.EXTRACT_TEXT,
+            payload: { documentId: created.id },
+            idempotencyKey: `${DOCUMENT_JOB.EXTRACT_TEXT}:${created.id}:initial`,
+          },
+          tx,
+        );
+        return created;
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
@@ -88,43 +101,13 @@ export class DocumentIntakeService {
       throw err;
     }
 
-    return { document: await this.extractText(document, bytes, mimeType), duplicate: false };
+    return { document, duplicate: false };
   }
 
   private findByHash(organizationId: string, contentSha256: string) {
     return this.prisma.aiDocument.findUnique({
       where: { organizationId_contentSha256: { organizationId, contentSha256 } },
     });
-  }
-
-  private async extractText(document: AiDocument, bytes: Buffer, mimeType: Parameters<DocumentTextService['extract']>[1]) {
-    try {
-      const result = await this.text.extract(bytes, mimeType);
-      return await this.prisma.transaction(async (tx) => {
-        await tx.aiDocumentPage.createMany({
-          data: result.pages.map((p) => ({
-            organizationId: document.organizationId,
-            documentId: document.id,
-            pageNumber: p.pageNumber,
-            width: p.width,
-            height: p.height,
-            words: p.words as unknown as Prisma.InputJsonValue,
-            text: p.text,
-          })),
-        });
-        return tx.aiDocument.update({
-          where: { id: document.id },
-          data: { textSource: result.source, extractedText: result.text, pageCount: result.pages.length },
-        });
-      });
-    } catch (err) {
-      const reason = err instanceof DomainException ? `${err.code}: ${err.message}` : `TEXT_EXTRACTION_FAILED: ${(err as Error).message}`;
-      this.logger.warn(`Text extraction failed for document ${document.id}: ${reason}`);
-      return this.prisma.aiDocument.update({
-        where: { id: document.id },
-        data: { status: AiDocumentStatus.FAILED, errorMessage: reason.slice(0, 500) },
-      });
-    }
   }
 }
 

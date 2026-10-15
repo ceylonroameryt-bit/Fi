@@ -58,6 +58,18 @@ const envSchema = z
     DOCUMENT_MAX_BYTES: z.coerce.number().int().min(1024).default(20 * 1024 * 1024),
     // OCR for photos/scanned PDFs: 'none' rejects them with OCR_UNAVAILABLE; 'fake' is for tests/dev.
     OCR_PROVIDER: z.enum(['none', 'textract', 'fake']).default('none'),
+    // Background jobs (Stage 6). Disable the in-process worker to run workers separately (or in tests).
+    JOB_WORKER_ENABLED: z
+      .enum(['true', 'false', '1', '0', ''])
+      .optional()
+      .transform((value) => value !== 'false' && value !== '0'),
+    JOB_POLL_INTERVAL_MS: z.coerce.number().int().min(50).default(1000),
+    JOB_RETRY_BASE_MS: z.coerce.number().int().min(0).default(5000),
+    JOB_RETRY_MAX_MS: z.coerce.number().int().min(0).default(600_000),
+    JOB_LOCK_TIMEOUT_MS: z.coerce.number().int().min(1000).default(300_000),
+    DOCUMENT_JOBS_PER_ORG_PER_MINUTE: z.coerce.number().int().min(1).default(30),
+    // Default monthly AI spend cap per organisation (USD); organisations can override.
+    AI_MONTHLY_COST_LIMIT_USD: z.coerce.number().min(0).default(50),
     // Owners and accountants must complete MFA before accessing an organisation.
     // May only be turned off outside production (e.g. legacy e2e fixtures).
     MFA_REQUIRED_FOR_PRIVILEGED_ROLES: z

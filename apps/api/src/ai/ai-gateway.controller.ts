@@ -24,7 +24,7 @@ export class AiGatewayController {
     private readonly usage: AiUsageService,
     private readonly profiles: BusinessProfileService,
     @Optional() @Inject(AI_PROVIDER) private readonly provider: AiProvider | null,
-    @Inject(APP_CONFIG) private readonly config: Pick<AppEnv, 'AI_MODEL'>,
+    @Inject(APP_CONFIG) private readonly config: Pick<AppEnv, 'AI_MODEL' | 'AI_MONTHLY_COST_LIMIT_USD'>,
   ) {}
 
   @Get('settings')
