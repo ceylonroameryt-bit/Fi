@@ -39,7 +39,7 @@ Monorepo (npm workspaces): `apps/api` (NestJS 11 + Prisma 6 + PostgreSQL, Jest),
 | 5 | Upload/storage/OCR | **done** (feature/document-upload) — was partial: | Storage service exists; `AiDocument` has no content hash; no PDF text layer / OCR / word positions. |
 | 6 | Background processing | **done** (feature/document-pipeline) — was missing: | `processDocument` runs synchronously in the upload request (`document-intelligence.controller.ts:45`). No queue. |
 | 7 | LLM extraction | **done** (feature/llm-extraction) — was missing: | No real model; no schema, source quotes, or prompt-injection handling. |
-| 8 | Validation | **missing** | No arithmetic/VAT-number/duplicate checks on extractions. |
+| 8 | Validation | **done** (feature/extraction-validation) — was missing: | No arithmetic/VAT-number/duplicate checks on extractions. |
 | 9 | Direction & supplier matching | **partial** | `transaction-direction.service.ts` (name/VAT rules), `entity-resolution.service.ts`; no company-number or thresholded fuzzy match. |
 | 10 | Account & tax suggestion | **partial** | `accounting-classification`, `line-classification`, `ai-feedback` exist; not constrained to org accounts + tax codes; reasons partly stored. |
 | 11 | Supplier bills | **missing** | No bill model. `JournalSourceType.BILL` enum value exists only. |
@@ -189,3 +189,10 @@ Every defect is a named fixture in `src/ai/__fixtures__/safety-fixtures.ts` with
 - **Temperature 0:** current Claude models reject `temperature` (see Stage 3). Determinism comes from the strict schema, the fixed prompt version and code verification.
 - Residual risk (for Stage 8): an injected or misprinted value that really is on the document passes these checks (e.g. a fake "Total 0.00" line). Stage 8's arithmetic validation and the mandatory human review remain the controls.
 - Not done: no live call against the Anthropic API yet (fake provider in tests).
+
+### Stage 8 – Validation: done (branch `feature/extraction-validation`, stacked on `feature/llm-extraction`)
+- `ExtractionValidationService` (`src/ai/validation/`) runs in the pipeline's VALIDATED step and is **read-only**: it never changes a value (a test freezes the input). Each field (`invoiceNumber`, `issuer.vatNumber`, `lines[2].vat`, …) is `verified`, `inconsistent` or `missing`, with messages; values dropped by Stage 7 source checks show as missing with the reason.
+- Rules (each only when every number involved is present): line nets = subtotal; subtotal + VAT = total; each line's VAT is 0/5/20% of its net within 1p; line net + VAT = line total; line VATs = VAT total; UK VAT number format and HMRC check digits (mod 97 and 97-55; 9/12-digit, GD/HA, GB/XI; non-UK numbers not judged); invoice date not more than 31 days ahead or 6 years old; due date not before invoice date; currency present and equal to the organisation's base currency; **duplicate** = same invoice number and same supplier (VAT number, else matched contact, else normalised name) on another document that is not rejected/failed.
+- Stored on `ai_extractions.validation` (JSON) and `is_consistent`; summary and findings copied into the suggestion payload; `VALIDATED` audit event.
+- Decision: validation **reports and does not block**. Inconsistent or missing fields stay visible for the reviewer; Stage 11/12 decide what approval requires (proposal: approval refused while a field is inconsistent unless the reviewer edits or explicitly overrides it, which is logged).
+- Test isolation fix: suites now restore env vars properly (`test/env.helper.ts`; assigning `undefined` to `process.env` leaves the string "undefined"). The shared demo organisation tripped the per-org job rate limit across a full e2e run, so `.env.test` raises it and the rate-limit test uses its own worker. Stage 13 should give e2e runs their own organisation or a reset database.

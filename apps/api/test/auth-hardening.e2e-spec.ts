@@ -7,6 +7,7 @@ import { PrismaService } from '../src/database/prisma.service';
 import { createValidationPipe } from '../src/common/validation/validation.pipe';
 import { RolesService } from '../src/roles/roles.service';
 import { MfaService } from '../src/auth/mfa.service';
+import { restoreEnv } from './env.helper';
 
 /** Stage 1 (Phase 2): MFA enforcement for privileged roles and refresh-token reuse detection. */
 describe('Auth hardening (Stage 1 E2E)', () => {
@@ -52,7 +53,7 @@ describe('Auth hardening (Stage 1 E2E)', () => {
   });
 
   afterAll(async () => {
-    process.env.MFA_REQUIRED_FOR_PRIVILEGED_ROLES = previousFlag;
+    restoreEnv('MFA_REQUIRED_FOR_PRIVILEGED_ROLES', previousFlag);
     await app.close();
   });
 

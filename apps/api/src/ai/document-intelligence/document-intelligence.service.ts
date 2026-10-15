@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
-import { LlmExtractionService } from '../extraction/llm-extraction.service';
+import { FieldIssue, LlmExtractionService } from '../extraction/llm-extraction.service';
+import { ExtractionValidationService } from '../validation/extraction-validation.service';
 import { AI_PROVIDER, AiProvider } from '../gateway/ai-provider.interface';
 import { AiDirection, AiDocumentStatus, AiSuggestionStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -58,6 +59,7 @@ export class DocumentIntelligenceService {
     private readonly feedback: AiFeedbackService,
     private readonly invoices: InvoicesService,
     private readonly llmExtraction: LlmExtractionService,
+    private readonly validator: ExtractionValidationService,
     @Optional() @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider | null,
   ) {}
 
@@ -109,7 +111,7 @@ export class DocumentIntelligenceService {
       rawStructuredData = { extractor: 'rules', result: extraction, verificationIssues: [] };
     }
 
-    await this.db.aiExtraction.create({
+    const extractionRow = await this.db.aiExtraction.create({
       data: {
         organizationId,
         documentId,
@@ -228,8 +230,25 @@ export class DocumentIntelligenceService {
       await this.safety.validateAccountingSafety(organizationId, intent, targetEntity?.id);
     }
 
-    // Stage 8 adds field-level validation here; for now only the safety check above.
+    // Field-level validation: report each value as verified / inconsistent / missing. Values are never changed.
+    const validation = await this.validator.validate({
+      organizationId,
+      documentId,
+      extraction,
+      baseCurrency: doc.organization.baseCurrency,
+      verificationIssues: (rawStructuredData.verificationIssues as FieldIssue[]) ?? [],
+      issuerContactId: issuerMatch.contact?.id ?? null,
+    });
+    await this.db.aiExtraction.update({
+      where: { id: extractionRow.id },
+      data: { validation: validation as unknown as Prisma.InputJsonValue, isConsistent: validation.consistent },
+    });
     await this.setStatus(documentId, AiDocumentStatus.VALIDATED);
+    await this.audit.logEvent(organizationId, documentId, 'VALIDATED', doc.createdById, {
+      consistent: validation.consistent,
+      summary: validation.summary,
+      rules: validation.findings.map((f) => f.rule),
+    });
 
     const payload: SuggestionPayload = {
       extraction,
@@ -248,7 +267,12 @@ export class DocumentIntelligenceService {
             : direction === AiDirection.SALE
               ? 'SALES_INVOICE_DRAFT'
               : 'UNCLASSIFIED_DOCUMENT',
-        payload: { ...payload, documentType: docClassification.documentType, confidence } as unknown as Prisma.InputJsonValue,
+        payload: {
+          ...payload,
+          documentType: docClassification.documentType,
+          confidence,
+          validation: { consistent: validation.consistent, summary: validation.summary, findings: validation.findings },
+        } as unknown as Prisma.InputJsonValue,
         confidenceScore: new Prisma.Decimal(confidence.score),
         confidenceLevel: confidence.level,
         status: AiSuggestionStatus.PENDING_REVIEW,

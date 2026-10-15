@@ -11,6 +11,7 @@ import { OCR_PROVIDER } from '../src/documents/ocr/ocr-provider.interface';
 import { JobWorkerService } from '../src/jobs/job-worker.service';
 import { FakeOcrProvider } from '../src/documents/ocr/fake-ocr.provider';
 import { makeTextPdf, PNG_BYTES } from '../src/documents/__fixtures__/pdf-builder';
+import { restoreEnv } from './env.helper';
 
 /** Stage 5 (Phase 42): upload validation, private storage, de-duplication, text + word positions. */
 describe('Document upload & text extraction (Stage 5 E2E)', () => {
@@ -79,7 +80,7 @@ describe('Document upload & text extraction (Stage 5 E2E)', () => {
 
   afterAll(async () => {
     await prisma.organization.update({ where: { id: orgId }, data: { aiEnabled: false, taxNumber: previousTaxNumber } });
-    process.env.OCR_PROVIDER = previousOcr;
+    restoreEnv('OCR_PROVIDER', previousOcr);
     await app.close();
   });
 

@@ -120,7 +120,7 @@ describe('Job queue & worker (Stage 6 E2E)', () => {
     };
     const limited: JobHandler = { type: type('limited'), rateLimited: true, handle: async () => void calls.push('limited') };
 
-    beforeAll(() => [flaky, broken, limited].forEach((h) => worker.register(h)));
+    beforeAll(() => [flaky, broken].forEach((h) => worker.register(h)));
 
     it('retries transient failures until the job succeeds', async () => {
       await enqueue(flaky.type, 'x', { maxAttempts: 5 });
@@ -142,10 +142,11 @@ describe('Job queue & worker (Stage 6 E2E)', () => {
     });
 
     it('defers jobs over the per-organisation rate limit instead of running them', async () => {
-      // Pretend this organisation already started its quota of rate-limited jobs in the last minute.
-      const quota = 30;
+      // A worker with a small limit, so the test does not depend on the environment's setting.
+      const limitedWorker = new JobWorkerService(queue, { JOB_WORKER_ENABLED: false, JOB_POLL_INTERVAL_MS: 1000, DOCUMENT_JOBS_PER_ORG_PER_MINUTE: 3 });
+      limitedWorker.register(limited);
       await prisma.job.createMany({
-        data: Array.from({ length: quota }, (_, i) => ({
+        data: Array.from({ length: 3 }, (_, i) => ({
           organizationId: orgId,
           type: limited.type,
           idempotencyKey: `${limited.type}:past-${i}`,
@@ -154,7 +155,7 @@ describe('Job queue & worker (Stage 6 E2E)', () => {
         })),
       });
       await enqueue(limited.type, 'now');
-      await worker.runOnce();
+      await limitedWorker.runOnce();
       expect(calls).not.toContain('limited');
       const job = await prisma.job.findUniqueOrThrow({ where: { idempotencyKey: `${limited.type}:now` } });
       expect(job).toMatchObject({ status: 'QUEUED', attempts: 0 });

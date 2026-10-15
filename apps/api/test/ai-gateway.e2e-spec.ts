@@ -8,6 +8,7 @@ import { createValidationPipe } from '../src/common/validation/validation.pipe';
 import { RolesService } from '../src/roles/roles.service';
 import { AI_PROVIDER } from '../src/ai/gateway/ai-provider.interface';
 import { FakeAiProvider } from '../src/ai/gateway/providers/fake.provider';
+import { restoreEnv } from './env.helper';
 
 /** Stage 3: AI gateway switch, usage/cost logging, prompt versioning and business profile. */
 describe('AI gateway + business profile (Stage 3 E2E)', () => {
@@ -43,7 +44,7 @@ describe('AI gateway + business profile (Stage 3 E2E)', () => {
 
   afterAll(async () => {
     await prisma.organization.update({ where: { id: orgId }, data: { aiEnabled: false } });
-    process.env.AI_PROVIDER = previousProvider;
+    restoreEnv('AI_PROVIDER', previousProvider);
     await app.close();
   });
 

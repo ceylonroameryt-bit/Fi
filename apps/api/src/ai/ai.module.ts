@@ -31,6 +31,7 @@ import { AiGatewayController } from './ai-gateway.controller';
 import { AnalyseDocumentJobHandler, ExtractTextJobHandler } from './pipeline/document-pipeline.handlers';
 import { DocumentPipelineService } from './pipeline/document-pipeline.service';
 import { LlmExtractionService } from './extraction/llm-extraction.service';
+import { ExtractionValidationService } from './validation/extraction-validation.service';
 
 /** Picks the model provider from AI_PROVIDER; null means AI calls are blocked (and logged as such). */
 function createAiProvider(config: AppEnv): AiProvider | null {
@@ -74,6 +75,7 @@ function createAiProvider(config: AppEnv): AiProvider | null {
     AnalyseDocumentJobHandler,
     DocumentPipelineService,
     LlmExtractionService,
+    ExtractionValidationService,
   ],
   exports: [
     DocumentIntelligenceService,

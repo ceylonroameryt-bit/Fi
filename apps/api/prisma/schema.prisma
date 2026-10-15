@@ -929,6 +929,9 @@ model AiExtraction {
   totalAmount       Decimal?  @map("total_amount") @db.Decimal(19, 4)
   rawStructuredData Json      @map("raw_structured_data")
   modelVersion      String?   @map("model_version") @db.VarChar(50)
+  /// Stage 8 result: per-field verified/inconsistent/missing plus rule findings (values are never changed).
+  validation        Json?     @map("validation")
+  isConsistent      Boolean?  @map("is_consistent")
   createdAt         DateTime  @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
