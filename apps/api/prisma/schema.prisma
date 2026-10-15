@@ -151,64 +151,86 @@ enum JournalSourceType {
 // ─────────────────────────── Identity & auth ──────────────────────────
 
 model User {
-  id                  String     @id @default(uuid()) @db.Uuid
-  email               String     @unique @db.VarChar(254)
-  passwordHash        String?    @map("password_hash") @db.VarChar(255)
-  firstName           String     @default("") @map("first_name") @db.VarChar(100)
-  lastName            String     @default("") @map("last_name") @db.VarChar(100)
-  emailVerified       Boolean    @default(false) @map("email_verified")
-  emailVerifiedAt     DateTime?  @map("email_verified_at")
-  status              UserStatus @default(ACTIVE)
-  isSuperAdmin        Boolean    @default(false) @map("is_super_admin")
-  mfaEnabled          Boolean    @default(false) @map("mfa_enabled")
-  failedLoginAttempts Int        @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime?  @map("locked_until")
-  lastLoginAt         DateTime?  @map("last_login_at")
-  createdAt           DateTime   @default(now()) @map("created_at")
-  updatedAt           DateTime   @updatedAt @map("updated_at")
+  id                        String     @id @default(uuid()) @db.Uuid
+  email                     String     @unique @db.VarChar(254)
+  passwordHash              String?    @map("password_hash") @db.VarChar(255)
+  firstName                 String     @default("") @map("first_name") @db.VarChar(100)
+  lastName                  String     @default("") @map("last_name") @db.VarChar(100)
+  emailVerified             Boolean    @default(false) @map("email_verified")
+  emailVerifiedAt           DateTime?  @map("email_verified_at")
+  status                    UserStatus @default(ACTIVE)
+  isSuperAdmin              Boolean    @default(false) @map("is_super_admin")
+  mfaEnabled                Boolean    @default(false) @map("mfa_enabled")
+  // AES-256-GCM encrypted TOTP secrets (see MfaService); never plaintext.
+  mfaSecretEncrypted        String?    @map("mfa_secret_encrypted") @db.VarChar(255)
+  mfaPendingSecretEncrypted String?    @map("mfa_pending_secret_encrypted") @db.VarChar(255)
+  // Last accepted TOTP time step, to block code replay.
+  mfaLastUsedStep           Int?       @map("mfa_last_used_step")
+  failedLoginAttempts       Int        @default(0) @map("failed_login_attempts")
+  lockedUntil               DateTime?  @map("locked_until")
+  lastLoginAt               DateTime?  @map("last_login_at")
+  createdAt                 DateTime   @default(now()) @map("created_at")
+  updatedAt                 DateTime   @updatedAt @map("updated_at")
 
   sessions              Session[]
   tokens                UserToken[]
-  memberships           OrganizationMember[]   @relation("MemberUser")
-  invitedMemberships    OrganizationMember[]   @relation("MemberInvitedBy")
-  organizationsCreated  Organization[]         @relation("OrganizationCreatedBy")
-  accountsCreated       Account[]              @relation("AccountCreatedBy")
-  accountsUpdated       Account[]              @relation("AccountUpdatedBy")
-  financialYearsCreated FinancialYear[]        @relation("FinancialYearCreatedBy")
-  periodsLocked         AccountingPeriod[]     @relation("PeriodLockedBy")
-  journalsCreated       JournalEntry[]         @relation("JournalCreatedBy")
-  journalsUpdated       JournalEntry[]         @relation("JournalUpdatedBy")
-  journalsValidated     JournalEntry[]         @relation("JournalValidatedBy")
-  journalsPosted        JournalEntry[]         @relation("JournalPostedBy")
-  contactsCreated       Contact[]              @relation("ContactCreatedBy")
-  invoicesCreated       Invoice[]              @relation("InvoiceCreatedBy")
-  aiDocumentsCreated    AiDocument[]           @relation("AiDocumentCreatedBy")
-  aiSuggestionsReviewed AiSuggestion[]         @relation("AiSuggestionReviewedBy")
-  aiFeedbacksGiven      AiFeedback[]           @relation("AiFeedbackCorrectedBy")
+  mfaRecoveryCodes      MfaRecoveryCode[]
+  memberships           OrganizationMember[] @relation("MemberUser")
+  invitedMemberships    OrganizationMember[] @relation("MemberInvitedBy")
+  organizationsCreated  Organization[]       @relation("OrganizationCreatedBy")
+  accountsCreated       Account[]            @relation("AccountCreatedBy")
+  accountsUpdated       Account[]            @relation("AccountUpdatedBy")
+  financialYearsCreated FinancialYear[]      @relation("FinancialYearCreatedBy")
+  periodsLocked         AccountingPeriod[]   @relation("PeriodLockedBy")
+  journalsCreated       JournalEntry[]       @relation("JournalCreatedBy")
+  journalsUpdated       JournalEntry[]       @relation("JournalUpdatedBy")
+  journalsValidated     JournalEntry[]       @relation("JournalValidatedBy")
+  journalsPosted        JournalEntry[]       @relation("JournalPostedBy")
+  contactsCreated       Contact[]            @relation("ContactCreatedBy")
+  invoicesCreated       Invoice[]            @relation("InvoiceCreatedBy")
+  aiDocumentsCreated    AiDocument[]         @relation("AiDocumentCreatedBy")
+  aiSuggestionsReviewed AiSuggestion[]       @relation("AiSuggestionReviewedBy")
+  aiFeedbacksGiven      AiFeedback[]         @relation("AiFeedbackCorrectedBy")
   auditLogs             AuditLog[]
 
   @@map("users")
 }
 
 model Session {
-  id                   String    @id @default(uuid()) @db.Uuid
-  userId               String    @map("user_id") @db.Uuid
-  refreshTokenHash     String    @unique @map("refresh_token_hash") @db.VarChar(128)
-  activeOrganizationId String?   @map("active_organization_id") @db.Uuid
-  ipAddress            String?   @map("ip_address") @db.VarChar(64)
-  userAgent            String?   @map("user_agent") @db.VarChar(512)
+  id                       String    @id @default(uuid()) @db.Uuid
+  userId                   String    @map("user_id") @db.Uuid
+  refreshTokenHash         String    @unique @map("refresh_token_hash") @db.VarChar(128)
+  // Hash of the refresh token this one replaced; presenting it again means the token was stolen.
+  previousRefreshTokenHash String?   @map("previous_refresh_token_hash") @db.VarChar(128)
+  activeOrganizationId     String?   @map("active_organization_id") @db.Uuid
+  ipAddress                String?   @map("ip_address") @db.VarChar(64)
+  userAgent                String?   @map("user_agent") @db.VarChar(512)
   // MFA-ready: when MFA is introduced a session is only fully trusted once verified.
-  mfaVerifiedAt        DateTime? @map("mfa_verified_at")
-  expiresAt            DateTime  @map("expires_at")
-  lastUsedAt           DateTime  @default(now()) @map("last_used_at")
-  revokedAt            DateTime? @map("revoked_at")
-  revokedReason        String?   @map("revoked_reason") @db.VarChar(64)
-  createdAt            DateTime  @default(now()) @map("created_at")
+  mfaVerifiedAt            DateTime? @map("mfa_verified_at")
+  expiresAt                DateTime  @map("expires_at")
+  lastUsedAt               DateTime  @default(now()) @map("last_used_at")
+  revokedAt                DateTime? @map("revoked_at")
+  revokedReason            String?   @map("revoked_reason") @db.VarChar(64)
+  createdAt                DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([previousRefreshTokenHash])
   @@map("sessions")
+}
+
+model MfaRecoveryCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @unique @map("code_hash") @db.VarChar(128)
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa_recovery_codes")
 }
 
 model UserToken {
@@ -229,40 +251,47 @@ model UserToken {
 // ─────────────────────────── Organisations ───────────────────────────
 
 model Organization {
-  id                     String             @id @default(uuid()) @db.Uuid
-  name                   String             @db.VarChar(150)
-  legalName              String?            @map("legal_name") @db.VarChar(200)
-  registrationNumber     String?            @map("registration_number") @db.VarChar(50)
-  country                String             @db.Char(2)
-  baseCurrency           String             @map("base_currency") @db.Char(3)
-  timezone               String             @db.VarChar(64)
-  financialYearStartMonth Int               @default(4) @map("financial_year_start_month") @db.SmallInt
-  financialYearStartDay  Int                @default(1) @map("financial_year_start_day") @db.SmallInt
-  taxNumber              String?            @map("tax_number") @db.VarChar(50)
-  addressLine1           String?            @map("address_line_1") @db.VarChar(200)
-  addressLine2           String?            @map("address_line_2") @db.VarChar(200)
-  city                   String?            @db.VarChar(100)
-  postcode               String?            @db.VarChar(20)
-  status                 OrganizationStatus @default(ACTIVE)
-  createdById            String             @map("created_by") @db.Uuid
-  createdAt              DateTime           @default(now()) @map("created_at")
-  updatedAt              DateTime           @updatedAt @map("updated_at")
+  id                      String             @id @default(uuid()) @db.Uuid
+  name                    String             @db.VarChar(150)
+  legalName               String?            @map("legal_name") @db.VarChar(200)
+  registrationNumber      String?            @map("registration_number") @db.VarChar(50)
+  country                 String             @db.Char(2)
+  baseCurrency            String             @map("base_currency") @db.Char(3)
+  timezone                String             @db.VarChar(64)
+  financialYearStartMonth Int                @default(4) @map("financial_year_start_month") @db.SmallInt
+  financialYearStartDay   Int                @default(1) @map("financial_year_start_day") @db.SmallInt
+  taxNumber               String?            @map("tax_number") @db.VarChar(50)
+  addressLine1            String?            @map("address_line_1") @db.VarChar(200)
+  addressLine2            String?            @map("address_line_2") @db.VarChar(200)
+  city                    String?            @db.VarChar(100)
+  postcode                String?            @db.VarChar(20)
+  // Master switch for every AI feature in this organisation (off until an admin enables it).
+  aiEnabled               Boolean            @default(false) @map("ai_enabled")
+  /// Per-organisation monthly AI spend cap in USD (null = use AI_MONTHLY_COST_LIMIT_USD).
+  aiMonthlyCostLimitUsd   Decimal?           @map("ai_monthly_cost_limit_usd") @db.Decimal(12, 2)
+  status                  OrganizationStatus @default(ACTIVE)
+  createdById             String             @map("created_by") @db.Uuid
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
 
-  createdBy      User                   @relation("OrganizationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  members        OrganizationMember[]
-  roles          Role[]
-  accounts       Account[]
-  financialYears FinancialYear[]
-  periods        AccountingPeriod[]
-  journals       JournalEntry[]
-  contacts       Contact[]
-  invoices       Invoice[]
-  sequences      OrganizationSequence[]
-  auditLogs      AuditLog[]
+  createdBy       User                         @relation("OrganizationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  members         OrganizationMember[]
+  roles           Role[]
+  accounts        Account[]
+  financialYears  FinancialYear[]
+  periods         AccountingPeriod[]
+  journals        JournalEntry[]
+  contacts        Contact[]
+  invoices        Invoice[]
+  sequences       OrganizationSequence[]
+  auditLogs       AuditLog[]
   businessContext OrganizationBusinessContext?
-  aiDocuments    AiDocument[]
-  aiExtractions  AiExtraction[]
-  aiFeedbacks    AiFeedback[]
+  aiDocuments     AiDocument[]
+  aiExtractions   AiExtraction[]
+  aiFeedbacks     AiFeedback[]
+  aiUsageLogs     AiUsageLog[]
+  jobs            Job[]
+  bills           Bill[]
 
   @@index([status])
   @@map("organizations")
@@ -326,9 +355,9 @@ model Permission {
 }
 
 model RolePermission {
-  roleId       String     @map("role_id") @db.Uuid
-  permissionId String     @map("permission_id") @db.Uuid
-  createdAt    DateTime   @default(now()) @map("created_at")
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
 
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
@@ -362,16 +391,17 @@ model Account {
   updatedById        String?        @map("updated_by") @db.Uuid
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
-  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  parentAccount Account?      @relation("AccountHierarchy", fields: [organizationId, parentAccountId], references: [organizationId, id], onDelete: Restrict)
-  childAccounts Account[]     @relation("AccountHierarchy")
-  createdBy     User?         @relation("AccountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy     User?         @relation("AccountUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  journalLines  JournalLine[]
-  invoiceLines  InvoiceLine[]
-  receivableContacts Contact[] @relation("ContactReceivableAccount")
-  payableContacts    Contact[] @relation("ContactPayableAccount")
+  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parentAccount         Account?               @relation("AccountHierarchy", fields: [organizationId, parentAccountId], references: [organizationId, id], onDelete: Restrict)
+  childAccounts         Account[]              @relation("AccountHierarchy")
+  createdBy             User?                  @relation("AccountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy             User?                  @relation("AccountUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  journalLines          JournalLine[]
+  invoiceLines          InvoiceLine[]
+  receivableContacts    Contact[]              @relation("ContactReceivableAccount")
+  payableContacts       Contact[]              @relation("ContactPayableAccount")
   aiLineClassifications AiLineClassification[] @relation("AiLineResolvedAccount")
+  billLines             BillLine[]             @relation("BillLineAccount")
 
   @@unique([organizationId, code])
   @@unique([organizationId, id])
@@ -472,6 +502,7 @@ model JournalEntry {
   reverses          JournalEntry?     @relation("JournalReversal")
   lines             JournalLine[]
   invoice           Invoice?          @relation("InvoiceJournal")
+  bill              Bill?             @relation("BillJournal")
 
   @@unique([organizationId, journalNumber])
   @@unique([organizationId, idempotencyKey])
@@ -486,21 +517,29 @@ model JournalEntry {
 }
 
 model JournalLine {
-  id             String   @id @default(uuid()) @db.Uuid
-  journalEntryId String   @map("journal_entry_id") @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  lineNumber     Int      @map("line_number") @db.SmallInt
-  accountId      String   @map("account_id") @db.Uuid
-  description    String?  @db.VarChar(255)
-  debit          Decimal  @default(0) @db.Decimal(19, 4)
-  credit         Decimal  @default(0) @db.Decimal(19, 4)
-  currency       String   @db.Char(3)
-  exchangeRate   Decimal  @default(1) @map("exchange_rate") @db.Decimal(19, 8)
-  contactId      String?  @map("contact_id") @db.Uuid
-  taxRateId      String?  @map("tax_rate_id") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id             String        @id @default(uuid()) @db.Uuid
+  journalEntryId String        @map("journal_entry_id") @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  lineNumber     Int           @map("line_number") @db.SmallInt
+  accountId      String        @map("account_id") @db.Uuid
+  description    String?       @db.VarChar(255)
+  debit          Decimal       @default(0) @db.Decimal(19, 4)
+  credit         Decimal       @default(0) @db.Decimal(19, 4)
+  currency       String        @db.Char(3)
+  exchangeRate   Decimal       @default(1) @map("exchange_rate") @db.Decimal(19, 8)
+  contactId      String?       @map("contact_id") @db.Uuid
+  taxRateId      String?       @map("tax_rate_id") @db.Uuid
+  // VAT analysis (Stage 2). Set on the net (revenue/expense/asset) line of a taxable
+  // transaction; signed (negative for credit notes and reversals). For reverse-charge
+  // treatments taxAmount is the self-accounted (notional) VAT.
+  taxCodeId      String?       @map("tax_code_id") @db.Uuid
+  taxDirection   TaxDirection? @map("tax_direction")
+  taxNetAmount   Decimal?      @map("tax_net_amount") @db.Decimal(19, 4)
+  taxAmount      Decimal?      @map("tax_amount") @db.Decimal(19, 4)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
+  taxCode      TaxCode?     @relation(fields: [taxCodeId], references: [id], onDelete: Restrict)
   // Composite FKs: a line can only reference a journal, an account, and a contact of its own organisation.
   journalEntry JournalEntry @relation(fields: [organizationId, journalEntryId], references: [organizationId, id], onDelete: Cascade)
   account      Account      @relation(fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
@@ -510,7 +549,62 @@ model JournalLine {
   @@index([organizationId, accountId])
   @@index([organizationId, contactId])
   @@index([journalEntryId])
+  @@index([organizationId, taxCodeId])
   @@map("journal_lines")
+}
+
+// ─────────────────────────── VAT / tax codes ───────────────────────────
+
+enum TaxTreatment {
+  STANDARD
+  REDUCED
+  ZERO
+  EXEMPT
+  OUTSIDE_SCOPE
+  DOMESTIC_REVERSE_CHARGE
+  REVERSE_CHARGE_SERVICES
+  POSTPONED_IMPORT_VAT
+}
+
+/// OUTPUT = sales side (VAT charged), INPUT = purchase side (VAT reclaimed).
+enum TaxDirection {
+  OUTPUT
+  INPUT
+}
+
+/// System reference data shared by all organisations (UK VAT). Rates are dated rows.
+model TaxCode {
+  id          String       @id @default(uuid()) @db.Uuid
+  code        String       @unique @db.VarChar(30)
+  name        String       @db.VarChar(100)
+  description String?      @db.VarChar(500)
+  country     String       @default("GB") @db.Char(2)
+  treatment   TaxTreatment
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  rates             TaxCodeRate[]
+  journalLines      JournalLine[]
+  invoiceLines      InvoiceLine[]
+  aiLineSuggestions AiLineClassification[] @relation("AiLineSuggestedTaxCode")
+  billLines         BillLine[]             @relation("BillLineTaxCode")
+
+  @@map("tax_codes")
+}
+
+model TaxCodeRate {
+  id            String    @id @default(uuid()) @db.Uuid
+  taxCodeId     String    @map("tax_code_id") @db.Uuid
+  rate          Decimal   @db.Decimal(7, 4)
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  taxCode TaxCode @relation(fields: [taxCodeId], references: [id], onDelete: Cascade)
+
+  @@unique([taxCodeId, effectiveFrom])
+  @@map("tax_code_rates")
 }
 
 model OrganizationSequence {
@@ -528,19 +622,19 @@ model OrganizationSequence {
 // ─────────────────────────────── Audit ───────────────────────────────
 
 model AuditLog {
-  id             String    @id @default(uuid()) @db.Uuid
-  organizationId String?   @map("organization_id") @db.Uuid
-  userId         String?   @map("user_id") @db.Uuid
-  eventType      String    @map("event_type") @db.VarChar(64)
-  entityType     String    @map("entity_type") @db.VarChar(64)
-  entityId       String?   @map("entity_id") @db.VarChar(64)
-  oldValues      Json?     @map("old_values")
-  newValues      Json?     @map("new_values")
-  ipAddress      String?   @map("ip_address") @db.VarChar(64)
-  userAgent      String?   @map("user_agent") @db.VarChar(512)
-  sessionId      String?   @map("session_id") @db.Uuid
-  requestId      String?   @map("request_id") @db.VarChar(100)
-  createdAt      DateTime  @default(now()) @map("created_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @map("organization_id") @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  eventType      String   @map("event_type") @db.VarChar(64)
+  entityType     String   @map("entity_type") @db.VarChar(64)
+  entityId       String?  @map("entity_id") @db.VarChar(64)
+  oldValues      Json?    @map("old_values")
+  newValues      Json?    @map("new_values")
+  ipAddress      String?  @map("ip_address") @db.VarChar(64)
+  userAgent      String?  @map("user_agent") @db.VarChar(512)
+  sessionId      String?  @map("session_id") @db.Uuid
+  requestId      String?  @map("request_id") @db.VarChar(100)
+  createdAt      DateTime @default(now()) @map("created_at")
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   user         User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
@@ -554,49 +648,50 @@ model AuditLog {
 // ─────────────────────────── Contacts ─────────────────────────────────
 
 model Contact {
-  id                  String        @id @default(uuid()) @db.Uuid
-  organizationId      String        @map("organization_id") @db.Uuid
-  type                ContactType   @default(CUSTOMER)
-  status              ContactStatus @default(ACTIVE)
-  name                String        @db.VarChar(200)
-  companyName         String?       @map("company_name") @db.VarChar(200)
-  companyNumber       String?       @map("company_number") @db.VarChar(50)
-  vatNumber           String?       @map("vat_number") @db.VarChar(50)
-  email               String?       @db.VarChar(254)
-  phone               String?       @db.VarChar(50)
-  website             String?       @db.VarChar(200)
-  taxNumber           String?       @map("tax_number") @db.VarChar(50)
-  currency            String?       @db.Char(3)
-  paymentTermsDays    Int           @default(30) @map("payment_terms_days")
-  creditLimit         Decimal?      @map("credit_limit") @db.Decimal(19, 4)
-  addressLine1        String?       @map("address_line_1") @db.VarChar(200)
-  addressLine2        String?       @map("address_line_2") @db.VarChar(200)
-  city                String?       @db.VarChar(100)
-  state               String?       @db.VarChar(100)
-  postcode            String?       @db.VarChar(20)
-  country             String        @default("GB") @db.Char(2)
-  shippingAddressLine1 String?      @map("shipping_address_line_1") @db.VarChar(200)
-  shippingAddressLine2 String?      @map("shipping_address_line_2") @db.VarChar(200)
-  shippingCity         String?      @map("shipping_city") @db.VarChar(100)
-  shippingState        String?      @map("shipping_state") @db.VarChar(100)
-  shippingPostcode     String?      @map("shipping_postcode") @db.VarChar(20)
-  shippingCountry      String?      @map("shipping_country") @db.Char(2)
-  notes               String?       @db.VarChar(1000)
-  receivableAccountId String?       @map("receivable_account_id") @db.Uuid
-  payableAccountId    String?       @map("payable_account_id") @db.Uuid
-  createdById         String?       @map("created_by") @db.Uuid
-  createdAt           DateTime      @default(now()) @map("created_at")
-  updatedById         String?       @map("updated_by") @db.Uuid
-  updatedAt           DateTime      @updatedAt @map("updated_at")
+  id                   String        @id @default(uuid()) @db.Uuid
+  organizationId       String        @map("organization_id") @db.Uuid
+  type                 ContactType   @default(CUSTOMER)
+  status               ContactStatus @default(ACTIVE)
+  name                 String        @db.VarChar(200)
+  companyName          String?       @map("company_name") @db.VarChar(200)
+  companyNumber        String?       @map("company_number") @db.VarChar(50)
+  vatNumber            String?       @map("vat_number") @db.VarChar(50)
+  email                String?       @db.VarChar(254)
+  phone                String?       @db.VarChar(50)
+  website              String?       @db.VarChar(200)
+  taxNumber            String?       @map("tax_number") @db.VarChar(50)
+  currency             String?       @db.Char(3)
+  paymentTermsDays     Int           @default(30) @map("payment_terms_days")
+  creditLimit          Decimal?      @map("credit_limit") @db.Decimal(19, 4)
+  addressLine1         String?       @map("address_line_1") @db.VarChar(200)
+  addressLine2         String?       @map("address_line_2") @db.VarChar(200)
+  city                 String?       @db.VarChar(100)
+  state                String?       @db.VarChar(100)
+  postcode             String?       @db.VarChar(20)
+  country              String        @default("GB") @db.Char(2)
+  shippingAddressLine1 String?       @map("shipping_address_line_1") @db.VarChar(200)
+  shippingAddressLine2 String?       @map("shipping_address_line_2") @db.VarChar(200)
+  shippingCity         String?       @map("shipping_city") @db.VarChar(100)
+  shippingState        String?       @map("shipping_state") @db.VarChar(100)
+  shippingPostcode     String?       @map("shipping_postcode") @db.VarChar(20)
+  shippingCountry      String?       @map("shipping_country") @db.Char(2)
+  notes                String?       @db.VarChar(1000)
+  receivableAccountId  String?       @map("receivable_account_id") @db.Uuid
+  payableAccountId     String?       @map("payable_account_id") @db.Uuid
+  createdById          String?       @map("created_by") @db.Uuid
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedById          String?       @map("updated_by") @db.Uuid
+  updatedAt            DateTime      @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  receivableAccount   Account?      @relation("ContactReceivableAccount", fields: [organizationId, receivableAccountId], references: [organizationId, id], onDelete: Restrict)
-  payableAccount      Account?      @relation("ContactPayableAccount", fields: [organizationId, payableAccountId], references: [organizationId, id], onDelete: Restrict)
-  createdBy    User?        @relation("ContactCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  invoices     Invoice[]
-  people       ContactPerson[]
-  journalLines JournalLine[]
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  receivableAccount Account?           @relation("ContactReceivableAccount", fields: [organizationId, receivableAccountId], references: [organizationId, id], onDelete: Restrict)
+  payableAccount    Account?           @relation("ContactPayableAccount", fields: [organizationId, payableAccountId], references: [organizationId, id], onDelete: Restrict)
+  createdBy         User?              @relation("ContactCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  invoices          Invoice[]
+  people            ContactPerson[]
+  journalLines      JournalLine[]
   aiClassifications AiClassification[] @relation("AiClassificationContact")
+  bills             Bill[]             @relation("BillContact")
 
   @@unique([organizationId, id])
   @@index([organizationId, type])
@@ -689,11 +784,13 @@ model InvoiceLine {
   taxRate        Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 4)
   taxAmount      Decimal  @default(0) @map("tax_amount") @db.Decimal(19, 4)
   lineTotal      Decimal  @map("line_total") @db.Decimal(19, 4)
+  taxCodeId      String?  @map("tax_code_id") @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  invoice Invoice @relation(fields: [organizationId, invoiceId], references: [organizationId, id], onDelete: Cascade)
-  account Account @relation(fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
+  taxCode TaxCode? @relation(fields: [taxCodeId], references: [id], onDelete: Restrict)
+  invoice Invoice  @relation(fields: [organizationId, invoiceId], references: [organizationId, id], onDelete: Cascade)
+  account Account  @relation(fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
 
   @@unique([invoiceId, lineNumber])
   @@index([organizationId, accountId])
@@ -716,12 +813,14 @@ enum AiDocumentType {
   UNKNOWN
 }
 
+/// Document pipeline states (Stage 6). Each background step moves a document forward exactly once.
 enum AiDocumentStatus {
-  PENDING
-  PROCESSING
-  REQUIRES_REVIEW
-  DRAFTED
-  APPROVED
+  UPLOADED
+  TEXT_EXTRACTED
+  AI_EXTRACTED
+  VALIDATED
+  AWAITING_REVIEW
+  DRAFT_CREATED
   REJECTED
   FAILED
 }
@@ -754,15 +853,22 @@ enum AiSuggestionStatus {
 }
 
 model OrganizationBusinessContext {
-  id                  String       @id @default(uuid()) @db.Uuid
-  organizationId      String       @unique @map("organization_id") @db.Uuid
-  industry            String       @default("GENERAL") @db.VarChar(50)
-  inventoryEnabled    Boolean      @default(true) @map("inventory_enabled")
-  inventoryCategories Json         @default("[]") @map("inventory_categories")
-  salesChannels       Json         @default("[]") @map("sales_channels")
-  accountingMethod    String       @default("INVENTORY_BASED") @map("accounting_method") @db.VarChar(50)
-  createdAt           DateTime     @default(now()) @map("created_at")
-  updatedAt           DateTime     @updatedAt @map("updated_at")
+  id                  String     @id @default(uuid()) @db.Uuid
+  organizationId      String     @unique @map("organization_id") @db.Uuid
+  industry            String     @default("GENERAL") @db.VarChar(50)
+  inventoryEnabled    Boolean    @default(true) @map("inventory_enabled")
+  inventoryCategories Json       @default("[]") @map("inventory_categories")
+  salesChannels       Json       @default("[]") @map("sales_channels")
+  accountingMethod    String     @default("INVENTORY_BASED") @map("accounting_method") @db.VarChar(50)
+  // Set by a person; null means not yet stated (never inferred).
+  vatScheme           VatScheme? @map("vat_scheme")
+  // Derived from posted ledger history by BusinessProfileService.refresh (Stage 3).
+  usualSuppliers      Json       @default("[]") @map("usual_suppliers")
+  usualCustomers      Json       @default("[]") @map("usual_customers")
+  codingHabits        Json       @default("[]") @map("coding_habits")
+  profileRefreshedAt  DateTime?  @map("profile_refreshed_at")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -770,32 +876,43 @@ model OrganizationBusinessContext {
 }
 
 model AiDocument {
-  id              String            @id @default(uuid()) @db.Uuid
-  organizationId  String            @map("organization_id") @db.Uuid
-  fileKey         String            @map("file_key") @db.VarChar(255)
-  fileName        String            @map("file_name") @db.VarChar(255)
-  fileSize        Int               @map("file_size")
-  mimeType        String            @map("mime_type") @db.VarChar(100)
-  documentType    AiDocumentType    @default(UNKNOWN) @map("document_type")
-  direction       AiDirection       @default(UNKNOWN)
-  status          AiDocumentStatus  @default(PENDING)
-  confidenceScore Decimal?          @map("confidence_score") @db.Decimal(5, 4)
-  confidenceLevel AiConfidenceLevel @default(MEDIUM) @map("confidence_level")
-  errorMessage    String?           @map("error_message") @db.VarChar(500)
-  createdById     String            @map("created_by") @db.Uuid
-  processedAt     DateTime?         @map("processed_at")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String              @map("organization_id") @db.Uuid
+  fileKey         String              @map("file_key") @db.VarChar(255)
+  fileName        String              @map("file_name") @db.VarChar(255)
+  fileSize        Int                 @map("file_size")
+  mimeType        String              @map("mime_type") @db.VarChar(100)
+  documentType    AiDocumentType      @default(UNKNOWN) @map("document_type")
+  direction       AiDirection         @default(UNKNOWN)
+  status          AiDocumentStatus    @default(UPLOADED)
+  confidenceScore Decimal?            @map("confidence_score") @db.Decimal(5, 4)
+  confidenceLevel AiConfidenceLevel   @default(MEDIUM) @map("confidence_level")
+  errorMessage    String?             @map("error_message") @db.VarChar(500)
+  /// Machine-readable reason when status = FAILED (e.g. OCR_UNAVAILABLE, RETRIES_EXHAUSTED).
+  failureCode     String?             @map("failure_code") @db.VarChar(64)
+  /// sha256 of the stored bytes; unique per organisation (duplicate uploads return the existing document).
+  contentSha256   String?             @map("content_sha256") @db.Char(64)
+  textSource      DocumentTextSource? @map("text_source")
+  extractedText   String?             @map("extracted_text") @db.Text
+  pageCount       Int?                @map("page_count")
+  createdById     String              @map("created_by") @db.Uuid
+  processedAt     DateTime?           @map("processed_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
 
-  organization         Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  createdBy            User                   @relation("AiDocumentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  extractions          AiExtraction[]
-  classifications      AiClassification[]
-  lineClassifications  AiLineClassification[]
-  suggestions          AiSuggestion[]
-  auditEvents          AiAuditEvent[]
+  organization        Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy           User                   @relation("AiDocumentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  extractions         AiExtraction[]
+  classifications     AiClassification[]
+  lineClassifications AiLineClassification[]
+  suggestions         AiSuggestion[]
+  auditEvents         AiAuditEvent[]
+  pages               AiDocumentPage[]
+  bill                Bill?                  @relation("BillSourceDocument")
+  reviewDecisions     AiReviewDecision[]
 
   @@unique([organizationId, id])
+  @@unique([organizationId, contentSha256])
   @@index([organizationId, status])
   @@index([organizationId, documentType])
   @@map("ai_documents")
@@ -820,6 +937,9 @@ model AiExtraction {
   totalAmount       Decimal?  @map("total_amount") @db.Decimal(19, 4)
   rawStructuredData Json      @map("raw_structured_data")
   modelVersion      String?   @map("model_version") @db.VarChar(50)
+  /// Stage 8 result: per-field verified/inconsistent/missing plus rule findings (values are never changed).
+  validation        Json?     @map("validation")
+  isConsistent      Boolean?  @map("is_consistent")
   createdAt         DateTime  @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
@@ -857,22 +977,28 @@ model AiLineClassification {
   documentId            String        @map("document_id") @db.Uuid
   lineNumber            Int           @map("line_number") @db.SmallInt
   rawDescription        String        @map("raw_description") @db.VarChar(255)
-  quantity              Decimal       @default(1) @db.Decimal(19, 4)
+  quantity              Decimal?      @db.Decimal(19, 4)
   unit                  String?       @db.VarChar(30)
-  unitPrice             Decimal       @map("unit_price") @db.Decimal(19, 4)
-  netAmount             Decimal       @map("net_amount") @db.Decimal(19, 4)
-  taxAmount             Decimal       @map("tax_amount") @db.Decimal(19, 4)
-  totalAmount           Decimal       @map("total_amount") @db.Decimal(19, 4)
+  unitPrice             Decimal?      @map("unit_price") @db.Decimal(19, 4)
+  netAmount             Decimal?      @map("net_amount") @db.Decimal(19, 4)
+  taxAmount             Decimal?      @map("tax_amount") @db.Decimal(19, 4)
+  totalAmount           Decimal?      @map("total_amount") @db.Decimal(19, 4)
   productType           AiProductType @map("product_type")
   productClassification String        @map("product_classification") @db.VarChar(100)
-  taxClassification     String        @map("tax_classification") @db.VarChar(50)
+  taxClassification     String?       @map("tax_classification") @db.VarChar(50)
   accountingCategory    String        @map("accounting_category") @db.VarChar(100)
   resolvedAccountId     String?       @map("resolved_account_id") @db.Uuid
+  /// Stage 10 coding suggestion (shown to the reviewer; nothing posts from it).
+  suggestedTaxCodeId    String?       @map("suggested_tax_code_id") @db.Uuid
+  accountSource         String?       @map("account_source") @db.VarChar(20)
+  taxSource             String?       @map("tax_source") @db.VarChar(20)
+  codingReason          String?       @map("coding_reason") @db.VarChar(1000)
   confidenceScore       Decimal       @map("confidence_score") @db.Decimal(5, 4)
   createdAt             DateTime      @default(now()) @map("created_at")
 
-  document AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
-  account  Account?   @relation("AiLineResolvedAccount", fields: [organizationId, resolvedAccountId], references: [organizationId, id], onDelete: Restrict)
+  document         AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+  suggestedTaxCode TaxCode?   @relation("AiLineSuggestedTaxCode", fields: [suggestedTaxCodeId], references: [id], onDelete: Restrict)
+  account          Account?   @relation("AiLineResolvedAccount", fields: [organizationId, resolvedAccountId], references: [organizationId, id], onDelete: Restrict)
 
   @@unique([organizationId, id])
   @@index([documentId, lineNumber])
@@ -893,6 +1019,7 @@ model AiSuggestion {
   reviewNote         String?            @map("review_note") @db.VarChar(500)
   resultingInvoiceId String?            @map("resulting_invoice_id") @db.Uuid
   resultingJournalId String?            @map("resulting_journal_id") @db.Uuid
+  resultingBillId    String?            @map("resulting_bill_id") @db.Uuid
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
@@ -940,3 +1067,232 @@ model AiAuditEvent {
   @@map("ai_audit_events")
 }
 
+enum VatScheme {
+  STANDARD
+  CASH_ACCOUNTING
+  FLAT_RATE
+  ANNUAL_ACCOUNTING
+  NOT_REGISTERED
+}
+
+enum AiCallStatus {
+  /// Valid, schema-conforming output.
+  SUCCESS
+  /// Model declined (stop_reason = refusal).
+  REFUSED
+  /// Output missing, truncated or failed schema validation.
+  INVALID_OUTPUT
+  /// Provider/network error.
+  ERROR
+  /// Not sent: AI disabled for the organisation or no provider configured.
+  BLOCKED
+}
+
+/// One row per model call made through AiGatewayService (tokens, cost, prompt version).
+model AiUsageLog {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @map("organization_id") @db.Uuid
+  userId           String?      @map("user_id") @db.Uuid
+  feature          String       @db.VarChar(50)
+  provider         String       @db.VarChar(30)
+  model            String?      @db.VarChar(64)
+  promptKey        String       @map("prompt_key") @db.VarChar(64)
+  promptVersion    Int          @map("prompt_version")
+  promptHash       String       @map("prompt_hash") @db.Char(64)
+  status           AiCallStatus
+  errorCode        String?      @map("error_code") @db.VarChar(64)
+  inputTokens      Int          @default(0) @map("input_tokens")
+  outputTokens     Int          @default(0) @map("output_tokens")
+  cacheReadTokens  Int          @default(0) @map("cache_read_tokens")
+  cacheWriteTokens Int          @default(0) @map("cache_write_tokens")
+  /// USD; null when the model has no known price (never guessed as 0).
+  costUsd          Decimal?     @map("cost_usd") @db.Decimal(14, 6)
+  latencyMs        Int          @default(0) @map("latency_ms")
+  documentId       String?      @map("document_id") @db.Uuid
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, feature])
+  @@map("ai_usage_logs")
+}
+
+enum DocumentTextSource {
+  /// Embedded text layer of a digital PDF.
+  PDF_TEXT
+  /// Optical character recognition (photos, scans).
+  OCR
+  /// Uploaded as plain text (dev/testing, email bodies).
+  PLAIN_TEXT
+}
+
+/// One row per page with word positions, used to highlight extracted values on the document.
+model AiDocumentPage {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  documentId     String   @map("document_id") @db.Uuid
+  pageNumber     Int      @map("page_number")
+  /// Page size in PDF points when known (null for OCR of images).
+  width          Float?
+  height         Float?
+  /// [{ text, x0, y0, x1, y1, confidence? }] with coordinates normalised to 0..1, origin top-left.
+  words          Json     @default("[]")
+  text           String   @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  document AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+
+  @@unique([documentId, pageNumber])
+  @@index([organizationId, documentId])
+  @@map("ai_document_pages")
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  /// Exhausted its retries or failed permanently; kept for inspection and manual requeue.
+  DEAD
+}
+
+/// Postgres-backed work queue (claimed with FOR UPDATE SKIP LOCKED).
+model Job {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  type           String    @db.VarChar(64)
+  payload        Json      @default("{}")
+  /// Enqueuing the same key twice is a no-op (idempotent producers).
+  idempotencyKey String    @unique @map("idempotency_key") @db.VarChar(200)
+  status         JobStatus @default(QUEUED)
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(5) @map("max_attempts")
+  runAt          DateTime  @default(now()) @map("run_at")
+  startedAt      DateTime? @map("started_at")
+  lockedAt       DateTime? @map("locked_at")
+  lockedBy       String?   @map("locked_by") @db.VarChar(100)
+  finishedAt     DateTime? @map("finished_at")
+  lastError      String?   @map("last_error") @db.VarChar(1000)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([status, runAt])
+  @@index([organizationId, status])
+  @@index([organizationId, startedAt])
+  @@map("jobs")
+}
+
+// ─────────────────────────── Supplier bills (Stage 11) ───────────────────────────
+
+enum BillStatus {
+  DRAFT
+  /// Approved by a person with bill.approve; posting happens in the same transaction.
+  APPROVED
+  POSTED
+  VOIDED
+}
+
+model Bill {
+  id                    String     @id @default(uuid()) @db.Uuid
+  organizationId        String     @map("organization_id") @db.Uuid
+  contactId             String     @map("contact_id") @db.Uuid
+  /// Internal sequential reference (BILL-YYYY-NNNNNN).
+  billNumber            String     @map("bill_number") @db.VarChar(30)
+  /// The supplier's own invoice number as printed.
+  supplierInvoiceNumber String     @map("supplier_invoice_number") @db.VarChar(100)
+  issueDate             DateTime   @map("issue_date") @db.Date
+  dueDate               DateTime   @map("due_date") @db.Date
+  currency              String     @db.Char(3)
+  subtotal              Decimal    @default(0) @db.Decimal(19, 4)
+  taxTotal              Decimal    @default(0) @map("tax_total") @db.Decimal(19, 4)
+  totalAmount           Decimal    @default(0) @map("total_amount") @db.Decimal(19, 4)
+  amountPaid            Decimal    @default(0) @map("amount_paid") @db.Decimal(19, 4)
+  status                BillStatus @default(DRAFT)
+  notes                 String?    @db.VarChar(1000)
+  journalEntryId        String?    @unique @map("journal_entry_id") @db.Uuid
+  /// The uploaded document this bill came from (AI pipeline or manual attachment).
+  sourceDocumentId      String?    @unique @map("source_document_id") @db.Uuid
+  createdById           String     @map("created_by") @db.Uuid
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedById           String?    @map("updated_by") @db.Uuid
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+  approvedById          String?    @map("approved_by") @db.Uuid
+  approvedAt            DateTime?  @map("approved_at")
+  postedById            String?    @map("posted_by") @db.Uuid
+  postedAt              DateTime?  @map("posted_at")
+  voidedById            String?    @map("voided_by") @db.Uuid
+  voidedAt              DateTime?  @map("voided_at")
+  voidReason            String?    @map("void_reason") @db.VarChar(255)
+
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contact        Contact       @relation("BillContact", fields: [organizationId, contactId], references: [organizationId, id], onDelete: Restrict)
+  journalEntry   JournalEntry? @relation("BillJournal", fields: [organizationId, journalEntryId], references: [organizationId, id], onDelete: Restrict)
+  sourceDocument AiDocument?   @relation("BillSourceDocument", fields: [organizationId, sourceDocumentId], references: [organizationId, id], onDelete: Restrict)
+  lines          BillLine[]
+
+  @@unique([organizationId, billNumber])
+  @@unique([organizationId, id])
+  @@unique([organizationId, journalEntryId])
+  @@unique([organizationId, sourceDocumentId])
+  @@index([organizationId, status])
+  @@index([organizationId, contactId, supplierInvoiceNumber])
+  @@index([organizationId, issueDate])
+  @@map("bills")
+}
+
+model BillLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  billId         String   @map("bill_id") @db.Uuid
+  lineNumber     Int      @map("line_number") @db.SmallInt
+  accountId      String   @map("account_id") @db.Uuid
+  description    String   @db.VarChar(255)
+  /// Null when the document shows only a net amount for the line (never invented).
+  quantity       Decimal? @db.Decimal(19, 4)
+  unitPrice      Decimal? @map("unit_price") @db.Decimal(19, 4)
+  netAmount      Decimal  @map("net_amount") @db.Decimal(19, 4)
+  /// Required before approval; never defaulted.
+  taxCodeId      String?  @map("tax_code_id") @db.Uuid
+  taxRate        Decimal  @default(0) @map("tax_rate") @db.Decimal(7, 4)
+  /// VAT charged by the supplier (0 for reverse charge / PIVA, which is self-accounted on posting).
+  taxAmount      Decimal  @default(0) @map("tax_amount") @db.Decimal(19, 4)
+  lineTotal      Decimal  @map("line_total") @db.Decimal(19, 4)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  bill    Bill     @relation(fields: [organizationId, billId], references: [organizationId, id], onDelete: Cascade)
+  account Account  @relation("BillLineAccount", fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
+  taxCode TaxCode? @relation("BillLineTaxCode", fields: [taxCodeId], references: [id], onDelete: Restrict)
+
+  @@unique([billId, lineNumber])
+  @@index([organizationId, accountId])
+  @@map("bill_lines")
+}
+
+/// Stage 12: what the AI proposed vs what the reviewer approved, side by side (append-only).
+model AiReviewDecision {
+  id                 String   @id @default(uuid()) @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  documentId         String   @map("document_id") @db.Uuid
+  suggestionId       String   @map("suggestion_id") @db.Uuid
+  reviewerId         String   @map("reviewer_id") @db.Uuid
+  /// APPROVED (no changes), EDITED (approved with changes) or REJECTED.
+  outcome            String   @db.VarChar(20)
+  aiValues           Json     @map("ai_values")
+  finalValues        Json     @map("final_values")
+  changedFields      Json     @default("[]") @map("changed_fields")
+  /// Inconsistent validation findings the reviewer accepted, with reasons.
+  overrides          Json     @default("[]")
+  reason             String?  @db.VarChar(500)
+  resultingBillId    String?  @map("resulting_bill_id") @db.Uuid
+  resultingInvoiceId String?  @map("resulting_invoice_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  document AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, documentId])
+  @@index([organizationId, createdAt])
+  @@map("ai_review_decisions")
+}

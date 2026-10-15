@@ -165,6 +165,7 @@ describe('AuthGuard Security Hardening (auth.guard.ts)', () => {
       userId: 'user-1',
       sessionId: 'session-1',
       email: 'authoritative-db-email@example.com', // Derived from DB, not client token
+      mfaVerified: false,
     });
   });
 });

@@ -13,6 +13,7 @@ export class AiAuditService {
       | 'REQUESTED'
       | 'EXTRACTED'
       | 'CLASSIFIED'
+      | 'VALIDATED'
       | 'SUGGESTED'
       | 'REVIEWED'
       | 'APPROVED'

@@ -84,6 +84,11 @@ export class MoneyService {
     return this.toDecimal(a).toDecimalPlaces(decimalPlaces, Prisma.Decimal.ROUND_HALF_UP);
   }
 
+  /** Drops pence toward zero (HMRC VAT return boxes 6–9 are whole pounds). */
+  wholePounds(a: DecimalValue): Prisma.Decimal {
+    return this.toDecimal(a).toDecimalPlaces(0, Prisma.Decimal.ROUND_DOWN);
+  }
+
   format(a: DecimalValue, currency = 'GBP', locale = 'en-GB'): string {
     const num = this.toDecimal(a).toNumber();
     try {

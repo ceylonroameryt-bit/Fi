@@ -57,6 +57,8 @@ describe('AccountingSafetyService (Guardrails)', () => {
       totalDebit: '14400.00',
       totalCredit: '14400.00',
       isBalanced: true,
+        isComplete: true,
+        missing: [],
     };
 
     mockDb.account.findMany.mockResolvedValue([
@@ -100,6 +102,8 @@ describe('AccountingSafetyService (Guardrails)', () => {
       totalDebit: '12000.00',
       totalCredit: '11000.00',
       isBalanced: false,
+        isComplete: true,
+        missing: [],
     };
 
     await expect(safety.validateAccountingSafety('org-1', unbalancedIntent)).rejects.toThrow(
@@ -124,6 +128,8 @@ describe('AccountingSafetyService (Guardrails)', () => {
       totalDebit: '-100.00',
       totalCredit: '0.00',
       isBalanced: false,
+        isComplete: true,
+        missing: [],
     };
 
     await expect(safety.validateAccountingSafety('org-1', negativeIntent)).rejects.toThrow(
@@ -157,6 +163,8 @@ describe('AccountingSafetyService (Guardrails)', () => {
       totalDebit: '100.00',
       totalCredit: '100.00',
       isBalanced: true,
+        isComplete: true,
+        missing: [],
     };
 
     mockDb.account.findMany.mockResolvedValue([
@@ -173,5 +181,27 @@ describe('AccountingSafetyService (Guardrails)', () => {
     await expect(safety.validateAccountingSafety('org-1', intent, 'sup-archived')).rejects.toThrow(
       'archived',
     );
+  });
+});
+
+describe('AccountingSafetyService – incomplete proposals (Stage 4)', () => {
+  it('rejects a proposal with a line that has no account', async () => {
+    const { AccountingSafetyService: Svc } = jest.requireActual('./accounting-safety.service');
+    const { MoneyService: Money } = jest.requireActual('../../accounting-engine/money.service');
+    const svc = new Svc({} as any, new Money());
+    await expect(
+      svc.validateAccountingSafety('org-1', {
+        direction: 'PURCHASE',
+        lines: [
+          { accountId: null, accountCode: null, accountName: null, debit: '10.00', credit: '0.00', description: 'x', category: 'X' },
+          { accountId: 'ap', accountCode: '2100', accountName: 'AP', debit: '0.00', credit: '10.00', description: 'y', category: 'Y' },
+        ],
+        totalDebit: '10.00',
+        totalCredit: '10.00',
+        isBalanced: true,
+        isComplete: false,
+        missing: ['Line 1: account'],
+      }),
+    ).rejects.toThrow(/without an account/);
   });
 });

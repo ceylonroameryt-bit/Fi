@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, ValidateNested, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsArray, ValidateNested, IsNumber, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class LineModificationDto {
@@ -39,4 +39,12 @@ export class ApproveSuggestionDto {
   @IsOptional()
   @IsString()
   contactId?: string;
+}
+
+export class AcceptProposedContactDto {
+  /** Optional corrected name; identifiers always come from the document. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  name?: string;
 }

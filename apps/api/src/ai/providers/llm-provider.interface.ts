@@ -1,6 +1,7 @@
+/** Every field is optional: absent on the document means absent here, never a default. */
 export interface RawExtractedLine {
   description: string;
-  quantity?: number | string;
+  quantity?: string;
   unit?: string;
   unitPrice?: string;
   net?: string;
@@ -31,26 +32,6 @@ export interface RawExtractionResult {
   rawText?: string;
 }
 
-export interface PromptContext {
-  extracted: RawExtractionResult;
-  organizationName: string;
-  organizationTaxId?: string;
-  industry: string;
-  inventoryEnabled: boolean;
-  knownContacts: Array<{ id: string; name: string; type: string; vatNumber?: string | null }>;
-}
-
-export interface LLMInterpretationResult {
-  detectedDirection: 'PURCHASE' | 'SALE' | 'UNKNOWN';
-  reasoning: string;
-  lineInterpretations: Array<{
-    lineNumber: number;
-    productType: 'INVENTORY' | 'EXPENSE' | 'FIXED_ASSET' | 'SERVICE' | 'UNKNOWN';
-    semanticCategory: string;
-    confidence: number;
-  }>;
-}
-
 export interface ILlmProvider {
   extractDocumentData(input: {
     buffer: Buffer;
@@ -58,6 +39,4 @@ export interface ILlmProvider {
     mimeType: string;
     text?: string;
   }): Promise<RawExtractionResult>;
-
-  interpretClassification(context: PromptContext): Promise<LLMInterpretationResult>;
 }

@@ -81,3 +81,11 @@ export class AcceptInvitationDto {
   @Length(1, 100)
   lastName?: string;
 }
+
+export class MfaCodeDto {
+  /** A 6-digit TOTP code or a recovery code (XXXXX-XXXXX). */
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  code: string;
+}

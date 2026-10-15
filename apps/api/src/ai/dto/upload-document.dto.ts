@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class UploadDocumentDto {
   @IsString()
@@ -10,8 +10,4 @@ export class UploadDocumentDto {
   @IsOptional()
   @IsString()
   text?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  autoDraftIfHighConfidence?: boolean;
 }

@@ -54,6 +54,14 @@ export class InvoiceLineDto {
     { message: 'taxRate must be a decimal between 0 and 1 with at most 4 decimal places' },
   )
   taxRate?: string | number = '0';
+
+  /**
+   * UK VAT code for the line. Required before the invoice can be posted; when set, the
+   * rate comes from the code (taxRate is ignored). taxRate alone is legacy draft-only input.
+   */
+  @IsOptional()
+  @IsUUID('4', { message: 'taxCodeId must be a valid tax code UUID' })
+  taxCodeId?: string;
 }
 
 export class CreateInvoiceDto {

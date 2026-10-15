@@ -1,20 +1,22 @@
 import { Injectable } from '@nestjs/common';
+import { Account, AccountSubtype, AiProductType, Contact } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { MoneyService } from '../../accounting-engine/money.service';
-import { Account, AccountSubtype, Contact } from '@prisma/client';
 import { ClassifiedLineResult } from './line-classification.service';
-import { ResolvedTaxInfo } from './tax-classification.service';
 import { SemanticCategory } from '../ai.constants';
 
 export interface ProposedJournalLine {
-  accountId: string;
-  accountCode: string;
-  accountName: string;
+  /** null when no account of the organisation fits; a reviewer must choose. */
+  accountId: string | null;
+  accountCode: string | null;
+  accountName: string | null;
   debit: string;
   credit: string;
   description: string;
   contactId?: string;
   category: string;
+  /** Document line this proposal came from (absent for VAT and control lines). */
+  sourceLineNumber?: number;
 }
 
 export interface ProposedAccountingIntent {
@@ -23,9 +25,17 @@ export interface ProposedAccountingIntent {
   totalDebit: string;
   totalCredit: string;
   isBalanced: boolean;
+  /** True only when every line has an account, a net amount and a VAT amount. */
+  isComplete: boolean;
+  /** Human-readable list of what a reviewer still has to supply. */
+  missing: string[];
   inventoryValuationNotice?: string;
 }
 
+/**
+ * Turns classified lines into a proposed double entry. All amounts come from the document lines
+ * and are summed by code; nothing is filled in when the document or chart of accounts lacks it.
+ */
 @Injectable()
 export class AccountingClassificationService {
   constructor(
@@ -37,209 +47,109 @@ export class AccountingClassificationService {
     organizationId: string,
     direction: 'PURCHASE' | 'SALE',
     lines: ClassifiedLineResult[],
-    _taxInfo: ResolvedTaxInfo,
     contact: Contact | null,
+    /** Accounts chosen by CodingSuggestionService; when given, no category fallback is used. */
+    lineAccountIds?: Map<number, string | null>,
   ): Promise<ProposedAccountingIntent> {
-    const orgAccounts = await this.db.account.findMany({
-      where: { organizationId, isActive: true },
+    const accounts = await this.db.account.findMany({ where: { organizationId, isActive: true } });
+    const missing: string[] = [];
+    const proposed: ProposedJournalLine[] = [];
+    let totalNet = this.money.ZERO;
+    let totalVat = this.money.ZERO;
+
+    if (lines.length === 0) missing.push('No line items were found on the document');
+
+    for (const line of lines) {
+      const label = `Line ${line.lineNumber}`;
+      if (line.netAmount === null) missing.push(`${label}: net amount`);
+      if (line.taxAmount === null) missing.push(`${label}: VAT amount`);
+      if (line.taxClassification === null) missing.push(`${label}: tax code`);
+      const account = lineAccountIds
+        ? (accounts.find((a) => a.id === lineAccountIds.get(line.lineNumber)) ?? null)
+        : this.accountForLine(accounts, line, direction);
+      if (!account) missing.push(`${label}: account`);
+
+      const net = this.money.toDecimal(line.netAmount ?? '0');
+      totalNet = totalNet.plus(net);
+      totalVat = totalVat.plus(this.money.toDecimal(line.taxAmount ?? '0'));
+      proposed.push({
+        ...this.accountFields(account),
+        debit: direction === 'PURCHASE' ? net.toFixed(2) : '0.00',
+        credit: direction === 'SALE' ? net.toFixed(2) : '0.00',
+        description: line.description,
+        contactId: contact?.id,
+        category: line.accountingCategory,
+        sourceLineNumber: line.lineNumber,
+      });
+    }
+
+    if (!totalVat.isZero()) {
+      const vatAccount = accounts.find((a) => a.accountSubtype === AccountSubtype.TAX_PAYABLE) ?? null;
+      if (!vatAccount) missing.push('VAT control account (subtype TAX_PAYABLE)');
+      proposed.push({
+        ...this.accountFields(vatAccount),
+        debit: direction === 'PURCHASE' ? totalVat.toFixed(2) : '0.00',
+        credit: direction === 'SALE' ? totalVat.toFixed(2) : '0.00',
+        description: direction === 'PURCHASE' ? 'Input VAT' : 'Output VAT',
+        category: direction === 'PURCHASE' ? SemanticCategory.INPUT_VAT : SemanticCategory.OUTPUT_VAT,
+      });
+    }
+
+    // Control line = net + VAT, calculated here (never the model's or document's total).
+    const gross = totalNet.plus(totalVat);
+    const control = this.controlAccount(accounts, contact, direction);
+    if (!control) missing.push(direction === 'PURCHASE' ? 'Creditors control account' : 'Debtors control account');
+    if (!contact) missing.push(direction === 'PURCHASE' ? 'Supplier' : 'Customer');
+    proposed.push({
+      ...this.accountFields(control),
+      debit: direction === 'SALE' ? gross.toFixed(2) : '0.00',
+      credit: direction === 'PURCHASE' ? gross.toFixed(2) : '0.00',
+      description: direction === 'PURCHASE' ? `Payable to ${contact?.name ?? 'supplier (not matched)'}` : `Receivable from ${contact?.name ?? 'customer (not matched)'}`,
+      contactId: contact?.id,
+      category: direction === 'PURCHASE' ? SemanticCategory.ACCOUNTS_PAYABLE : SemanticCategory.ACCOUNTS_RECEIVABLE,
     });
 
-    const proposedLines: ProposedJournalLine[] = [];
-    let runningNet = this.money.ZERO;
-    let runningVat = this.money.ZERO;
-    let runningTotal = this.money.ZERO;
-
-    // 1. Process document product lines
-    for (const line of lines) {
-      const net = this.money.toDecimal(line.netAmount);
-      const vat = this.money.toDecimal(line.taxAmount);
-      const total = this.money.toDecimal(line.totalAmount);
-
-      runningNet = this.money.add(runningNet, net);
-      runningVat = this.money.add(runningVat, vat);
-      runningTotal = this.money.add(runningTotal, total);
-
-      const targetAccount = this.resolveAccountForCategory(orgAccounts, line.accountingCategory, direction);
-
-      if (direction === 'PURCHASE') {
-        // Purchase line = DEBIT (Expense, Inventory asset, or Fixed asset)
-        proposedLines.push({
-          accountId: targetAccount.id,
-          accountCode: targetAccount.code,
-          accountName: targetAccount.name,
-          debit: net.toFixed(2),
-          credit: '0.00',
-          description: line.description,
-          contactId: contact?.id,
-          category: line.accountingCategory,
-        });
-      } else {
-        // Sale line = CREDIT (Sales revenue)
-        proposedLines.push({
-          accountId: targetAccount.id,
-          accountCode: targetAccount.code,
-          accountName: targetAccount.name,
-          debit: '0.00',
-          credit: net.toFixed(2),
-          description: line.description,
-          contactId: contact?.id,
-          category: line.accountingCategory,
-        });
-      }
-    }
-
-    // 2. Tax Line (Input VAT or Output VAT)
-    if (!runningVat.isZero()) {
-      const taxAccount = this.resolveTaxAccount(orgAccounts);
-      if (direction === 'PURCHASE') {
-        // Input VAT is DEBIT (Asset / Recoverable tax)
-        proposedLines.push({
-          accountId: taxAccount.id,
-          accountCode: taxAccount.code,
-          accountName: taxAccount.name,
-          debit: runningVat.toFixed(2),
-          credit: '0.00',
-          description: 'Input VAT (Recoverable purchase tax)',
-          category: SemanticCategory.INPUT_VAT,
-        });
-      } else {
-        // Output VAT is CREDIT (Tax liability)
-        proposedLines.push({
-          accountId: taxAccount.id,
-          accountCode: taxAccount.code,
-          accountName: taxAccount.name,
-          debit: '0.00',
-          credit: runningVat.toFixed(2),
-          description: 'Output VAT (Collected sales tax)',
-          category: SemanticCategory.OUTPUT_VAT,
-        });
-      }
-    }
-
-    // 3. Subledger Balance Sheet Control Line (AP or AR)
-    if (direction === 'PURCHASE') {
-      // Purchase total is CREDIT to Accounts Payable
-      const apAccount = this.resolveApAccount(orgAccounts, contact);
-      proposedLines.push({
-        accountId: apAccount.id,
-        accountCode: apAccount.code,
-        accountName: apAccount.name,
-        debit: '0.00',
-        credit: runningTotal.toFixed(2),
-        description: `Payable to ${contact?.name ?? 'Supplier'}`,
-        contactId: contact?.id,
-        category: SemanticCategory.ACCOUNTS_PAYABLE,
-      });
-    } else {
-      // Sale total is DEBIT to Accounts Receivable
-      const arAccount = this.resolveArAccount(orgAccounts, contact);
-      proposedLines.push({
-        accountId: arAccount.id,
-        accountCode: arAccount.code,
-        accountName: arAccount.name,
-        debit: runningTotal.toFixed(2),
-        credit: '0.00',
-        description: `Receivable from ${contact?.name ?? 'Customer'}`,
-        contactId: contact?.id,
-        category: SemanticCategory.ACCOUNTS_RECEIVABLE,
-      });
-    }
-
-    // Mathematical balance check
-    let sumDebit = this.money.ZERO;
-    let sumCredit = this.money.ZERO;
-    for (const pl of proposedLines) {
-      sumDebit = this.money.add(sumDebit, pl.debit);
-      sumCredit = this.money.add(sumCredit, pl.credit);
-    }
-
-    const isBalanced = sumDebit.equals(sumCredit);
-
-    // If sale of inventory items, include deterministic notice regarding COGS
-    let inventoryValuationNotice: string | undefined;
-    const hasInventory = lines.some((l) => l.productType === 'INVENTORY');
-    if (direction === 'SALE' && hasInventory) {
-      inventoryValuationNotice =
-        'Inventory items identified. Cost of Goods Sold (Dr COGS / Cr Inventory) must be computed by Blynt stock valuation engine upon fulfillment, not estimated by LLM.';
-    }
+    const totalDebit = proposed.reduce((a, l) => a.plus(l.debit), this.money.ZERO);
+    const totalCredit = proposed.reduce((a, l) => a.plus(l.credit), this.money.ZERO);
 
     return {
       direction,
-      lines: proposedLines,
-      totalDebit: sumDebit.toFixed(2),
-      totalCredit: sumCredit.toFixed(2),
-      isBalanced,
-      inventoryValuationNotice,
+      lines: proposed,
+      totalDebit: totalDebit.toFixed(2),
+      totalCredit: totalCredit.toFixed(2),
+      isBalanced: totalDebit.equals(totalCredit),
+      isComplete: missing.length === 0,
+      missing,
+      inventoryValuationNotice:
+        direction === 'SALE' && lines.some((l) => l.productType === AiProductType.INVENTORY)
+          ? 'Inventory items identified. Cost of sales must be computed by the stock valuation engine on fulfilment, not estimated by AI.'
+          : undefined,
     };
   }
 
-  // --- Account Resolution Helpers ---
-
-  private resolveAccountForCategory(
-    accounts: Account[],
-    category: string,
-    direction: 'PURCHASE' | 'SALE',
-  ): Account {
-    // 1. Explicit Category Match
-    if (category.includes('INVENTORY')) {
-      const invAcc = accounts.find((a) => a.accountSubtype === AccountSubtype.INVENTORY);
-      if (invAcc) return invAcc;
-    }
-
-    if (category.includes('ASSET')) {
-      const assetAcc = accounts.find((a) => a.accountSubtype === AccountSubtype.FIXED_ASSET);
-      if (assetAcc) return assetAcc;
-    }
-
-    if (category.includes('SOFTWARE') || category.includes('SUBSCRIPTION')) {
-      const softAcc = accounts.find((a) => a.name.toLowerCase().includes('software') || a.code === '6200');
-      if (softAcc) return softAcc;
-    }
-
-    if (direction === 'SALE') {
-      const salesAcc = accounts.find(
-        (a) =>
-          a.accountSubtype === AccountSubtype.SALES || a.accountSubtype === AccountSubtype.SERVICE_REVENUE,
-      );
-      if (salesAcc) return salesAcc;
-    }
-
-    // Default Expense
-    const expenseAcc = accounts.find(
-      (a) => a.accountSubtype === AccountSubtype.OPERATING_EXPENSE || a.accountType === 'EXPENSE',
-    );
-    if (expenseAcc) return expenseAcc;
-
-    // Fallback first available
-    return accounts[0];
+  private accountFields(account: Account | null) {
+    return { accountId: account?.id ?? null, accountCode: account?.code ?? null, accountName: account?.name ?? null };
   }
 
-  private resolveTaxAccount(accounts: Account[]): Account {
-    const taxAcc = accounts.find((a) => a.accountSubtype === AccountSubtype.TAX_PAYABLE);
-    if (taxAcc) return taxAcc;
-    return (
-      accounts.find((a) => a.name.toLowerCase().includes('vat') || a.name.toLowerCase().includes('tax')) ??
-      accounts[0]
-    );
+  /** Only categories that identify a specific kind of account; otherwise null (no "first expense account"). */
+  private accountForLine(accounts: Account[], line: ClassifiedLineResult, direction: 'PURCHASE' | 'SALE'): Account | null {
+    const bySubtype = (...subtypes: AccountSubtype[]) => {
+      const matches = accounts.filter((a) => a.accountSubtype && subtypes.includes(a.accountSubtype));
+      return matches.length === 1 ? matches[0] : null; // ambiguous when several fit
+    };
+    const category = line.accountingCategory;
+    if (category.includes('INVENTORY')) return bySubtype(AccountSubtype.INVENTORY);
+    if (category.includes('ASSET')) return bySubtype(AccountSubtype.FIXED_ASSET);
+    if (direction === 'SALE' && category.endsWith('_SALE')) return bySubtype(AccountSubtype.SALES, AccountSubtype.SERVICE_REVENUE);
+    return null;
   }
 
-  private resolveApAccount(accounts: Account[], contact: Contact | null): Account {
-    if (contact?.payableAccountId) {
-      const acc = accounts.find((a) => a.id === contact.payableAccountId);
-      if (acc) return acc;
-    }
-    const apAcc = accounts.find((a) => a.accountSubtype === AccountSubtype.ACCOUNTS_PAYABLE);
-    if (apAcc) return apAcc;
-    return accounts.find((a) => a.name.toLowerCase().includes('payable')) ?? accounts[0];
-  }
-
-  private resolveArAccount(accounts: Account[], contact: Contact | null): Account {
-    if (contact?.receivableAccountId) {
-      const acc = accounts.find((a) => a.id === contact.receivableAccountId);
-      if (acc) return acc;
-    }
-    const arAcc = accounts.find((a) => a.accountSubtype === AccountSubtype.ACCOUNTS_RECEIVABLE);
-    if (arAcc) return arAcc;
-    return accounts.find((a) => a.name.toLowerCase().includes('receivable')) ?? accounts[0];
+  private controlAccount(accounts: Account[], contact: Contact | null, direction: 'PURCHASE' | 'SALE'): Account | null {
+    const preferredId = direction === 'PURCHASE' ? contact?.payableAccountId : contact?.receivableAccountId;
+    const preferred = preferredId ? accounts.find((a) => a.id === preferredId) : undefined;
+    if (preferred) return preferred;
+    const subtype = direction === 'PURCHASE' ? AccountSubtype.ACCOUNTS_PAYABLE : AccountSubtype.ACCOUNTS_RECEIVABLE;
+    const matches = accounts.filter((a) => a.accountSubtype === subtype);
+    return matches.length === 1 ? matches[0] : null;
   }
 }

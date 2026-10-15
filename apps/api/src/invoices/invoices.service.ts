@@ -8,6 +8,8 @@ import {
   JournalStatus,
   JournalType,
   Prisma,
+  TaxDirection,
+  TaxTreatment,
 } from '@prisma/client';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
@@ -20,6 +22,9 @@ import { JournalReversalService } from '../accounting-engine/journal-reversal.se
 import { JournalValidationService } from '../accounting-engine/journal-validation.service';
 import { JournalsService } from '../journals/journals.service';
 import { parseIsoDate } from '../common/utils/dates';
+import { TaxCodesService } from '../tax/tax-codes.service';
+import { calculateVat, SELF_ACCOUNTED_TREATMENTS } from '../tax/vat-calculation';
+import { INPUT_ONLY_TREATMENTS } from '../tax/vat-boxes';
 import type {
   CreateInvoiceDto,
   InvoiceFilterQueryDto,
@@ -40,7 +45,10 @@ const invoiceInclude = {
     },
   },
   lines: {
-    include: { account: { select: { id: true, code: true, name: true, accountType: true } } },
+    include: {
+      account: { select: { id: true, code: true, name: true, accountType: true } },
+      taxCode: { select: { id: true, code: true, name: true, treatment: true } },
+    },
     orderBy: { lineNumber: 'asc' as const },
   },
 } as const;
@@ -57,6 +65,7 @@ export class InvoicesService {
     private readonly reversalService: JournalReversalService,
     private readonly journalsService: JournalsService,
     private readonly validator: JournalValidationService,
+    private readonly taxCodes: TaxCodesService,
   ) {}
 
   async listInvoices(organizationId: string, filter: InvoiceFilterQueryDto) {
@@ -139,7 +148,7 @@ export class InvoicesService {
     }
 
     // 2. Compute line totals and invoice totals with Decimal precision
-    const { calculatedLines, subtotal, taxTotal, totalAmount } = this.calculateInvoiceTotals(dto.lines);
+    const { calculatedLines, subtotal, taxTotal, totalAmount } = await this.calculateInvoiceTotals(dto.lines, issueDate);
 
     const year = issueDate.getUTCFullYear();
 
@@ -174,6 +183,7 @@ export class InvoicesService {
               taxRate: l.taxRate,
               taxAmount: l.taxAmount,
               lineTotal: l.lineTotal,
+              taxCodeId: l.taxCodeId,
             })),
           },
         },
@@ -257,7 +267,8 @@ export class InvoicesService {
       let totalAmount = existing.totalAmount;
 
       if (dto.lines && dto.lines.length > 0) {
-        const calculated = this.calculateInvoiceTotals(dto.lines);
+        const issueDate = dto.issueDate ? parseIsoDate(dto.issueDate, 'issueDate') : existing.issueDate;
+        const calculated = await this.calculateInvoiceTotals(dto.lines, issueDate);
         subtotal = calculated.subtotal;
         taxTotal = calculated.taxTotal;
         totalAmount = calculated.totalAmount;
@@ -276,6 +287,7 @@ export class InvoicesService {
             taxRate: l.taxRate,
             taxAmount: l.taxAmount,
             lineTotal: l.lineTotal,
+            taxCodeId: l.taxCodeId,
           })),
         });
       }
@@ -390,6 +402,14 @@ export class InvoicesService {
         throw new DomainException('INVOICE_NO_LINES', 'Invoice has no line items to post');
       }
 
+      // Missing tax codes block posting - never assume a default rate.
+      const uncoded = invoice.lines.filter((l) => !l.taxCodeId || !l.taxCode).map((l) => l.lineNumber);
+      if (uncoded.length > 0) {
+        throw new DomainException('TAX_CODE_REQUIRED', `Every line needs a tax code before posting (lines ${uncoded.join(', ')})`, {
+          lineNumbers: uncoded,
+        });
+      }
+
       // 3. Database idempotency check: Ensure no journal already exists for this source invoice
       const existingJournal = await tx.journalEntry.findFirst({
         where: {
@@ -455,6 +475,9 @@ export class InvoicesService {
         debit: Prisma.Decimal;
         credit: Prisma.Decimal;
         contactId?: string | null;
+        taxCodeId?: string;
+        taxNetAmount?: Prisma.Decimal;
+        taxAmount?: Prisma.Decimal;
       }> = [];
 
       journalLines.push({
@@ -471,11 +494,18 @@ export class InvoicesService {
         const lineNet = new Prisma.Decimal(line.lineTotal.toString()).sub(
           new Prisma.Decimal(line.taxAmount.toString()),
         );
+        // Domestic reverse charge sales carry no VAT; record the customer's notional VAT for analysis.
+        const vatForAnalysis = SELF_ACCOUNTED_TREATMENTS.has(line.taxCode!.treatment)
+          ? this.money.round(lineNet.mul(line.taxRate), 2)
+          : new Prisma.Decimal(line.taxAmount.toString());
         journalLines.push({
           accountId: line.accountId,
           description: line.description || `Sales: ${invoice.invoiceNumber}`,
           debit: new Prisma.Decimal('0'),
           credit: lineNet,
+          taxCodeId: line.taxCodeId!,
+          taxNetAmount: lineNet,
+          taxAmount: vatForAnalysis,
         });
       }
 
@@ -516,6 +546,9 @@ export class InvoicesService {
               credit: l.credit,
               currency: invoice.currency,
               contactId: l.contactId ?? null,
+              ...(l.taxCodeId
+                ? { taxCodeId: l.taxCodeId, taxDirection: TaxDirection.OUTPUT, taxNetAmount: l.taxNetAmount, taxAmount: l.taxAmount }
+                : {}),
             })),
           },
         },
@@ -679,51 +712,62 @@ export class InvoicesService {
     });
   }
 
-  private calculateInvoiceTotals(
+  /**
+   * Line net = quantity x unit price to the penny; VAT via the shared calculateVat (net entry,
+   * line rounding). Coded lines take their rate from the tax code in force on the issue date.
+   */
+  private async calculateInvoiceTotals(
     lines: Array<{
       accountId: string;
       description: string;
       quantity?: string | number;
       unitPrice?: string | number;
       taxRate?: string | number;
+      taxCodeId?: string;
     }>,
+    issueDate: Date,
   ) {
-    let subtotal = this.money.ZERO;
-    let taxTotal = this.money.ZERO;
-    let totalAmount = this.money.ZERO;
+    const prepared = await Promise.all(
+      lines.map(async (line) => {
+        const quantity = this.money.round(line.quantity ?? 1, 4);
+        const unitPrice = this.money.round(line.unitPrice ?? 0, 4);
+        const net = this.money.round(quantity.mul(unitPrice), 2);
+        if (line.taxCodeId) {
+          const code = await this.taxCodes.resolve(line.taxCodeId, issueDate);
+          if (INPUT_ONLY_TREATMENTS.has(code.treatment)) {
+            throw new DomainException('VALIDATION_FAILED', `Tax code ${code.code} can only be used on purchases`);
+          }
+          return { line, quantity, unitPrice, net, rate: code.rate, treatment: code.treatment, taxCodeId: code.id };
+        }
+        // Legacy draft input without a code: arithmetic only; posting is blocked until coded.
+        const rate = this.money.round(line.taxRate ?? 0, 4);
+        const treatment = rate.isZero() ? TaxTreatment.ZERO : TaxTreatment.STANDARD;
+        return { line, quantity, unitPrice, net, rate, treatment, taxCodeId: null };
+      }),
+    );
 
-    const calculatedLines = lines.map((line) => {
-      const qtyDec = this.money.round(line.quantity ?? 1, 4);
-      const priceDec = this.money.round(line.unitPrice ?? 0, 4);
-      const taxRateDec = this.money.round(line.taxRate ?? 0, 4);
-
-      // Line net = quantity * unitPrice rounded to 4 decimal places
-      const lineNet = this.money.round(qtyDec.mul(priceDec), 4);
-      // Line tax = lineNet * taxRate rounded to 4 decimal places
-      const lineTax = this.money.round(lineNet.mul(taxRateDec), 4);
-      // Line total = lineNet + lineTax (exact 4 decimal places)
-      const lineTotal = lineNet.add(lineTax);
-
-      subtotal = subtotal.add(lineNet);
-      taxTotal = taxTotal.add(lineTax);
-      totalAmount = totalAmount.add(lineTotal);
-
-      return {
-        accountId: line.accountId,
-        description: line.description,
-        quantity: qtyDec,
-        unitPrice: priceDec,
-        taxRate: taxRateDec,
-        taxAmount: lineTax,
-        lineTotal,
-      };
+    const vat = calculateVat(this.money, {
+      lines: prepared.map((p) => ({ amount: p.net, rate: p.rate, treatment: p.treatment })),
+      amountMode: 'NET',
+      rounding: 'LINE',
     });
+
+    const calculatedLines = prepared.map((p, i) => ({
+      accountId: p.line.accountId,
+      description: p.line.description,
+      quantity: p.quantity,
+      unitPrice: p.unitPrice,
+      taxRate: p.rate,
+      taxAmount: vat.lines[i].vat,
+      lineTotal: vat.lines[i].gross,
+      taxCodeId: p.taxCodeId,
+    }));
 
     return {
       calculatedLines,
-      subtotal,
-      taxTotal,
-      totalAmount,
+      subtotal: vat.totalNet,
+      taxTotal: vat.totalVat,
+      totalAmount: vat.totalGross,
     };
   }
 

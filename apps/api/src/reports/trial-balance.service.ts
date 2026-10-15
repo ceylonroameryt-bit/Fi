@@ -39,7 +39,13 @@ export interface TrialBalanceReport {
   accounts: TrialBalanceAccountRow[];
   totalDebit: string;
   totalCredit: string;
+  /** Underlying ledger difference (Dr - Cr) at full precision, rounded for display. Zero when balanced. */
   difference: string;
+  /**
+   * totalDebit - totalCredit caused only by rounding each row to 2dp. Totals are always the
+   * sum of the displayed rows, so a balanced ledger can show a penny gap here.
+   */
+  roundingDifference: string;
   isBalanced: boolean;
 }
 
@@ -171,17 +177,13 @@ export class TrialBalanceService {
       });
     }
 
-    const isBalanced = underlyingDebitTotal.sub(underlyingCreditTotal).isZero();
+    // Totals are never adjusted: they must reconcile with the displayed rows.
+    const underlyingDifference = underlyingDebitTotal.sub(underlyingCreditTotal);
+    const isBalanced = underlyingDifference.isZero();
     const totalDebit = overallDebitBalance;
-    let totalCredit = overallCreditBalance;
-    let difference = overallDebitBalance.sub(overallCreditBalance);
-
-    if (isBalanced) {
-      difference = this.money.ZERO;
-      if (!totalDebit.equals(totalCredit)) {
-        totalCredit = totalDebit;
-      }
-    }
+    const totalCredit = overallCreditBalance;
+    const difference = this.money.round(underlyingDifference, 2);
+    const roundingDifference = totalDebit.sub(totalCredit).sub(difference);
 
     return {
       organizationId,
@@ -199,6 +201,7 @@ export class TrialBalanceService {
       totalDebit: totalDebit.toFixed(2),
       totalCredit: totalCredit.toFixed(2),
       difference: difference.toFixed(2),
+      roundingDifference: roundingDifference.toFixed(2),
       isBalanced,
     };
   }
@@ -227,6 +230,9 @@ export class TrialBalanceService {
     rows.push('');
     rows.push(toCsvRow(['TOTAL', '', '', tb.totalDebit, tb.totalCredit]));
     rows.push(toCsvRow(['DIFFERENCE', '', '', tb.difference, '']));
+    if (tb.roundingDifference !== '0.00') {
+      rows.push(toCsvRow(['ROUNDING DIFFERENCE (display only)', '', '', tb.roundingDifference, '']));
+    }
 
     return rows.join('\r\n');
   }

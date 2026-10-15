@@ -1,53 +1,77 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { FieldIssue, LlmExtractionService } from '../extraction/llm-extraction.service';
+import { ExtractionValidationService } from '../validation/extraction-validation.service';
+import { AI_PROVIDER, AiProvider } from '../gateway/ai-provider.interface';
+import { AiDirection, AiDocumentStatus, AiSuggestionStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
-import { StorageService } from '../../common/storage/storage.service';
-import { MoneyService } from '../../accounting-engine/money.service';
+import { DomainException } from '../../common/errors/domain.exception';
 import { BusinessContextService } from '../business-context/business-context.service';
 import { HeuristicLlmProvider } from '../providers/heuristic-llm.provider';
 import { RawExtractionResult } from '../providers/llm-provider.interface';
 import { DocumentClassifierService } from './document-classifier.service';
-import { EntityResolutionService } from './entity-resolution.service';
+import { EntityMatchResult, EntityResolutionService } from './entity-resolution.service';
+import { DirectionFallbackService } from './direction-fallback.service';
+import { CodingSuggestionService, LineCoding } from '../coding/coding-suggestion.service';
 import { TransactionDirectionService } from './transaction-direction.service';
 import { LineClassificationService, ClassifiedLineResult } from './line-classification.service';
-import { TaxClassificationService } from './tax-classification.service';
-import {
-  AccountingClassificationService,
-  ProposedAccountingIntent,
-} from './accounting-classification.service';
+import { AccountingClassificationService, ProposedAccountingIntent } from './accounting-classification.service';
 import { ConfidenceService } from './confidence.service';
 import { AccountingSafetyService } from '../guardrails/accounting-safety.service';
-import { AiActionPolicyService } from '../guardrails/ai-action-policy.service';
 import { AiAuditService } from '../audit/ai-audit.service';
-import { AiFeedbackService } from '../feedback/ai-feedback.service';
-import { AiDirection, AiDocumentStatus, AiSuggestionStatus, InvoiceStatus, Prisma } from '@prisma/client';
 
 export interface ProcessDocumentOptions {
   buffer?: Buffer;
   text?: string;
-  autoDraftIfHighConfidence?: boolean;
 }
 
+/** A contact the reviewer may create for an unmatched counterparty. Never created automatically. */
+export interface ProposedContact {
+  type: 'SUPPLIER' | 'CUSTOMER';
+  name: string;
+  vatNumber?: string;
+  companyNumber?: string;
+  address?: string;
+}
+
+export interface SuggestionPayload {
+  extraction: RawExtractionResult;
+  direction: AiDirection;
+  entity: { id: string; name: string } | null;
+  lines: ClassifiedLineResult[];
+  accountingIntent: ProposedAccountingIntent | null;
+  /** Per-line account / tax code suggestion with its source and reason. */
+  coding?: LineCoding[];
+  counterpartyMatch?: Pick<EntityMatchResult, 'matchType' | 'confidence' | 'reason' | 'candidates'> | null;
+  proposedContact?: ProposedContact | null;
+}
+
+const decimalOrNull = (v: string | null | undefined) => (v === null || v === undefined ? null : new Prisma.Decimal(v));
+
+/**
+ * Document analysis (run by the document.analyse job): extract fields -> identify direction and
+ * parties -> classify -> propose. Status moves AI_EXTRACTED -> VALIDATED -> AWAITING_REVIEW.
+ * It only ever produces a suggestion for human review. Nothing is drafted or approved
+ * automatically, and nothing missing from the document is filled in.
+ */
 @Injectable()
 export class DocumentIntelligenceService {
-  private readonly logger = new Logger(DocumentIntelligenceService.name);
-
   constructor(
     private readonly db: PrismaService,
-    private readonly storage: StorageService,
-    private readonly money: MoneyService,
     private readonly businessContext: BusinessContextService,
     private readonly llmProvider: HeuristicLlmProvider,
     private readonly classifier: DocumentClassifierService,
     private readonly entityResolver: EntityResolutionService,
     private readonly directionResolver: TransactionDirectionService,
     private readonly lineClassifier: LineClassificationService,
-    private readonly taxClassifier: TaxClassificationService,
     private readonly accountingClassifier: AccountingClassificationService,
     private readonly confidenceService: ConfidenceService,
     private readonly safety: AccountingSafetyService,
-    private readonly policy: AiActionPolicyService,
     private readonly audit: AiAuditService,
-    private readonly feedback: AiFeedbackService,
+    private readonly llmExtraction: LlmExtractionService,
+    private readonly validator: ExtractionValidationService,
+    private readonly directionFallback: DirectionFallbackService,
+    private readonly coding: CodingSuggestionService,
+    @Optional() @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider | null,
   ) {}
 
   async processDocument(organizationId: string, documentId: string, options?: ProcessDocumentOptions) {
@@ -55,467 +79,302 @@ export class DocumentIntelligenceService {
       where: { organizationId, id: documentId },
       include: { organization: true },
     });
-
     if (!doc) {
       throw new NotFoundException(`Document ${documentId} not found for this organisation.`);
     }
+    await this.assertAiEnabled(organizationId);
 
-    try {
-      await this.audit.logEvent(organizationId, documentId, 'REQUESTED', doc.createdById);
+    // Re-runnable: discard anything a previous, interrupted attempt wrote for this document.
+    await this.db.transaction(async (tx) => {
+      await tx.aiSuggestion.deleteMany({ where: { organizationId, documentId } });
+      await tx.aiLineClassification.deleteMany({ where: { organizationId, documentId } });
+      await tx.aiClassification.deleteMany({ where: { organizationId, documentId } });
+      await tx.aiExtraction.deleteMany({ where: { organizationId, documentId } });
+    });
 
-      // 1. Retrieve file content
-      let fileBuffer = options?.buffer;
-      if (!fileBuffer && doc.fileKey) {
-        try {
-          const res = await this.storage.getObject(doc.fileKey);
-          fileBuffer = res.body;
-        } catch {
-          this.logger.warn(
-            `Storage object ${doc.fileKey} not found; utilizing plain text fallback if available.`,
-          );
-        }
-      }
+    await this.audit.logEvent(organizationId, documentId, 'REQUESTED', doc.createdById);
 
-      // 2. OCR / Extraction Step
-      const extractionResult = await this.llmProvider.extractDocumentData({
-        buffer: fileBuffer ?? Buffer.from(options?.text ?? ''),
+    // 1. Extraction: only what the document states. With an AI provider the model reads the text
+    //    and code verifies every value against it; otherwise the rule-based extractor runs.
+    const text = doc.extractedText ?? options?.text ?? '';
+    const organisation = {
+      name: doc.organization.name,
+      legalName: doc.organization.legalName,
+      taxNumber: doc.organization.taxNumber,
+      registrationNumber: doc.organization.registrationNumber,
+    };
+    let extraction: RawExtractionResult;
+    let modelVersion: string;
+    let rawStructuredData: Record<string, unknown>;
+    if (this.aiProvider) {
+      const llm = await this.llmExtraction.extract({ organizationId, userId: doc.createdById, documentId, text, organisation });
+      extraction = llm.result;
+      modelVersion = `${llm.promptKey}@v${llm.promptVersion}`;
+      rawStructuredData = { extractor: 'llm', result: llm.result, verificationIssues: llm.issues, modelOutput: llm.modelOutput };
+    } else {
+      extraction = await this.llmProvider.extractDocumentData({
+        buffer: options?.buffer ?? Buffer.from(text, 'utf8'),
         fileName: doc.fileName,
         mimeType: doc.mimeType,
-        text: options?.text,
+        text,
       });
-
-      // Save extraction to database
-      await this.db.aiExtraction.create({
-        data: {
-          organizationId,
-          documentId,
-          invoiceNumber: extractionResult.invoiceNumber,
-          invoiceDate: extractionResult.invoiceDate ? new Date(extractionResult.invoiceDate) : null,
-          dueDate: extractionResult.dueDate ? new Date(extractionResult.dueDate) : null,
-          currency: extractionResult.currency ?? doc.organization.baseCurrency,
-          issuerName: extractionResult.issuer?.name,
-          issuerTaxId: extractionResult.issuer?.vatNumber,
-          issuerAddress: extractionResult.issuer?.address,
-          recipientName: extractionResult.recipient?.name,
-          recipientTaxId: extractionResult.recipient?.vatNumber,
-          recipientAddress: extractionResult.recipient?.address,
-          subtotal: extractionResult.subtotal ? new Prisma.Decimal(extractionResult.subtotal) : null,
-          taxAmount: extractionResult.vatTotal ? new Prisma.Decimal(extractionResult.vatTotal) : null,
-          totalAmount: extractionResult.total ? new Prisma.Decimal(extractionResult.total) : null,
-          rawStructuredData: extractionResult as unknown as Prisma.InputJsonValue,
-          modelVersion: 'blynt-heuristic-v1',
-        },
-      });
-
-      await this.audit.logEvent(organizationId, documentId, 'EXTRACTED', doc.createdById, {
-        invoiceNumber: extractionResult.invoiceNumber,
-        total: extractionResult.total,
-      });
-
-      // 3. Organization Business Context Profile
-      const businessProfile = await this.businessContext.getProfile(organizationId);
-
-      // 4. Entity Resolution (Supplier / Customer Directory Match)
-      // We check both issuer and recipient
-      const issuerMatch = await this.entityResolver.resolveEntity(
-        organizationId,
-        extractionResult.issuer,
-        'SUPPLIER',
-      );
-      const recipientMatch = await this.entityResolver.resolveEntity(
-        organizationId,
-        extractionResult.recipient,
-        'CUSTOMER',
-      );
-
-      // 5. Transaction Direction Resolution (5-Tier Priority Hierarchy)
-      const directionResult = this.directionResolver.resolveDirection(
-        extractionResult,
-        {
-          name: doc.organization.name,
-          legalName: doc.organization.legalName,
-          taxNumber: doc.organization.taxNumber,
-          registrationNumber: doc.organization.registrationNumber,
-        },
-        issuerMatch.contact ?? recipientMatch.contact,
-      );
-
-      const targetEntity =
-        directionResult.direction === AiDirection.PURCHASE ? issuerMatch.contact : recipientMatch.contact;
-
-      const entityMatchReason =
-        directionResult.direction === AiDirection.PURCHASE ? issuerMatch.reason : recipientMatch.reason;
-
-      // 6. Document Type Classification
-      const docClassification = this.classifier.classify(extractionResult, directionResult.direction);
-
-      // Persist document classification
-      await this.db.aiClassification.create({
-        data: {
-          organizationId,
-          documentId,
-          direction: directionResult.direction,
-          entityType: directionResult.direction === AiDirection.PURCHASE ? 'SUPPLIER' : 'CUSTOMER',
-          entityId: targetEntity?.id,
-          entityMatchReason,
-          classification: docClassification.documentType,
-          confidenceScore: new Prisma.Decimal(directionResult.confidence),
-          reasoning: directionResult.reasoning,
-        },
-      });
-
-      await this.audit.logEvent(organizationId, documentId, 'CLASSIFIED', doc.createdById, {
-        direction: directionResult.direction,
-        documentType: docClassification.documentType,
-        matchedEntity: targetEntity?.name,
-      });
-
-      // 7. Line Items Product Classification
-      const classifiedLines = await this.lineClassifier.classifyLines(
-        organizationId,
-        extractionResult.lines,
-        directionResult.direction,
-        businessProfile,
-        targetEntity?.id,
-      );
-
-      // 8. Tax Classification
-      const taxInfo = await this.taxClassifier.resolveTax(
-        organizationId,
-        classifiedLines[0]?.taxClassification ?? 'VAT_STANDARD',
-        directionResult.direction === AiDirection.PURCHASE ? 'PURCHASE' : 'SALE',
-      );
-
-      // 9. Accounting Classification & Proposed Double-Entry Intent
-      const accountingIntent = await this.accountingClassifier.buildAccountingIntent(
-        organizationId,
-        directionResult.direction === AiDirection.PURCHASE ? 'PURCHASE' : 'SALE',
-        classifiedLines,
-        taxInfo,
-        targetEntity,
-      );
-
-      // Persist line classifications
-      for (const cl of classifiedLines) {
-        const lineAccount = accountingIntent.lines.find((l) => l.description === cl.description);
-        await this.db.aiLineClassification.create({
-          data: {
-            organizationId,
-            documentId,
-            lineNumber: cl.lineNumber,
-            rawDescription: cl.description,
-            quantity: new Prisma.Decimal(cl.quantity),
-            unit: cl.unit,
-            unitPrice: new Prisma.Decimal(cl.unitPrice),
-            netAmount: new Prisma.Decimal(cl.netAmount),
-            taxAmount: new Prisma.Decimal(cl.taxAmount),
-            totalAmount: new Prisma.Decimal(cl.totalAmount),
-            productType: cl.productType,
-            productClassification: cl.productClassification,
-            taxClassification: cl.taxClassification,
-            accountingCategory: cl.accountingCategory,
-            resolvedAccountId: lineAccount?.accountId,
-            confidenceScore: new Prisma.Decimal(cl.confidence),
-          },
-        });
-      }
-
-      // 10. Multi-Factor Confidence Score
-      const confidenceResult = this.confidenceService.evaluate(
-        directionResult.direction === AiDirection.PURCHASE ? issuerMatch : recipientMatch,
-        directionResult,
-        classifiedLines,
-        accountingIntent,
-      );
-
-      // 11. Accounting Safety Guardrail Check
-      await this.safety.validateAccountingSafety(organizationId, accountingIntent, targetEntity?.id);
-
-      // 12. Create AI Accounting Suggestion
-      const suggestion = await this.db.aiSuggestion.create({
-        data: {
-          organizationId,
-          documentId,
-          suggestionType:
-            directionResult.direction === AiDirection.PURCHASE
-              ? 'PURCHASE_BILL_DRAFT'
-              : 'SALES_INVOICE_DRAFT',
-          payload: {
-            extraction: extractionResult,
-            direction: directionResult.direction,
-            documentType: docClassification.documentType,
-            entity: targetEntity ? { id: targetEntity.id, name: targetEntity.name } : null,
-            lines: classifiedLines,
-            accountingIntent,
-            confidence: confidenceResult,
-          } as unknown as Prisma.InputJsonValue,
-          confidenceScore: new Prisma.Decimal(confidenceResult.score),
-          confidenceLevel: confidenceResult.level,
-          status: AiSuggestionStatus.PENDING_REVIEW,
-        },
-      });
-
-      await this.audit.logEvent(organizationId, documentId, 'SUGGESTED', doc.createdById, {
-        suggestionId: suggestion.id,
-        confidenceLevel: confidenceResult.level,
-        score: confidenceResult.score,
-      });
-
-      // 13. Evaluate Policy Action (Auto-draft vs Human Review)
-      const actionPolicy = this.policy.determineAction(
-        confidenceResult.level,
-        targetEntity?.status === 'ARCHIVED',
-      );
-      let docStatus: AiDocumentStatus = AiDocumentStatus.REQUIRES_REVIEW;
-
-      if (actionPolicy === 'AUTO_DRAFT' && options?.autoDraftIfHighConfidence && targetEntity) {
-        // High confidence and caller enabled auto-draft: convert to draft invoice
-        const createdInvoice = await this.createInvoiceDraftFromSuggestion(
-          organizationId,
-          doc.createdById,
-          suggestion.id,
-          targetEntity.id,
-          extractionResult,
-          classifiedLines,
-          accountingIntent,
-        );
-
-        await this.db.aiSuggestion.update({
-          where: { id: suggestion.id },
-          data: {
-            status: AiSuggestionStatus.APPROVED,
-            resultingInvoiceId: createdInvoice.id,
-            reviewedAt: new Date(),
-          },
-        });
-
-        docStatus = AiDocumentStatus.DRAFTED;
-        await this.audit.logEvent(organizationId, documentId, 'DRAFTED', doc.createdById, {
-          invoiceId: createdInvoice.id,
-          invoiceNumber: createdInvoice.invoiceNumber,
-        });
-      }
-
-      // Update parent AiDocument record
-      const updatedDoc = await this.db.aiDocument.update({
-        where: { id: documentId },
-        data: {
-          documentType: docClassification.documentType,
-          direction: directionResult.direction,
-          status: docStatus,
-          confidenceScore: new Prisma.Decimal(confidenceResult.score),
-          confidenceLevel: confidenceResult.level,
-          processedAt: new Date(),
-        },
-        include: {
-          extractions: true,
-          classifications: true,
-          lineClassifications: true,
-          suggestions: true,
-        },
-      });
-
-      return updatedDoc;
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Document processing failed for document ${documentId}: ${errorMsg}`, err);
-
-      await this.db.aiDocument.update({
-        where: { id: documentId },
-        data: {
-          status: AiDocumentStatus.FAILED,
-          errorMessage: errorMsg.slice(0, 500),
-          processedAt: new Date(),
-        },
-      });
-
-      throw err;
+      modelVersion = 'blynt-rules-v2';
+      rawStructuredData = { extractor: 'rules', result: extraction, verificationIssues: [] };
     }
-  }
 
-  // --- Human Review Approval & Edit Endpoints ---
-
-  async approveSuggestion(
-    organizationId: string,
-    documentId: string,
-    reviewedById: string,
-    targetContactId?: string,
-  ) {
-    const suggestion = await this.db.aiSuggestion.findFirst({
-      where: {
+    const extractionRow = await this.db.aiExtraction.create({
+      data: {
         organizationId,
         documentId,
-        status: AiSuggestionStatus.PENDING_REVIEW,
+        invoiceNumber: extraction.invoiceNumber ?? null,
+        invoiceDate: extraction.invoiceDate ? new Date(extraction.invoiceDate) : null,
+        dueDate: extraction.dueDate ? new Date(extraction.dueDate) : null,
+        currency: extraction.currency ?? null,
+        issuerName: extraction.issuer?.name ?? null,
+        issuerTaxId: extraction.issuer?.vatNumber ?? null,
+        issuerAddress: extraction.issuer?.address ?? null,
+        recipientName: extraction.recipient?.name ?? null,
+        recipientTaxId: extraction.recipient?.vatNumber ?? null,
+        recipientAddress: extraction.recipient?.address ?? null,
+        subtotal: decimalOrNull(extraction.subtotal),
+        taxAmount: decimalOrNull(extraction.vatTotal),
+        totalAmount: decimalOrNull(extraction.total),
+        rawStructuredData: rawStructuredData as unknown as Prisma.InputJsonValue,
+        modelVersion,
       },
     });
-
-    if (!suggestion) {
-      throw new NotFoundException('No pending AI suggestion found for this document.');
-    }
-
-    const payload = suggestion.payload as Record<string, unknown>;
-    const extraction = payload.extraction as Record<string, unknown>;
-    const lines = payload.lines as ClassifiedLineResult[];
-    const accountingIntent = payload.accountingIntent as Record<string, unknown>;
-    const entity = (payload.entity as { id?: string; name?: string }) ?? {};
-
-    const contactId = targetContactId ?? entity.id;
-    if (!contactId) {
-      throw new BadRequestException('A valid active contact must be designated or matched to approve draft.');
-    }
-
-    const contact = await this.db.contact.findFirst({
-      where: { organizationId, id: contactId, status: 'ACTIVE' },
+    await this.setStatus(documentId, AiDocumentStatus.AI_EXTRACTED);
+    await this.audit.logEvent(organizationId, documentId, 'EXTRACTED', doc.createdById, {
+      invoiceNumber: extraction.invoiceNumber ?? null,
+      total: extraction.total ?? null,
     });
-    if (!contact) {
-      throw new BadRequestException(
-        'Designated contact is inactive, archived, or not found in this organisation.',
-      );
-    }
 
-    // Create Draft Invoice in Blynt
-    const invoice = await this.createInvoiceDraftFromSuggestion(
+    // 2. Parties and direction (organisation identity first; UNKNOWN when inconclusive)
+    const [issuerMatch, recipientMatch] = await Promise.all([
+      this.entityResolver.resolveEntity(organizationId, extraction.issuer, 'SUPPLIER'),
+      this.entityResolver.resolveEntity(organizationId, extraction.recipient, 'CUSTOMER'),
+    ]);
+    // Rules first; the model is asked only when the rules have nothing to go on.
+    const directionResult = await this.directionFallback.decide({
       organizationId,
-      reviewedById,
-      suggestion.id,
-      contact.id,
-      extraction as unknown as Record<string, unknown>,
-      lines,
-      accountingIntent as unknown as Record<string, unknown>,
-    );
-
-    // Update Suggestion & Document Status
-    await this.db.aiSuggestion.update({
-      where: { id: suggestion.id },
-      data: {
-        status: AiSuggestionStatus.APPROVED,
-        reviewedById,
-        reviewedAt: new Date(),
-        resultingInvoiceId: invoice.id,
-      },
-    });
-
-    await this.db.aiDocument.update({
-      where: { id: documentId },
-      data: { status: AiDocumentStatus.APPROVED },
-    });
-
-    await this.audit.logEvent(organizationId, documentId, 'APPROVED', reviewedById, {
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
-      contactId: contact.id,
-    });
-
-    return {
-      success: true,
+      userId: doc.createdById,
       documentId,
-      suggestionId: suggestion.id,
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
-    };
-  }
-
-  async editAndApproveSuggestion(
-    organizationId: string,
-    documentId: string,
-    reviewedById: string,
-    modifications: {
-      contactId: string;
-      lines: Array<{
-        lineNumber: number;
-        description: string;
-        accountId: string;
-        productClassification?: string;
-      }>;
-      notes?: string;
-    },
-  ) {
-    const suggestion = await this.db.aiSuggestion.findFirst({
-      where: {
-        organizationId,
-        documentId,
-        status: AiSuggestionStatus.PENDING_REVIEW,
-      },
+      text,
+      organisation,
+      rules: this.directionResolver.resolveDirection(extraction, organisation, issuerMatch, recipientMatch),
     });
+    const direction = directionResult.direction;
+    const counterparty =
+      direction === AiDirection.PURCHASE ? issuerMatch : direction === AiDirection.SALE ? recipientMatch : null;
+    const targetEntity = counterparty?.contact ?? null;
 
-    if (!suggestion) {
-      throw new NotFoundException('No pending AI suggestion found for this document.');
-    }
-
-    const payload = suggestion.payload as Record<string, unknown>;
-    const originalLines = (payload.lines as ClassifiedLineResult[]) ?? [];
-
-    // Capture Feedback / Accountant Corrections for each modified line
-    for (const mod of modifications.lines) {
-      const orig = originalLines.find((ol) => ol.lineNumber === mod.lineNumber);
-      if (orig && mod.productClassification && mod.productClassification !== orig.productClassification) {
-        await this.feedback.recordFeedback({
-          organizationId,
-          suggestionId: suggestion.id,
-          supplierOrCustomerId: modifications.contactId,
-          productPattern: mod.description || orig.description,
-          originalClassification: orig.productClassification,
-          correctedClassification: mod.productClassification,
-          correctedAccountId: mod.accountId,
-          correctedById: reviewedById,
-        });
-
-        await this.audit.logEvent(organizationId, documentId, 'CORRECTED', reviewedById, {
-          product: mod.description || orig.description,
-          from: orig.productClassification,
-          to: mod.productClassification,
-        });
-      }
-    }
-
-    // Now proceed with approval using modified contact and accounts
-    return this.approveSuggestion(organizationId, documentId, reviewedById, modifications.contactId);
-  }
-
-  async rejectSuggestion(organizationId: string, documentId: string, reviewedById: string, reason: string) {
-    const suggestion = await this.db.aiSuggestion.findFirst({
-      where: {
-        organizationId,
-        documentId,
-        status: AiSuggestionStatus.PENDING_REVIEW,
-      },
-    });
-
-    if (!suggestion) {
-      throw new NotFoundException('No pending AI suggestion found for this document.');
-    }
-
-    await this.db.aiSuggestion.update({
-      where: { id: suggestion.id },
+    const docClassification = this.classifier.classify(extraction, direction);
+    await this.db.aiClassification.create({
       data: {
-        status: AiSuggestionStatus.REJECTED,
-        reviewedById,
-        reviewedAt: new Date(),
-        reviewNote: reason,
+        organizationId,
+        documentId,
+        direction,
+        entityType: direction === AiDirection.PURCHASE ? 'SUPPLIER' : direction === AiDirection.SALE ? 'CUSTOMER' : 'UNKNOWN',
+        entityId: targetEntity?.id ?? null,
+        entityMatchReason: counterparty?.reason ?? null,
+        classification: docClassification.documentType,
+        confidenceScore: new Prisma.Decimal(directionResult.confidence),
+        reasoning: directionResult.reasoning,
       },
     });
-
-    await this.db.aiDocument.update({
-      where: { id: documentId },
-      data: { status: AiDocumentStatus.REJECTED },
+    await this.audit.logEvent(organizationId, documentId, 'CLASSIFIED', doc.createdById, {
+      direction,
+      basis: directionResult.basis,
+      documentType: docClassification.documentType,
+      matchedEntity: targetEntity?.name ?? null,
     });
 
-    await this.audit.logEvent(organizationId, documentId, 'REJECTED', reviewedById, { reason });
+    // 3. Lines and accounting proposal (only once direction is known)
+    const businessProfile = await this.businessContext.getProfile(organizationId);
+    const lines = await this.lineClassifier.classifyLines(
+      organizationId,
+      extraction.lines,
+      direction,
+      businessProfile,
+      targetEntity?.id,
+      { subtotal: extraction.subtotal, vatTotal: extraction.vatTotal },
+    );
+    // Account and tax code per line: counterparty history, then rules, then the model (own lists only).
+    const coding =
+      direction === AiDirection.UNKNOWN
+        ? []
+        : await this.coding.suggest({
+            organizationId,
+            userId: doc.createdById,
+            documentId,
+            direction: direction === AiDirection.PURCHASE ? 'PURCHASE' : 'SALE',
+            contactId: targetEntity?.id ?? null,
+            contactName: targetEntity?.name ?? null,
+            lines,
+            postingDate: extraction.invoiceDate ? new Date(extraction.invoiceDate) : null,
+            business: [businessProfile.industry && `industry ${businessProfile.industry}`].filter(Boolean).join(', ') || undefined,
+          });
+    for (const c of coding) {
+      const line = lines.find((l) => l.lineNumber === c.lineNumber);
+      if (line) line.taxClassification = c.taxCode;
+    }
+    const intent =
+      direction === AiDirection.UNKNOWN
+        ? null
+        : await this.accountingClassifier.buildAccountingIntent(
+            organizationId,
+            direction === AiDirection.PURCHASE ? 'PURCHASE' : 'SALE',
+            lines,
+            targetEntity,
+            new Map(coding.map((c) => [c.lineNumber, c.accountId])),
+          );
 
-    return { success: true, documentId, suggestionId: suggestion.id };
+    for (const line of lines) {
+      const proposed = intent?.lines.find((l) => l.sourceLineNumber === line.lineNumber);
+      const lineCoding = coding.find((c) => c.lineNumber === line.lineNumber);
+      await this.db.aiLineClassification.create({
+        data: {
+          organizationId,
+          documentId,
+          lineNumber: line.lineNumber,
+          rawDescription: line.description.slice(0, 255),
+          quantity: decimalOrNull(line.quantity),
+          unit: line.unit,
+          unitPrice: decimalOrNull(line.unitPrice),
+          netAmount: decimalOrNull(line.netAmount),
+          taxAmount: decimalOrNull(line.taxAmount),
+          totalAmount: decimalOrNull(line.totalAmount),
+          productType: line.productType,
+          productClassification: line.productClassification,
+          taxClassification: line.taxClassification,
+          accountingCategory: line.accountingCategory,
+          resolvedAccountId: proposed?.accountId ?? null,
+          suggestedTaxCodeId: lineCoding?.taxCodeId ?? null,
+          accountSource: lineCoding?.accountSource ?? null,
+          taxSource: lineCoding?.taxSource ?? null,
+          codingReason: lineCoding?.reason.slice(0, 1000) ?? null,
+          confidenceScore: new Prisma.Decimal(line.confidence),
+        },
+      });
+    }
+
+    // 4. Confidence (orders the review queue only) and safety check of complete proposals
+    const confidence = this.confidenceService.evaluate(
+      counterparty ?? { contact: null, matchType: 'NONE', confidence: 0, reason: '' },
+      directionResult,
+      lines,
+      intent,
+    );
+    if (intent?.isComplete) {
+      await this.safety.validateAccountingSafety(organizationId, intent, targetEntity?.id);
+    }
+
+    // Field-level validation: report each value as verified / inconsistent / missing. Values are never changed.
+    const validation = await this.validator.validate({
+      organizationId,
+      documentId,
+      extraction,
+      baseCurrency: doc.organization.baseCurrency,
+      verificationIssues: (rawStructuredData.verificationIssues as FieldIssue[]) ?? [],
+      issuerContactId: issuerMatch.contact?.id ?? null,
+    });
+    await this.db.aiExtraction.update({
+      where: { id: extractionRow.id },
+      data: { validation: validation as unknown as Prisma.InputJsonValue, isConsistent: validation.consistent },
+    });
+    await this.setStatus(documentId, AiDocumentStatus.VALIDATED);
+    await this.audit.logEvent(organizationId, documentId, 'VALIDATED', doc.createdById, {
+      consistent: validation.consistent,
+      summary: validation.summary,
+      rules: validation.findings.map((f) => f.rule),
+    });
+
+    const counterpartyParty =
+      direction === AiDirection.PURCHASE ? extraction.issuer : direction === AiDirection.SALE ? extraction.recipient : undefined;
+    const payload: SuggestionPayload = {
+      extraction,
+      direction,
+      entity: targetEntity ? { id: targetEntity.id, name: targetEntity.name } : null,
+      lines,
+      accountingIntent: intent,
+      coding,
+      counterpartyMatch: counterparty
+        ? { matchType: counterparty.matchType, confidence: counterparty.confidence, reason: counterparty.reason, candidates: counterparty.candidates }
+        : null,
+      // Unmatched counterparty: propose a contact from the document's own details (reviewer decides).
+      proposedContact:
+        !targetEntity && counterpartyParty?.name
+          ? {
+              type: direction === AiDirection.PURCHASE ? 'SUPPLIER' : 'CUSTOMER',
+              name: counterpartyParty.name,
+              ...(counterpartyParty.vatNumber ? { vatNumber: counterpartyParty.vatNumber } : {}),
+              ...(counterpartyParty.companyNumber ? { companyNumber: counterpartyParty.companyNumber } : {}),
+              ...(counterpartyParty.address ? { address: counterpartyParty.address } : {}),
+            }
+          : null,
+    };
+    const suggestion = await this.db.aiSuggestion.create({
+      data: {
+        organizationId,
+        documentId,
+        suggestionType:
+          direction === AiDirection.PURCHASE
+            ? 'PURCHASE_BILL_DRAFT'
+            : direction === AiDirection.SALE
+              ? 'SALES_INVOICE_DRAFT'
+              : 'UNCLASSIFIED_DOCUMENT',
+        payload: {
+          ...payload,
+          documentType: docClassification.documentType,
+          confidence,
+          validation: { consistent: validation.consistent, summary: validation.summary, findings: validation.findings },
+        } as unknown as Prisma.InputJsonValue,
+        confidenceScore: new Prisma.Decimal(confidence.score),
+        confidenceLevel: confidence.level,
+        status: AiSuggestionStatus.PENDING_REVIEW,
+      },
+    });
+    await this.audit.logEvent(organizationId, documentId, 'SUGGESTED', doc.createdById, {
+      suggestionId: suggestion.id,
+      confidenceLevel: confidence.level,
+      missing: intent?.missing ?? ['direction'],
+    });
+
+    return this.db.aiDocument.update({
+      where: { id: documentId },
+      data: {
+        documentType: docClassification.documentType,
+        direction,
+        // Every suggestion waits for a person, whatever its confidence.
+        status: AiDocumentStatus.AWAITING_REVIEW,
+        confidenceScore: new Prisma.Decimal(confidence.score),
+        confidenceLevel: confidence.level,
+        processedAt: new Date(),
+      },
+      include: { extractions: true, classifications: true, lineClassifications: true, suggestions: true },
+    });
   }
 
-  // --- Document Query Endpoints ---
+  private async setStatus(documentId: string, status: AiDocumentStatus): Promise<void> {
+    await this.db.aiDocument.update({ where: { id: documentId }, data: { status } });
+  }
+
+  async assertAiEnabled(organizationId: string): Promise<void> {
+    const org = await this.db.organization.findUnique({ where: { id: organizationId }, select: { aiEnabled: true } });
+    if (!org?.aiEnabled) {
+      throw new DomainException('AI_DISABLED', 'AI features are switched off for this organisation');
+    }
+  }
+
+  // Human review (approve / reject) lives in AiReviewService.
+
+  // --- Queries ---
 
   async listDocuments(organizationId: string) {
     return this.db.aiDocument.findMany({
       where: { organizationId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        suggestions: {
-          select: { id: true, status: true, confidenceLevel: true, confidenceScore: true },
-        },
-      },
+      include: { suggestions: { select: { id: true, status: true, confidenceLevel: true, confidenceScore: true } } },
     });
   }
 
@@ -526,97 +385,19 @@ export class DocumentIntelligenceService {
         extractions: true,
         classifications: true,
         lineClassifications: {
-          include: { account: { select: { id: true, code: true, name: true } } },
+          include: {
+            account: { select: { id: true, code: true, name: true } },
+            suggestedTaxCode: { select: { id: true, code: true, name: true } },
+          },
+          orderBy: { lineNumber: 'asc' },
         },
         suggestions: true,
         auditEvents: { orderBy: { createdAt: 'desc' } },
       },
     });
-
-    if (!doc) {
-      throw new NotFoundException(`Document ${documentId} not found.`);
-    }
-
+    if (!doc) throw new NotFoundException(`Document ${documentId} not found.`);
     return doc;
   }
 
-  // --- Invoice Draft Assembly ---
 
-  private async createInvoiceDraftFromSuggestion(
-    organizationId: string,
-    createdById: string,
-    suggestionId: string,
-    contactId: string,
-    extraction: Record<string, unknown> | RawExtractionResult,
-    lines: ClassifiedLineResult[],
-    accountingIntent: ProposedAccountingIntent | Record<string, unknown>,
-  ) {
-    const rawInvNum = (extraction.invoiceNumber as string) || `INV-${Date.now().toString().slice(-6)}`;
-    const issueDate = extraction.invoiceDate ? new Date(extraction.invoiceDate as string) : new Date();
-    const dueDate = extraction.dueDate
-      ? new Date(extraction.dueDate as string)
-      : new Date(Date.now() + 30 * 86400000);
-    const currency = (extraction.currency as string) || 'GBP';
-
-    // Disambiguate invoice number if already taken
-    let invoiceNumber = rawInvNum;
-    const existing = await this.db.invoice.findFirst({
-      where: { organizationId, invoiceNumber },
-    });
-    if (existing) {
-      invoiceNumber = `${rawInvNum}-${Date.now().toString().slice(-4)}`;
-    }
-
-    const proposedLines = (accountingIntent.lines as Array<{ accountId: string; description: string }>) ?? [];
-
-    let subtotal = this.money.ZERO;
-    let taxTotal = this.money.ZERO;
-    let totalAmount = this.money.ZERO;
-
-    for (const l of lines) {
-      subtotal = this.money.add(subtotal, this.money.toDecimal(l.netAmount));
-      taxTotal = this.money.add(taxTotal, this.money.toDecimal(l.taxAmount));
-      totalAmount = this.money.add(totalAmount, this.money.toDecimal(l.totalAmount));
-    }
-
-    // Default line account fallback
-    const defaultExpenseAccount = await this.db.account.findFirst({
-      where: { organizationId, isActive: true },
-    });
-
-    return this.db.invoice.create({
-      data: {
-        organizationId,
-        contactId,
-        invoiceNumber,
-        reference: `AI Processed (${suggestionId.slice(0, 8)})`,
-        issueDate,
-        dueDate,
-        currency,
-        exchangeRate: new Prisma.Decimal(1),
-        subtotal: new Prisma.Decimal(subtotal.toFixed(4)),
-        taxTotal: new Prisma.Decimal(taxTotal.toFixed(4)),
-        totalAmount: new Prisma.Decimal(totalAmount.toFixed(4)),
-        amountPaid: new Prisma.Decimal(0),
-        status: InvoiceStatus.DRAFT,
-        createdById,
-        lines: {
-          create: lines.map((l, idx) => {
-            const mappedAcc = proposedLines[idx]?.accountId ?? defaultExpenseAccount?.id;
-            return {
-              organizationId,
-              lineNumber: idx + 1,
-              accountId: mappedAcc!,
-              description: l.description,
-              quantity: new Prisma.Decimal(l.quantity),
-              unitPrice: new Prisma.Decimal(l.unitPrice),
-              taxRate: new Prisma.Decimal(l.taxClassification === 'VAT_ZERO' ? 0 : 0.2),
-              taxAmount: new Prisma.Decimal(l.taxAmount),
-              lineTotal: new Prisma.Decimal(l.totalAmount),
-            };
-          }),
-        },
-      },
-    });
-  }
 }

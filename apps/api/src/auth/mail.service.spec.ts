@@ -25,6 +25,19 @@ describe('MailService (Production Safety & Transports)', () => {
     isProduction: false,
     isTest: true,
     cookieSecure: false,
+    MFA_REQUIRED_FOR_PRIVILEGED_ROLES: true,
+    AI_PROVIDER: 'none',
+    AI_MODEL: 'claude-opus-5-5',
+    AI_PROFILE_REFRESH_MINUTES: 0,
+    DOCUMENT_MAX_BYTES: 20971520,
+    OCR_PROVIDER: 'none',
+    JOB_WORKER_ENABLED: false,
+    JOB_POLL_INTERVAL_MS: 1000,
+    JOB_RETRY_BASE_MS: 5000,
+    JOB_RETRY_MAX_MS: 600000,
+    JOB_LOCK_TIMEOUT_MS: 300000,
+    DOCUMENT_JOBS_PER_ORG_PER_MINUTE: 30,
+    AI_MONTHLY_COST_LIMIT_USD: 50,
   };
 
   it('records outgoing messages in-memory when in test mode', async () => {

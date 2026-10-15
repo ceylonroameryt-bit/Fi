@@ -4,8 +4,6 @@ export const LLM_PROVIDER = 'LLM_PROVIDER';
 export const HIGH_CONFIDENCE_THRESHOLD = 0.9;
 export const MEDIUM_CONFIDENCE_THRESHOLD = 0.7;
 
-export const STANDARD_VAT_RATE = '0.2000';
-export const ZERO_VAT_RATE = '0.0000';
 
 export enum SemanticCategory {
   // Inventory

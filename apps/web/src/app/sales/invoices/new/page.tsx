@@ -22,13 +22,30 @@ interface NominalAccount {
   accountType: string;
 }
 
+interface TaxCode {
+  id: string;
+  code: string;
+  name: string;
+  treatment: string;
+  rate: string;
+}
+
+/** Purchase-only treatments are not offered on sales invoices. */
+const SALES_TREATMENTS = new Set(['STANDARD', 'REDUCED', 'ZERO', 'EXEMPT', 'OUTSIDE_SCOPE', 'DOMESTIC_REVERSE_CHARGE']);
+
 interface LineItem {
   id: string;
   accountId: string;
   description: string;
   quantity: number;
   unitPrice: number;
-  taxRate: number;
+  /** No default: the user must choose a VAT code for every line. */
+  taxCodeId: string;
+}
+
+/** Display-only preview; the server recalculates with exact decimals. Half-up to the penny. */
+function roundPenny(value: number): number {
+  return Math.sign(value) * Math.round(Math.abs(value) * 100 + 1e-9) / 100;
 }
 
 function NewInvoiceForm() {
@@ -39,6 +56,7 @@ function NewInvoiceForm() {
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [revenueAccounts, setRevenueAccounts] = useState<NominalAccount[]>([]);
+  const [taxCodes, setTaxCodes] = useState<TaxCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +81,7 @@ function NewInvoiceForm() {
       description: 'Consulting & Advisory Services',
       quantity: 1,
       unitPrice: 500,
-      taxRate: 0.20,
+      taxCodeId: '',
     },
   ]);
 
@@ -104,6 +122,14 @@ function NewInvoiceForm() {
     loadPrerequisites();
   }, [activeOrg]);
 
+  // Rates are dated, so load the codes in force on the issue date.
+  useEffect(() => {
+    if (!activeOrg || !/^\d{4}-\d{2}-\d{2}$/.test(issueDate)) return;
+    apiRequest<TaxCode[]>(`/tax-codes?date=${issueDate}`)
+      .then((codes) => setTaxCodes((Array.isArray(codes) ? codes : []).filter((c) => SALES_TREATMENTS.has(c.treatment))))
+      .catch((err: any) => setError(err.message || 'Failed to load VAT codes'));
+  }, [activeOrg, issueDate]);
+
   const addLine = () => {
     const defaultAcc = revenueAccounts.find((a) => a.code === '4000') || revenueAccounts[0];
     setLines((prev) => [
@@ -114,7 +140,7 @@ function NewInvoiceForm() {
         description: '',
         quantity: 1,
         unitPrice: 0,
-        taxRate: 0.20,
+        taxCodeId: '',
       },
     ]);
   };
@@ -132,8 +158,11 @@ function NewInvoiceForm() {
 
   // Calculations
   const calculatedLines = lines.map((l) => {
-    const net = (l.quantity || 0) * (l.unitPrice || 0);
-    const tax = net * (l.taxRate || 0);
+    const code = taxCodes.find((c) => c.id === l.taxCodeId);
+    const net = roundPenny((l.quantity || 0) * (l.unitPrice || 0));
+    // Reverse-charge sales carry no VAT on the invoice.
+    const charged = code && code.treatment !== 'DOMESTIC_REVERSE_CHARGE' ? Number(code.rate) : 0;
+    const tax = roundPenny(net * charged);
     const total = net + tax;
     return { ...l, net, tax, total };
   });
@@ -149,6 +178,10 @@ function NewInvoiceForm() {
     }
     if (lines.some((l) => !l.accountId || !l.description.trim())) {
       alert('Please provide account and description for every line item');
+      return;
+    }
+    if (lines.some((l) => !l.taxCodeId)) {
+      alert('Please choose a VAT code for every line item');
       return;
     }
 
@@ -171,7 +204,7 @@ function NewInvoiceForm() {
             description: l.description.trim(),
             quantity: Number(l.quantity),
             unitPrice: Number(l.unitPrice),
-            taxRate: Number(l.taxRate),
+            taxCodeId: l.taxCodeId,
           })),
         }),
       });
@@ -360,12 +393,18 @@ function NewInvoiceForm() {
                       <select
                         className="form-input"
                         style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem' }}
-                        value={line.taxRate}
-                        onChange={(e) => updateLine(index, { taxRate: parseFloat(e.target.value) || 0 })}
+                        value={line.taxCodeId}
+                        onChange={(e) => updateLine(index, { taxCodeId: e.target.value })}
+                        aria-label="VAT code"
                       >
-                        <option value={0.20}>Standard VAT (20%)</option>
-                        <option value={0.05}>Reduced VAT (5%)</option>
-                        <option value={0}>Zero Rated / Exempt (0%)</option>
+                        <option value="" disabled>
+                          Select VAT code…
+                        </option>
+                        {taxCodes.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} ({(Number(c.rate) * 100).toFixed(Number(c.rate) * 100 % 1 ? 1 : 0)}%)
+                          </option>
+                        ))}
                       </select>
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A', verticalAlign: 'middle' }}>

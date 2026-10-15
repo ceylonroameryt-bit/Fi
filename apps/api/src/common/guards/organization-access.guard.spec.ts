@@ -163,3 +163,48 @@ describe('OrganizationAccessGuard Security & Tenant Isolation (organization-acce
   });
 });
 
+
+describe('OrganizationAccessGuard – MFA for privileged roles', () => {
+  const reflector = {
+    getAllAndOverride: jest.fn().mockImplementation((key) => (key === 'requiredPermissions' ? ['account.view'] : false)),
+  } as any;
+
+  function run(systemRoleKey: string | null, mfaVerified: boolean, enforced = true) {
+    const organizations = {
+      validateOrganizationAccess: jest.fn().mockResolvedValue({
+        organizationId: 'org-1',
+        systemRoleKey,
+        permissions: new Set(['account.view']),
+      }),
+    };
+    const guard = new OrganizationAccessGuard(reflector, organizations as any, {
+      MFA_REQUIRED_FOR_PRIVILEGED_ROLES: enforced,
+    } as any);
+    const request: any = {
+      auth: { userId: 'u', sessionId: 's', email: 'e', mfaVerified },
+      headers: {},
+      params: { orgId: 'org-1' },
+    };
+    return guard.canActivate({
+      switchToHttp: () => ({ getRequest: () => request }),
+      getHandler: () => ({}),
+      getClass: () => ({}),
+    } as any);
+  }
+
+  it.each(['OWNER', 'ACCOUNTANT'])('blocks %s without a verified MFA session', async (role) => {
+    await expect(run(role, false)).rejects.toMatchObject({ code: 'AUTH_MFA_REQUIRED' });
+  });
+
+  it.each(['OWNER', 'ACCOUNTANT'])('allows %s with a verified MFA session', async (role) => {
+    await expect(run(role, true)).resolves.toBe(true);
+  });
+
+  it.each(['ADMINISTRATOR', 'BOOKKEEPER', 'VIEWER', null])('does not require MFA for %s', async (role) => {
+    await expect(run(role, false)).resolves.toBe(true);
+  });
+
+  it('can be disabled by configuration (non-production only)', async () => {
+    await expect(run('OWNER', false, false)).resolves.toBe(true);
+  });
+});

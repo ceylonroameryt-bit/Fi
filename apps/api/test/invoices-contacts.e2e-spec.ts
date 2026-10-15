@@ -5,9 +5,11 @@ import { AppModule } from '../src/app.module';
 import { createValidationPipe } from '../src/common/validation/validation.pipe';
 import { RolesService } from '../src/roles/roles.service';
 import cookieParser from 'cookie-parser';
+import { loadTaxCodeIds } from './tax-codes.helper';
 
 describe('Contacts & Invoicing Module (E2E Integration)', () => {
   let app: INestApplication;
+  let tax: Record<string, string>;
   let ownerToken: string;
   let orgId: string;
   let salesAccountId: string;
@@ -28,6 +30,7 @@ describe('Contacts & Invoicing Module (E2E Integration)', () => {
     await roles.seedGlobalPermissions();
 
     await app.init();
+    tax = await loadTaxCodeIds(app);
   });
 
   afterAll(async () => {
@@ -108,14 +111,14 @@ describe('Contacts & Invoicing Module (E2E Integration)', () => {
             description: 'Enterprise Cloud Consulting',
             quantity: 10,
             unitPrice: 250, // 2500.00
-            taxRate: 0.20,  // 20% VAT = 500.00
+            taxCodeId: tax.UK_SR,  // 20% VAT = 500.00
           },
           {
             accountId: salesAccountId,
             description: 'Architecture Audit Report',
             quantity: 1,
             unitPrice: 1500, // 1500.00
-            taxRate: 0.20,   // 20% VAT = 300.00
+            taxCodeId: tax.UK_SR,   // 20% VAT = 300.00
           },
         ],
       })
