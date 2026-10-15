@@ -1,15 +1,10 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { FieldIssue, LlmExtractionService } from '../extraction/llm-extraction.service';
 import { ExtractionValidationService } from '../validation/extraction-validation.service';
 import { AI_PROVIDER, AiProvider } from '../gateway/ai-provider.interface';
 import { AiDirection, AiDocumentStatus, AiSuggestionStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { DomainException } from '../../common/errors/domain.exception';
-import type { Actor, OrgContext } from '../../common/types/request-context.types';
-import { InvoicesService } from '../../invoices/invoices.service';
-import type { CreateInvoiceDto } from '../../invoices/dto/invoice.dto';
-import { BillsService } from '../../bills/bills.service';
-import type { CreateBillDto } from '../../bills/dto/bill.dto';
 import { BusinessContextService } from '../business-context/business-context.service';
 import { HeuristicLlmProvider } from '../providers/heuristic-llm.provider';
 import { RawExtractionResult } from '../providers/llm-provider.interface';
@@ -23,7 +18,6 @@ import { AccountingClassificationService, ProposedAccountingIntent } from './acc
 import { ConfidenceService } from './confidence.service';
 import { AccountingSafetyService } from '../guardrails/accounting-safety.service';
 import { AiAuditService } from '../audit/ai-audit.service';
-import { AiFeedbackService } from '../feedback/ai-feedback.service';
 
 export interface ProcessDocumentOptions {
   buffer?: Buffer;
@@ -73,13 +67,10 @@ export class DocumentIntelligenceService {
     private readonly confidenceService: ConfidenceService,
     private readonly safety: AccountingSafetyService,
     private readonly audit: AiAuditService,
-    private readonly feedback: AiFeedbackService,
-    private readonly invoices: InvoicesService,
     private readonly llmExtraction: LlmExtractionService,
     private readonly validator: ExtractionValidationService,
     private readonly directionFallback: DirectionFallbackService,
     private readonly coding: CodingSuggestionService,
-    private readonly bills: BillsService,
     @Optional() @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider | null,
   ) {}
 
@@ -375,210 +366,7 @@ export class DocumentIntelligenceService {
     }
   }
 
-  // --- Human review ---
-
-  /**
-   * A person approves a suggestion. Sales documents become a DRAFT sales invoice built through
-   * InvoicesService (which does all arithmetic). Purchases are refused until supplier bills exist,
-   * so a purchase can never be turned into a sales invoice.
-   */
-  async approveSuggestion(
-    organizationId: string,
-    documentId: string,
-    orgContext: OrgContext,
-    actor: Actor,
-    targetContactId?: string,
-    accountOverrides: Map<number, string> = new Map(),
-  ) {
-    const suggestion = await this.findPending(organizationId, documentId);
-    const payload = suggestion.payload as unknown as SuggestionPayload;
-
-    if (payload.direction === AiDirection.UNKNOWN) {
-      throw new DomainException('AI_DIRECTION_UNRESOLVED', 'Sales or purchase could not be determined; nothing was created.');
-    }
-    const contactId = targetContactId ?? payload.entity?.id;
-    if (!contactId) {
-      throw new BadRequestException(
-        `A ${payload.direction === AiDirection.PURCHASE ? 'supplier' : 'customer'} must be chosen to approve this draft.`,
-      );
-    }
-    if (payload.direction === AiDirection.PURCHASE) {
-      // A purchase only ever becomes a DRAFT supplier bill; posting needs bill.approve.
-      return this.approveAsBill(organizationId, documentId, suggestion.id, payload, contactId, accountOverrides, orgContext, actor);
-    }
-    const contact = await this.db.contact.findFirst({ where: { organizationId, id: contactId, status: 'ACTIVE' } });
-    if (!contact) {
-      throw new BadRequestException('Designated contact is inactive, archived, or not found in this organisation.');
-    }
-
-    const dto = await this.buildSalesInvoiceDto(payload, contact.id, accountOverrides);
-
-    if (payload.extraction.invoiceNumber) {
-      const duplicate = await this.db.invoice.findFirst({
-        where: { organizationId, contactId: contact.id, reference: payload.extraction.invoiceNumber },
-        select: { id: true, invoiceNumber: true },
-      });
-      if (duplicate) {
-        throw new DomainException(
-          'AI_DUPLICATE_DOCUMENT',
-          `Document ${payload.extraction.invoiceNumber} was already recorded as invoice ${duplicate.invoiceNumber}.`,
-          { invoiceId: duplicate.id },
-        );
-      }
-    }
-
-    const invoice = await this.invoices.createInvoice(organizationId, dto, orgContext, actor);
-
-    await this.db.aiSuggestion.update({
-      where: { id: suggestion.id },
-      data: {
-        status: AiSuggestionStatus.APPROVED,
-        reviewedById: actor.userId,
-        reviewedAt: new Date(),
-        resultingInvoiceId: invoice.id,
-      },
-    });
-    await this.db.aiDocument.update({ where: { id: documentId }, data: { status: AiDocumentStatus.DRAFT_CREATED } });
-    await this.audit.logEvent(organizationId, documentId, 'APPROVED', actor.userId ?? undefined, {
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
-      contactId: contact.id,
-    });
-
-    return { success: true, documentId, suggestionId: suggestion.id, invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber };
-  }
-
-  private async approveAsBill(
-    organizationId: string,
-    documentId: string,
-    suggestionId: string,
-    payload: SuggestionPayload,
-    contactId: string,
-    accountOverrides: Map<number, string>,
-    orgContext: OrgContext,
-    actor: Actor,
-  ) {
-    const { extraction, lines } = payload;
-    const missing: string[] = [];
-    if (!extraction.invoiceNumber) missing.push("supplier's invoice number");
-    if (!extraction.invoiceDate) missing.push('invoice date');
-    if (!extraction.currency) missing.push('currency');
-    if (lines.length === 0) missing.push('line items');
-
-    const coded = new Map((payload.coding ?? []).map((c) => [c.lineNumber, c]));
-    const taxIds = new Map(
-      (await this.db.taxCode.findMany({ where: { code: { in: lines.map((l) => l.taxClassification).filter((c): c is string => !!c) } }, select: { id: true, code: true } })).map(
-        (t) => [t.code, t.id],
-      ),
-    );
-    const billLines = lines.map((line) => {
-      const label = `line ${line.lineNumber}`;
-      const accountId =
-        accountOverrides.get(line.lineNumber) ??
-        coded.get(line.lineNumber)?.accountId ??
-        payload.accountingIntent?.lines.find((l) => l.sourceLineNumber === line.lineNumber)?.accountId ??
-        null;
-      const taxCodeId = coded.get(line.lineNumber)?.taxCodeId ?? (line.taxClassification ? taxIds.get(line.taxClassification) : undefined) ?? null;
-      if (!accountId) missing.push(`${label}: account`);
-      if (!taxCodeId) missing.push(`${label}: tax code`);
-      if (line.netAmount === null && (line.quantity === null || line.unitPrice === null)) missing.push(`${label}: amount`);
-      return {
-        accountId: accountId ?? '',
-        description: line.description,
-        ...(line.quantity !== null && line.unitPrice !== null ? { quantity: line.quantity, unitPrice: line.unitPrice } : {}),
-        ...(line.netAmount !== null ? { netAmount: line.netAmount } : {}),
-        taxCodeId: taxCodeId ?? undefined,
-      };
-    });
-    if (missing.length > 0) {
-      throw new DomainException('AI_DRAFT_INCOMPLETE', `The document is missing: ${missing.join('; ')}`, { missing });
-    }
-
-    const duplicate = await this.db.bill.findFirst({
-      where: { organizationId, contactId, status: { not: 'VOIDED' }, supplierInvoiceNumber: { equals: extraction.invoiceNumber!, mode: 'insensitive' } },
-      select: { id: true, billNumber: true },
-    });
-    if (duplicate) {
-      throw new DomainException('AI_DUPLICATE_DOCUMENT', `Supplier invoice ${extraction.invoiceNumber} is already bill ${duplicate.billNumber}.`, {
-        billId: duplicate.id,
-      });
-    }
-
-    return this.db.transaction(async (tx) => {
-      const bill = await this.bills.create(
-        organizationId,
-        {
-          contactId,
-          supplierInvoiceNumber: extraction.invoiceNumber!,
-          issueDate: extraction.invoiceDate!,
-          dueDate: extraction.dueDate,
-          currency: extraction.currency!,
-          sourceDocumentId: documentId,
-          lines: billLines,
-        } as CreateBillDto,
-        orgContext,
-        actor,
-        tx,
-      );
-      await tx.aiSuggestion.update({
-        where: { id: suggestionId },
-        data: { status: AiSuggestionStatus.APPROVED, reviewedById: actor.userId, reviewedAt: new Date(), resultingBillId: bill.id },
-      });
-      await tx.aiDocument.update({ where: { id: documentId }, data: { status: AiDocumentStatus.DRAFT_CREATED } });
-      await this.audit.logEvent(organizationId, documentId, 'APPROVED', actor.userId ?? undefined, { billId: bill.id, billNumber: bill.billNumber, contactId });
-      return { success: true, documentId, suggestionId, billId: bill.id, billNumber: bill.billNumber, warnings: bill.warnings };
-    });
-  }
-
-  async editAndApproveSuggestion(
-    organizationId: string,
-    documentId: string,
-    orgContext: OrgContext,
-    actor: Actor,
-    modifications: {
-      contactId: string;
-      lines: Array<{ lineNumber: number; description: string; accountId: string; productClassification?: string }>;
-      notes?: string;
-    },
-  ) {
-    const suggestion = await this.findPending(organizationId, documentId);
-    const originalLines = (suggestion.payload as unknown as SuggestionPayload).lines ?? [];
-
-    for (const mod of modifications.lines) {
-      const orig = originalLines.find((ol) => ol.lineNumber === mod.lineNumber);
-      if (orig && mod.productClassification && mod.productClassification !== orig.productClassification) {
-        await this.feedback.recordFeedback({
-          organizationId,
-          suggestionId: suggestion.id,
-          supplierOrCustomerId: modifications.contactId,
-          productPattern: mod.description || orig.description,
-          originalClassification: orig.productClassification,
-          correctedClassification: mod.productClassification,
-          correctedAccountId: mod.accountId,
-          correctedById: actor.userId!,
-        });
-        await this.audit.logEvent(organizationId, documentId, 'CORRECTED', actor.userId ?? undefined, {
-          product: mod.description || orig.description,
-          from: orig.productClassification,
-          to: mod.productClassification,
-        });
-      }
-    }
-
-    const overrides = new Map(modifications.lines.map((l) => [l.lineNumber, l.accountId]));
-    return this.approveSuggestion(organizationId, documentId, orgContext, actor, modifications.contactId, overrides);
-  }
-
-  async rejectSuggestion(organizationId: string, documentId: string, reviewedById: string, reason: string) {
-    const suggestion = await this.findPending(organizationId, documentId);
-    await this.db.aiSuggestion.update({
-      where: { id: suggestion.id },
-      data: { status: AiSuggestionStatus.REJECTED, reviewedById, reviewedAt: new Date(), reviewNote: reason },
-    });
-    await this.db.aiDocument.update({ where: { id: documentId }, data: { status: AiDocumentStatus.REJECTED } });
-    await this.audit.logEvent(organizationId, documentId, 'REJECTED', reviewedById, { reason });
-    return { success: true, documentId, suggestionId: suggestion.id };
-  }
+  // Human review (approve / reject) lives in AiReviewService.
 
   // --- Queries ---
 
@@ -611,64 +399,5 @@ export class DocumentIntelligenceService {
     return doc;
   }
 
-  private async findPending(organizationId: string, documentId: string) {
-    const suggestion = await this.db.aiSuggestion.findFirst({
-      where: { organizationId, documentId, status: AiSuggestionStatus.PENDING_REVIEW },
-    });
-    if (!suggestion) throw new NotFoundException('No pending AI suggestion found for this document.');
-    return suggestion;
-  }
 
-  /** Builds a sales invoice request purely from what the document and reviewer supplied; refuses if anything is missing. */
-  private async buildSalesInvoiceDto(
-    payload: SuggestionPayload,
-    contactId: string,
-    accountOverrides: Map<number, string>,
-  ): Promise<CreateInvoiceDto> {
-    const { extraction, lines, accountingIntent } = payload;
-    const missing: string[] = [];
-    if (!extraction.invoiceDate) missing.push('invoice date');
-    if (!extraction.dueDate) missing.push('due date');
-    if (!extraction.currency) missing.push('currency');
-    if (lines.length === 0) missing.push('line items');
-
-    const codes = await this.db.taxCode.findMany({
-      where: { code: { in: lines.map((l) => l.taxClassification).filter((c): c is string => !!c) } },
-      select: { id: true, code: true },
-    });
-    const codeIds = new Map(codes.map((c) => [c.code, c.id]));
-
-    const dtoLines = lines.map((line) => {
-      const label = `line ${line.lineNumber}`;
-      const accountId =
-        accountOverrides.get(line.lineNumber) ??
-        accountingIntent?.lines.find((l) => l.sourceLineNumber === line.lineNumber)?.accountId ??
-        null;
-      const taxCodeId = line.taxClassification ? codeIds.get(line.taxClassification) : undefined;
-      if (!accountId) missing.push(`${label}: account`);
-      if (!taxCodeId) missing.push(`${label}: tax code`);
-      if (line.quantity === null) missing.push(`${label}: quantity`);
-      if (line.unitPrice === null) missing.push(`${label}: unit price`);
-      return {
-        accountId: accountId ?? '',
-        description: line.description,
-        quantity: line.quantity ?? '',
-        unitPrice: line.unitPrice ?? '',
-        taxCodeId,
-      };
-    });
-
-    if (missing.length > 0) {
-      throw new DomainException('AI_DRAFT_INCOMPLETE', `The document is missing: ${missing.join('; ')}`, { missing });
-    }
-
-    return {
-      contactId,
-      issueDate: extraction.invoiceDate!,
-      dueDate: extraction.dueDate!,
-      currency: extraction.currency!,
-      reference: extraction.invoiceNumber,
-      lines: dtoLines,
-    } as CreateInvoiceDto;
-  }
 }

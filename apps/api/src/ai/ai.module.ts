@@ -36,6 +36,7 @@ import { LlmExtractionService } from './extraction/llm-extraction.service';
 import { ExtractionValidationService } from './validation/extraction-validation.service';
 import { DirectionFallbackService } from './document-intelligence/direction-fallback.service';
 import { CodingSuggestionService } from './coding/coding-suggestion.service';
+import { AiReviewService } from './review/ai-review.service';
 
 /** Picks the model provider from AI_PROVIDER; null means AI calls are blocked (and logged as such). */
 function createAiProvider(config: AppEnv): AiProvider | null {
@@ -82,6 +83,7 @@ function createAiProvider(config: AppEnv): AiProvider | null {
     ExtractionValidationService,
     DirectionFallbackService,
     CodingSuggestionService,
+    AiReviewService,
   ],
   exports: [
     DocumentIntelligenceService,

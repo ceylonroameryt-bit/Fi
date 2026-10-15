@@ -177,6 +177,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       items: [
         { label: 'Suppliers', href: '/purchases/suppliers', icon: Truck },
         { label: 'Bills', href: '/purchases/bills', icon: FileCheck },
+        { label: 'Review queue', href: '/purchases/review', icon: Sparkles },
         { label: 'Expenses', href: '/purchases/expenses', icon: CreditCard },
         { label: 'Supplier Payments', href: '/purchases/payments', icon: ArrowRightLeft },
       ],

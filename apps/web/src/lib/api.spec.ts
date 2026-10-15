@@ -27,6 +27,7 @@ describe('Web API Client & Endpoint Resolution', () => {
       expect(resolveEndpoint('/contacts', orgId)).toBe(`/organizations/${orgId}/contacts`);
       expect(resolveEndpoint('/reports', orgId)).toBe(`/organizations/${orgId}/reports`);
       expect(resolveEndpoint('/vat-return', orgId)).toBe(`/organizations/${orgId}/vat-return`);
+      expect(resolveEndpoint('/bills/abc/approve', orgId)).toBe(`/organizations/${orgId}/bills/abc/approve`);
       // Tax codes are global reference data, not organisation-scoped.
       expect(resolveEndpoint('/tax-codes', orgId)).toBe('/tax-codes');
       expect(resolveEndpoint('/financial-years', orgId)).toBe(`/organizations/${orgId}/financial-years`);

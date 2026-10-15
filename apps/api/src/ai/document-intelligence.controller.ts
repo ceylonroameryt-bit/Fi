@@ -9,12 +9,17 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentIntakeService } from '../documents/document-intake.service';
 import { DocumentPipelineService } from './pipeline/document-pipeline.service';
+import { AiReviewService } from './review/ai-review.service';
+import { ApproveReviewedDto, ReviewQueueQueryDto } from './dto/review.dto';
+import type { Response } from 'express';
 import { CurrentActor, CurrentOrg, RequirePermission } from '../common/decorators';
 import type { Actor, OrgContext } from '../common/types/request-context.types';
 import { DocumentIntelligenceService } from './document-intelligence/document-intelligence.service';
@@ -35,6 +40,7 @@ export class DocumentIntelligenceController {
     private readonly feedback: AiFeedbackService,
     private readonly intake: DocumentIntakeService,
     private readonly pipeline: DocumentPipelineService,
+    private readonly review: AiReviewService,
   ) {}
 
   /** Multipart upload (field "file"): PDF, JPEG, PNG or TIFF. */
@@ -126,40 +132,82 @@ export class DocumentIntelligenceController {
     return this.docAi.getDocument(org.organizationId, docId);
   }
 
+  /** Review queue: documents awaiting a person, sorted by confidence (sort key only). */
+  @Get('review-queue')
+  @RequirePermission('invoice.view')
+  reviewQueue(@CurrentOrg() org: OrgContext, @Query() query: ReviewQueueQueryDto) {
+    return this.review.queue(org.organizationId, query.sort);
+  }
+
+  /** Fields with status, source quote and position on the document, plus the document's pages. */
+  @Get('documents/:docId/review')
+  @RequirePermission('invoice.view')
+  getReview(@CurrentOrg() org: OrgContext, @Param('docId', ParseUUIDPipe) docId: string) {
+    return this.review.review(org.organizationId, docId);
+  }
+
+  @Get('documents/:docId/file')
+  @RequirePermission('invoice.view')
+  async getFile(@CurrentOrg() org: OrgContext, @Param('docId', ParseUUIDPipe) docId: string, @Res() res: Response) {
+    const file = await this.review.file(org.organizationId, docId);
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${file.fileName.replace(/["\r\n]/g, '')}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(file.body);
+  }
+
+  /** Approve with the reviewer's final values (every field editable). */
+  @Post('documents/:docId/review/approve')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission('ai_draft.approve')
+  approveReviewed(
+    @CurrentOrg() org: OrgContext,
+    @CurrentActor() actor: Actor,
+    @Param('docId', ParseUUIDPipe) docId: string,
+    @Body() dto: ApproveReviewedDto,
+  ) {
+    return this.review.approve(org.organizationId, docId, dto, org, actor);
+  }
+
+  /** Approve the AI values as they are (same rules as a reviewed approval). */
   @Post('documents/:docId/approve')
   @HttpCode(HttpStatus.OK)
-  @RequirePermission('invoice.create')
+  @RequirePermission('ai_draft.approve')
   async approveSuggestion(
     @CurrentOrg() org: OrgContext,
     @CurrentActor() actor: Actor,
     @Param('docId', ParseUUIDPipe) docId: string,
     @Body() dto: ApproveSuggestionDto,
   ) {
-    return this.docAi.approveSuggestion(org.organizationId, docId, org, actor, dto.contactId);
+    const reviewed = await this.review.fromSuggestion(org.organizationId, docId, dto.contactId);
+    return this.review.approve(org.organizationId, docId, reviewed, org, actor);
   }
 
+  /** Approve with a different contact and/or accounts per line. */
   @Post('documents/:docId/edit')
   @HttpCode(HttpStatus.OK)
-  @RequirePermission('invoice.create')
+  @RequirePermission('ai_draft.approve')
   async editAndApprove(
     @CurrentOrg() org: OrgContext,
     @CurrentActor() actor: Actor,
     @Param('docId', ParseUUIDPipe) docId: string,
     @Body() dto: EditAndApproveDto,
   ) {
-    return this.docAi.editAndApproveSuggestion(org.organizationId, docId, org, actor, dto);
+    const accounts = new Map(dto.lines.map((l) => [l.lineNumber, l.accountId]));
+    const reviewed = await this.review.fromSuggestion(org.organizationId, docId, dto.contactId, accounts);
+    return this.review.approve(org.organizationId, docId, reviewed, org, actor);
   }
 
   @Post('documents/:docId/reject')
   @HttpCode(HttpStatus.OK)
-  @RequirePermission('invoice.create')
+  @RequirePermission('ai_draft.approve')
   async rejectSuggestion(
     @CurrentOrg() org: OrgContext,
     @CurrentActor() actor: Actor,
     @Param('docId', ParseUUIDPipe) docId: string,
     @Body() dto: RejectSuggestionDto,
   ) {
-    return this.docAi.rejectSuggestion(org.organizationId, docId, actor.userId ?? '', dto.reason);
+    return this.review.reject(org.organizationId, docId, dto.reason, actor);
   }
 
   @Get('business-context')

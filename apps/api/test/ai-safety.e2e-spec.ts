@@ -37,8 +37,8 @@ describe('AI safety fixes (Stage 4 E2E)', () => {
 
   const ownSalesInvoiceText = () =>
     [
+      // No VAT line: our test VAT number has invalid check digits, which review would (rightly) flag.
       `Supplier: ${orgName}`,
-      'VAT Reg No: GB987654321',
       `Invoice No: ${ourInvoiceNumber}`,
       'Invoice Date: 2026-04-20',
       'Due Date: 2026-05-20',
@@ -149,8 +149,10 @@ Thank you`);
     expect(doc.duplicate).toBe(false);
     const res = await auth(http().post(`/api/v1/organizations/${orgId}/ai/documents/${doc.id}/edit`))
       .send({ contactId: customerId, lines: [{ lineNumber: 1, description: 'Consulting', accountId: salesAccountId }] })
-      .expect(409);
-    expect(JSON.stringify(res.body)).toContain('AI_DUPLICATE_DOCUMENT');
+      .expect(422);
+    // Stage 12: validation flags the duplicate at review, before any draft is attempted.
+    expect(JSON.stringify(res.body)).toContain('AI_REVIEW_INCONSISTENT');
+    expect(JSON.stringify(res.body)).toContain('is already document');
   });
 
   it('refuses an incomplete sales draft and lists what is missing', async () => {

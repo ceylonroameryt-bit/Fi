@@ -909,6 +909,7 @@ model AiDocument {
   auditEvents         AiAuditEvent[]
   pages               AiDocumentPage[]
   bill                Bill?                  @relation("BillSourceDocument")
+  reviewDecisions     AiReviewDecision[]
 
   @@unique([organizationId, id])
   @@unique([organizationId, contentSha256])
@@ -1268,4 +1269,30 @@ model BillLine {
   @@unique([billId, lineNumber])
   @@index([organizationId, accountId])
   @@map("bill_lines")
+}
+
+/// Stage 12: what the AI proposed vs what the reviewer approved, side by side (append-only).
+model AiReviewDecision {
+  id                 String   @id @default(uuid()) @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  documentId         String   @map("document_id") @db.Uuid
+  suggestionId       String   @map("suggestion_id") @db.Uuid
+  reviewerId         String   @map("reviewer_id") @db.Uuid
+  /// APPROVED (no changes), EDITED (approved with changes) or REJECTED.
+  outcome            String   @db.VarChar(20)
+  aiValues           Json     @map("ai_values")
+  finalValues        Json     @map("final_values")
+  changedFields      Json     @default("[]") @map("changed_fields")
+  /// Inconsistent validation findings the reviewer accepted, with reasons.
+  overrides          Json     @default("[]")
+  reason             String?  @db.VarChar(500)
+  resultingBillId    String?  @map("resulting_bill_id") @db.Uuid
+  resultingInvoiceId String?  @map("resulting_invoice_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  document AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, documentId])
+  @@index([organizationId, createdAt])
+  @@map("ai_review_decisions")
 }
