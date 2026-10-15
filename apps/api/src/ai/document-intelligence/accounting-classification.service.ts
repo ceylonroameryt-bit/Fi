@@ -48,6 +48,8 @@ export class AccountingClassificationService {
     direction: 'PURCHASE' | 'SALE',
     lines: ClassifiedLineResult[],
     contact: Contact | null,
+    /** Accounts chosen by CodingSuggestionService; when given, no category fallback is used. */
+    lineAccountIds?: Map<number, string | null>,
   ): Promise<ProposedAccountingIntent> {
     const accounts = await this.db.account.findMany({ where: { organizationId, isActive: true } });
     const missing: string[] = [];
@@ -62,7 +64,9 @@ export class AccountingClassificationService {
       if (line.netAmount === null) missing.push(`${label}: net amount`);
       if (line.taxAmount === null) missing.push(`${label}: VAT amount`);
       if (line.taxClassification === null) missing.push(`${label}: tax code`);
-      const account = this.accountForLine(accounts, line, direction);
+      const account = lineAccountIds
+        ? (accounts.find((a) => a.id === lineAccountIds.get(line.lineNumber)) ?? null)
+        : this.accountForLine(accounts, line, direction);
       if (!account) missing.push(`${label}: account`);
 
       const net = this.money.toDecimal(line.netAmount ?? '0');

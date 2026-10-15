@@ -14,6 +14,7 @@ import { RawExtractionResult } from '../providers/llm-provider.interface';
 import { DocumentClassifierService } from './document-classifier.service';
 import { EntityMatchResult, EntityResolutionService } from './entity-resolution.service';
 import { DirectionFallbackService } from './direction-fallback.service';
+import { CodingSuggestionService, LineCoding } from '../coding/coding-suggestion.service';
 import { TransactionDirectionService } from './transaction-direction.service';
 import { LineClassificationService, ClassifiedLineResult } from './line-classification.service';
 import { AccountingClassificationService, ProposedAccountingIntent } from './accounting-classification.service';
@@ -42,6 +43,8 @@ export interface SuggestionPayload {
   entity: { id: string; name: string } | null;
   lines: ClassifiedLineResult[];
   accountingIntent: ProposedAccountingIntent | null;
+  /** Per-line account / tax code suggestion with its source and reason. */
+  coding?: LineCoding[];
   counterpartyMatch?: Pick<EntityMatchResult, 'matchType' | 'confidence' | 'reason' | 'candidates'> | null;
   proposedContact?: ProposedContact | null;
 }
@@ -73,6 +76,7 @@ export class DocumentIntelligenceService {
     private readonly llmExtraction: LlmExtractionService,
     private readonly validator: ExtractionValidationService,
     private readonly directionFallback: DirectionFallbackService,
+    private readonly coding: CodingSuggestionService,
     @Optional() @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider | null,
   ) {}
 
@@ -201,6 +205,25 @@ export class DocumentIntelligenceService {
       targetEntity?.id,
       { subtotal: extraction.subtotal, vatTotal: extraction.vatTotal },
     );
+    // Account and tax code per line: counterparty history, then rules, then the model (own lists only).
+    const coding =
+      direction === AiDirection.UNKNOWN
+        ? []
+        : await this.coding.suggest({
+            organizationId,
+            userId: doc.createdById,
+            documentId,
+            direction: direction === AiDirection.PURCHASE ? 'PURCHASE' : 'SALE',
+            contactId: targetEntity?.id ?? null,
+            contactName: targetEntity?.name ?? null,
+            lines,
+            postingDate: extraction.invoiceDate ? new Date(extraction.invoiceDate) : null,
+            business: [businessProfile.industry && `industry ${businessProfile.industry}`].filter(Boolean).join(', ') || undefined,
+          });
+    for (const c of coding) {
+      const line = lines.find((l) => l.lineNumber === c.lineNumber);
+      if (line) line.taxClassification = c.taxCode;
+    }
     const intent =
       direction === AiDirection.UNKNOWN
         ? null
@@ -209,10 +232,12 @@ export class DocumentIntelligenceService {
             direction === AiDirection.PURCHASE ? 'PURCHASE' : 'SALE',
             lines,
             targetEntity,
+            new Map(coding.map((c) => [c.lineNumber, c.accountId])),
           );
 
     for (const line of lines) {
       const proposed = intent?.lines.find((l) => l.sourceLineNumber === line.lineNumber);
+      const lineCoding = coding.find((c) => c.lineNumber === line.lineNumber);
       await this.db.aiLineClassification.create({
         data: {
           organizationId,
@@ -230,6 +255,10 @@ export class DocumentIntelligenceService {
           taxClassification: line.taxClassification,
           accountingCategory: line.accountingCategory,
           resolvedAccountId: proposed?.accountId ?? null,
+          suggestedTaxCodeId: lineCoding?.taxCodeId ?? null,
+          accountSource: lineCoding?.accountSource ?? null,
+          taxSource: lineCoding?.taxSource ?? null,
+          codingReason: lineCoding?.reason.slice(0, 1000) ?? null,
           confidenceScore: new Prisma.Decimal(line.confidence),
         },
       });
@@ -274,6 +303,7 @@ export class DocumentIntelligenceService {
       entity: targetEntity ? { id: targetEntity.id, name: targetEntity.name } : null,
       lines,
       accountingIntent: intent,
+      coding,
       counterpartyMatch: counterparty
         ? { matchType: counterparty.matchType, confidence: counterparty.confidence, reason: counterparty.reason, candidates: counterparty.candidates }
         : null,
@@ -482,7 +512,13 @@ export class DocumentIntelligenceService {
       include: {
         extractions: true,
         classifications: true,
-        lineClassifications: { include: { account: { select: { id: true, code: true, name: true } } } },
+        lineClassifications: {
+          include: {
+            account: { select: { id: true, code: true, name: true } },
+            suggestedTaxCode: { select: { id: true, code: true, name: true } },
+          },
+          orderBy: { lineNumber: 'asc' },
+        },
         suggestions: true,
         auditEvents: { orderBy: { createdAt: 'desc' } },
       },

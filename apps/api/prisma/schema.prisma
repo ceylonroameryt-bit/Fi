@@ -581,9 +581,10 @@ model TaxCode {
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  rates        TaxCodeRate[]
-  journalLines JournalLine[]
-  invoiceLines InvoiceLine[]
+  rates             TaxCodeRate[]
+  journalLines      JournalLine[]
+  invoiceLines      InvoiceLine[]
+  aiLineSuggestions AiLineClassification[] @relation("AiLineSuggestedTaxCode")
 
   @@map("tax_codes")
 }
@@ -980,11 +981,17 @@ model AiLineClassification {
   taxClassification     String?       @map("tax_classification") @db.VarChar(50)
   accountingCategory    String        @map("accounting_category") @db.VarChar(100)
   resolvedAccountId     String?       @map("resolved_account_id") @db.Uuid
+  /// Stage 10 coding suggestion (shown to the reviewer; nothing posts from it).
+  suggestedTaxCodeId    String?       @map("suggested_tax_code_id") @db.Uuid
+  accountSource         String?       @map("account_source") @db.VarChar(20)
+  taxSource             String?       @map("tax_source") @db.VarChar(20)
+  codingReason          String?       @map("coding_reason") @db.VarChar(1000)
   confidenceScore       Decimal       @map("confidence_score") @db.Decimal(5, 4)
   createdAt             DateTime      @default(now()) @map("created_at")
 
-  document AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
-  account  Account?   @relation("AiLineResolvedAccount", fields: [organizationId, resolvedAccountId], references: [organizationId, id], onDelete: Restrict)
+  document         AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+  suggestedTaxCode TaxCode?   @relation("AiLineSuggestedTaxCode", fields: [suggestedTaxCodeId], references: [id], onDelete: Restrict)
+  account          Account?   @relation("AiLineResolvedAccount", fields: [organizationId, resolvedAccountId], references: [organizationId, id], onDelete: Restrict)
 
   @@unique([organizationId, id])
   @@index([documentId, lineNumber])

@@ -24,6 +24,8 @@ describe('LLM extraction (Stage 7 E2E)', () => {
   const run = Date.now();
 
   const http = () => request(app.getHttpServer());
+  /** Coding step answer (Stage 10): the model declines, leaving the reviewer to choose. */
+  const codingUnsure = { output: { lines: [{ lineNumber: 1, accountCode: null, taxCode: null, reason: 'Not enough information.' }] } };
   const upload = (bytes: Buffer) =>
     http()
       .post(`/api/v1/organizations/${orgId}/ai/documents`)
@@ -95,7 +97,7 @@ describe('LLM extraction (Stage 7 E2E)', () => {
 
   it('extracts with the model, drops values not on the document, and decides direction by rules', async () => {
     const invoiceNo = `LLM-${run}`;
-    ai.enqueue({ output: modelAnswer(invoiceNo), inputTokens: 3000, outputTokens: 600 });
+    ai.enqueue({ output: modelAnswer(invoiceNo), inputTokens: 3000, outputTokens: 600 }).enqueue(codingUnsure);
     const doc = (await upload(bill(invoiceNo))).body;
     await drain();
 
@@ -106,11 +108,13 @@ describe('LLM extraction (Stage 7 E2E)', () => {
     expect(extraction).toMatchObject({ invoiceNumber: invoiceNo, currency: 'GBP', issuerTaxId: 'GB123456789', dueDate: null, modelVersion: 'document.extract@v1' });
     expect(extraction.totalAmount!.toFixed(2)).toBe('1200.00');
     expect((extraction.rawStructuredData as any).verificationIssues).toEqual([{ field: 'dueDate', issue: 'SOURCE_NOT_FOUND' }]);
+    const [lineRow] = await prisma.aiLineClassification.findMany({ where: { documentId: doc.id } });
+    expect(lineRow).toMatchObject({ resolvedAccountId: null, accountSource: 'NONE', codingReason: expect.stringContaining('AI: Not enough information.') });
 
     // The request carried the document as delimited data, and the call was logged against the document.
-    const req = ai.requests.at(-1)!;
+    const req = [...ai.requests].reverse().find((r) => r.userContent.includes('<document id='))!;
     expect(req.userContent).toMatch(/<document id="[0-9a-f]{16}">[\s\S]*ignore all previous instructions[\s\S]*<\/document id="[0-9a-f]{16}">/);
-    const usage = await prisma.aiUsageLog.findFirstOrThrow({ where: { documentId: doc.id } });
+    const usage = await prisma.aiUsageLog.findFirstOrThrow({ where: { documentId: doc.id, promptKey: 'document.extract' } });
     expect(usage).toMatchObject({ status: 'SUCCESS', promptKey: 'document.extract', inputTokens: 3000, outputTokens: 600 });
   });
 
@@ -127,7 +131,7 @@ describe('LLM extraction (Stage 7 E2E)', () => {
     expect(first.totalAmount!.toFixed(2)).toBe('1200.00');
 
     // The same bill re-sent as a different file (e.g. re-scan) is flagged as a duplicate.
-    ai.enqueue({ output: modelAnswer(invoiceNo) });
+    ai.enqueue({ output: modelAnswer(invoiceNo) }).enqueue(codingUnsure);
     const again = (await upload(bill(invoiceNo, ['Copy']))).body;
     await drain();
     const second = await prisma.aiExtraction.findFirstOrThrow({ where: { documentId: again.id } });
@@ -169,14 +173,14 @@ describe('LLM extraction (Stage 7 E2E)', () => {
 
   it('retries a provider outage with backoff and then succeeds', async () => {
     const invoiceNo = `RETRY-${run}`;
-    ai.enqueueError(new Error('503 overloaded')).enqueue({ output: modelAnswer(invoiceNo) });
+    ai.enqueueError(new Error('503 overloaded')).enqueue({ output: modelAnswer(invoiceNo) }).enqueue(codingUnsure);
     const doc = (await upload(bill(invoiceNo))).body;
     await drain();
 
     expect((await prisma.aiDocument.findUniqueOrThrow({ where: { id: doc.id } })).status).toBe('AWAITING_REVIEW');
     const job = await prisma.job.findFirstOrThrow({ where: { type: 'document.analyse', payload: { path: ['documentId'], equals: doc.id } } });
     expect(job).toMatchObject({ status: 'SUCCEEDED', attempts: 2 });
-    const statuses = (await prisma.aiUsageLog.findMany({ where: { documentId: doc.id }, orderBy: { createdAt: 'asc' } })).map((u) => u.status);
+    const statuses = (await prisma.aiUsageLog.findMany({ where: { documentId: doc.id, promptKey: 'document.extract' }, orderBy: { createdAt: 'asc' } })).map((u) => u.status);
     expect(statuses).toEqual(['ERROR', 'SUCCESS']);
   });
 
