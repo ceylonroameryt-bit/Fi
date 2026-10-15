@@ -3,6 +3,7 @@ import { DatabaseModule } from '../database/database.module';
 import { StorageModule } from '../common/storage/storage.module';
 import { AccountingEngineModule } from '../accounting-engine/accounting-engine.module';
 import { InvoicesModule } from '../invoices/invoices.module';
+import { DocumentsModule } from '../documents/documents.module';
 import { BusinessContextService } from './business-context/business-context.service';
 import { HeuristicLlmProvider } from './providers/heuristic-llm.provider';
 import { DocumentClassifierService } from './document-intelligence/document-classifier.service';
@@ -46,7 +47,7 @@ function createAiProvider(config: AppEnv): AiProvider | null {
 }
 
 @Module({
-  imports: [DatabaseModule, StorageModule, AccountingEngineModule, InvoicesModule],
+  imports: [DatabaseModule, StorageModule, AccountingEngineModule, InvoicesModule, DocumentsModule],
   controllers: [DocumentIntelligenceController, AiGatewayController],
   providers: [
     BusinessContextService,

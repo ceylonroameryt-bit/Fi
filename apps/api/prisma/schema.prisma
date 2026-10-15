@@ -865,22 +865,27 @@ model OrganizationBusinessContext {
 }
 
 model AiDocument {
-  id              String            @id @default(uuid()) @db.Uuid
-  organizationId  String            @map("organization_id") @db.Uuid
-  fileKey         String            @map("file_key") @db.VarChar(255)
-  fileName        String            @map("file_name") @db.VarChar(255)
-  fileSize        Int               @map("file_size")
-  mimeType        String            @map("mime_type") @db.VarChar(100)
-  documentType    AiDocumentType    @default(UNKNOWN) @map("document_type")
-  direction       AiDirection       @default(UNKNOWN)
-  status          AiDocumentStatus  @default(PENDING)
-  confidenceScore Decimal?          @map("confidence_score") @db.Decimal(5, 4)
-  confidenceLevel AiConfidenceLevel @default(MEDIUM) @map("confidence_level")
-  errorMessage    String?           @map("error_message") @db.VarChar(500)
-  createdById     String            @map("created_by") @db.Uuid
-  processedAt     DateTime?         @map("processed_at")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String              @map("organization_id") @db.Uuid
+  fileKey         String              @map("file_key") @db.VarChar(255)
+  fileName        String              @map("file_name") @db.VarChar(255)
+  fileSize        Int                 @map("file_size")
+  mimeType        String              @map("mime_type") @db.VarChar(100)
+  documentType    AiDocumentType      @default(UNKNOWN) @map("document_type")
+  direction       AiDirection         @default(UNKNOWN)
+  status          AiDocumentStatus    @default(PENDING)
+  confidenceScore Decimal?            @map("confidence_score") @db.Decimal(5, 4)
+  confidenceLevel AiConfidenceLevel   @default(MEDIUM) @map("confidence_level")
+  errorMessage    String?             @map("error_message") @db.VarChar(500)
+  /// sha256 of the stored bytes; unique per organisation (duplicate uploads return the existing document).
+  contentSha256   String?             @map("content_sha256") @db.Char(64)
+  textSource      DocumentTextSource? @map("text_source")
+  extractedText   String?             @map("extracted_text") @db.Text
+  pageCount       Int?                @map("page_count")
+  createdById     String              @map("created_by") @db.Uuid
+  processedAt     DateTime?           @map("processed_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
 
   organization        Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   createdBy           User                   @relation("AiDocumentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
@@ -889,8 +894,10 @@ model AiDocument {
   lineClassifications AiLineClassification[]
   suggestions         AiSuggestion[]
   auditEvents         AiAuditEvent[]
+  pages               AiDocumentPage[]
 
   @@unique([organizationId, id])
+  @@unique([organizationId, contentSha256])
   @@index([organizationId, status])
   @@index([organizationId, documentType])
   @@map("ai_documents")
@@ -1084,4 +1091,34 @@ model AiUsageLog {
   @@index([organizationId, createdAt])
   @@index([organizationId, feature])
   @@map("ai_usage_logs")
+}
+
+enum DocumentTextSource {
+  /// Embedded text layer of a digital PDF.
+  PDF_TEXT
+  /// Optical character recognition (photos, scans).
+  OCR
+  /// Uploaded as plain text (dev/testing, email bodies).
+  PLAIN_TEXT
+}
+
+/// One row per page with word positions, used to highlight extracted values on the document.
+model AiDocumentPage {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  documentId     String   @map("document_id") @db.Uuid
+  pageNumber     Int      @map("page_number")
+  /// Page size in PDF points when known (null for OCR of images).
+  width          Float?
+  height         Float?
+  /// [{ text, x0, y0, x1, y1, confidence? }] with coordinates normalised to 0..1, origin top-left.
+  words          Json     @default("[]")
+  text           String   @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  document AiDocument @relation(fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+
+  @@unique([documentId, pageNumber])
+  @@index([organizationId, documentId])
+  @@map("ai_document_pages")
 }

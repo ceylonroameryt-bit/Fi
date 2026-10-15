@@ -54,6 +54,10 @@ const envSchema = z
     AI_MODEL: z.string().min(1).default('claude-opus-5-5'),
     // Minutes between background business-profile refreshes; 0 = off.
     AI_PROFILE_REFRESH_MINUTES: z.coerce.number().int().min(0).default(0),
+    // Document upload (Stage 5)
+    DOCUMENT_MAX_BYTES: z.coerce.number().int().min(1024).default(20 * 1024 * 1024),
+    // OCR for photos/scanned PDFs: 'none' rejects them with OCR_UNAVAILABLE; 'fake' is for tests/dev.
+    OCR_PROVIDER: z.enum(['none', 'textract', 'fake']).default('none'),
     // Owners and accountants must complete MFA before accessing an organisation.
     // May only be turned off outside production (e.g. legacy e2e fixtures).
     MFA_REQUIRED_FOR_PRIVILEGED_ROLES: z

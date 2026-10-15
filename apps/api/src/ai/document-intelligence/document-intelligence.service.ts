@@ -68,9 +68,7 @@ export class DocumentIntelligenceService {
     if (!doc) {
       throw new NotFoundException(`Document ${documentId} not found for this organisation.`);
     }
-    if (!doc.organization.aiEnabled) {
-      throw new DomainException('AI_DISABLED', 'AI features are switched off for this organisation');
-    }
+    await this.assertAiEnabled(organizationId);
 
     try {
       await this.audit.logEvent(organizationId, documentId, 'REQUESTED', doc.createdById);
@@ -89,7 +87,8 @@ export class DocumentIntelligenceService {
         buffer: fileBuffer ?? Buffer.from(options?.text ?? ''),
         fileName: doc.fileName,
         mimeType: doc.mimeType,
-        text: options?.text,
+        // Text comes from upload intake (PDF text layer / OCR); options.text only for legacy callers.
+        text: doc.extractedText ?? options?.text,
       });
 
       await this.db.aiExtraction.create({
@@ -265,6 +264,13 @@ export class DocumentIntelligenceService {
         data: { status: AiDocumentStatus.FAILED, errorMessage: errorMsg.slice(0, 500), processedAt: new Date() },
       });
       throw err;
+    }
+  }
+
+  async assertAiEnabled(organizationId: string): Promise<void> {
+    const org = await this.db.organization.findUnique({ where: { id: organizationId }, select: { aiEnabled: true } });
+    if (!org?.aiEnabled) {
+      throw new DomainException('AI_DISABLED', 'AI features are switched off for this organisation');
     }
   }
 

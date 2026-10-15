@@ -36,7 +36,7 @@ Monorepo (npm workspaces): `apps/api` (NestJS 11 + Prisma 6 + PostgreSQL, Jest),
 | 2 | VAT & tax engine | **done** (feature/vat-engine) — was missing: | No `TaxCode` model. VAT stored only as `InvoiceLine.taxRate`. `ai.constants.ts` hardcodes `STANDARD_VAT_RATE`. No VAT return. |
 | 3 | AI gateway + business profile | **done** (feature/ai-gateway) — was partial: | `ILlmProvider` interface exists; only a heuristic regex provider. No prompt versioning, usage/cost log, or per-org AI switch. `OrganizationBusinessContext` exists (industry, inventory) but no VAT scheme/supplier habits/refresh job. |
 | 4 | AI safety fixes | **done** (feature/ai-safety) — was missing: | See risks below. |
-| 5 | Upload/storage/OCR | **partial** | Storage service exists; `AiDocument` has no content hash; no PDF text layer / OCR / word positions. |
+| 5 | Upload/storage/OCR | **done** (feature/document-upload) — was partial: | Storage service exists; `AiDocument` has no content hash; no PDF text layer / OCR / word positions. |
 | 6 | Background processing | **missing** | `processDocument` runs synchronously in the upload request (`document-intelligence.controller.ts:45`). No queue. |
 | 7 | LLM extraction | **missing** | No real model; no schema, source quotes, or prompt-injection handling. |
 | 8 | Validation | **missing** | No arithmetic/VAT-number/duplicate checks on extractions. |
@@ -153,3 +153,13 @@ Every defect is a named fixture in `src/ai/__fixtures__/safety-fixtures.ts` with
 - Approved sales documents go through `InvoicesService.createInvoice` (code does all arithmetic, Stage 2 tax codes) as **DRAFT**s with the document number as `reference`; anything missing (dates, currency, quantity, unit price, account, tax code) returns `AI_DRAFT_INCOMPLETE` with the list. Nothing posts.
 - `ai_line_classifications` amount/tax columns are now nullable (migration `20261015200000_ai_safety_nullable_lines`); `TaxClassificationService` and `AiActionPolicyService` deleted; upload DTO and web page no longer offer auto-draft.
 - Known, deferred: `POST /ai/documents` is unreachable (stacked `@Post` decorators register only `/ai/documents/upload`) – fix with Stage 5 upload rework. The regex extractor is a stop-gap until Stage 7. Approve permission is still `invoice.create` until `ai_draft.approve` (Stage 12).
+
+### Stage 5 – Upload, storage & OCR: done (branch `feature/document-upload`, stacked on `feature/ai-safety`)
+- New `src/documents/` module. `DocumentIntakeService`: rejects empty files and files over `DOCUMENT_MAX_BYTES` (default 20 MB), detects the real type from magic bytes (PDF, JPEG, PNG, TIFF, UTF-8 plain text; markup and binaries rejected), and rejects a declared type that differs from the content (415).
+- Storage key `orgs/<orgId>/documents/<uuid>.<ext>`: random, organisation-prefixed, no user-supplied path; S3 objects stay private with SSE. Display file names are stripped of paths/control characters.
+- De-duplication: `ai_documents.content_sha256`, unique per organisation; an identical upload returns the existing document (`duplicate: true`) and is not reprocessed; concurrent duplicates resolved via the unique index.
+- Text: digital PDFs use their embedded text layer (pdf.js 3.11 legacy build, `isEvalSupported: false` because of CVE-2024-4367); PDFs with almost no text (scans) and photos go to OCR. Words stored per page in `ai_document_pages.words` with boxes normalised 0..1 (top-left origin) for Stage 12 highlighting; `text_source` = PDF_TEXT / OCR / PLAIN_TEXT.
+- OCR behind `OcrProvider`: `TextractOcrProvider` (AWS `DetectDocumentText`, sync: images and single-page PDFs) and `FakeOcrProvider`; `OCR_PROVIDER=none|textract|fake` (default none: photos are stored and marked FAILED with `OCR_UNAVAILABLE`, never guessed).
+- Endpoints: `POST /ai/documents` is now a real multipart upload (field `file`), fixing the unreachable stacked route; `POST /ai/documents/upload` keeps the JSON text path the web page uses. AI switch checked before anything is stored. The pipeline reads the stored text.
+- Decisions: Tesseract dropped for now. tesseract.js downloads language data at runtime (no network in CI) and cannot read PDFs, so tests use the fake provider and production uses Textract.
+- Deferred: email ingestion (.eml / inbound mailbox, attachments): not in the Stage 5 list; propose a separate stage. Multi-page scanned PDFs need Textract's async S3 API (Stage 6 jobs). Web file picker (the page still posts pasted text) moves to Stage 12. Textract not exercised against live AWS.

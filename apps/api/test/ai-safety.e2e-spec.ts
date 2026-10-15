@@ -127,8 +127,15 @@ describe('AI safety fixes (Stage 4 E2E)', () => {
     expect(tbAfter.isBalanced).toBe(true);
   });
 
-  it('BUG-16: the same document again is refused as a duplicate, not renamed', async () => {
-    const doc = (await upload(ownSalesInvoiceText()).expect(201)).body;
+  it('BUG-16: re-sending the same document is caught, never renamed', async () => {
+    // Byte-identical file: de-duplicated at upload (Stage 5), same document returned.
+    const again = (await upload(ownSalesInvoiceText()).expect(201)).body;
+    expect(again.duplicate).toBe(true);
+
+    // Different file (e.g. a re-scan) carrying the same invoice number: refused at approval.
+    const doc = (await upload(`${ownSalesInvoiceText()}
+Thank you`).expect(201)).body;
+    expect(doc.duplicate).toBe(false);
     const res = await auth(http().post(`/api/v1/organizations/${orgId}/ai/documents/${doc.id}/edit`))
       .send({ contactId: customerId, lines: [{ lineNumber: 1, description: 'Consulting', accountId: salesAccountId }] })
       .expect(409);

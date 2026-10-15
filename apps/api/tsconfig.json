@@ -24,7 +24,7 @@
     "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "types": ["node", "jest"]
+    "types": ["node", "jest", "multer"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "prisma/**/*.ts", "jest.config.ts"],
   "exclude": ["node_modules", "dist"]
