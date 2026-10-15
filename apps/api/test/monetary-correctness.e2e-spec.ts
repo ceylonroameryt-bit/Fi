@@ -6,6 +6,7 @@ import { PrismaService } from '../src/database/prisma.service';
 import { createValidationPipe } from '../src/common/validation/validation.pipe';
 import { RolesService } from '../src/roles/roles.service';
 import cookieParser from 'cookie-parser';
+import { Prisma } from '@prisma/client';
 
 describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
   let app: INestApplication;
@@ -293,17 +294,20 @@ describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
     expect(tb.isBalanced).toBe(true);
 
     // Sum of displayed account row debit balances
+    // Decimal, not float: at ledger scale float sums drift by pennies.
     const sumRowDebits = tb.accounts.reduce(
-      (acc: number, r: { debitBalance: string }) => acc + parseFloat(r.debitBalance),
-      0,
+      (acc: Prisma.Decimal, r: { debitBalance: string }) => acc.plus(r.debitBalance),
+      new Prisma.Decimal(0),
     );
     const sumRowCredits = tb.accounts.reduce(
-      (acc: number, r: { creditBalance: string }) => acc + parseFloat(r.creditBalance),
-      0,
+      (acc: Prisma.Decimal, r: { creditBalance: string }) => acc.plus(r.creditBalance),
+      new Prisma.Decimal(0),
     );
 
-    expect(sumRowDebits).toBeCloseTo(parseFloat(tb.totalDebit), 2);
-    expect(sumRowCredits).toBeCloseTo(parseFloat(tb.totalCredit), 2);
-    expect(parseFloat(tb.difference)).toBe(0);
+    expect(sumRowDebits.toFixed(2)).toBe(tb.totalDebit);
+    expect(sumRowCredits.toFixed(2)).toBe(tb.totalCredit);
+    expect(tb.difference).toBe('0.00');
+    // Any display gap is fully explained by row rounding.
+    expect(new Prisma.Decimal(tb.totalDebit).minus(tb.totalCredit).toFixed(2)).toBe(tb.roundingDifference);
   });
 });

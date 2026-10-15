@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AccountType, JournalStatus } from '@prisma/client';
+import { AccountType, JournalStatus, Prisma } from '@prisma/client';
 import { TrialBalanceService } from './trial-balance.service';
 import { MoneyService } from '../accounting-engine/money.service';
 import { PrismaService } from '../database/prisma.service';
@@ -66,6 +66,52 @@ describe('TrialBalanceService (Phase 12)', () => {
     const capital = result.accounts.find((a) => a.accountCode === '3010')!;
     expect(capital.creditBalance).toBe('25000.00');
     expect(capital.debitBalance).toBe('0.00');
+  });
+
+  it('totals equal the sum of displayed rows even when sub-penny balances round apart', async () => {
+    prisma.organization.findUnique.mockResolvedValue({ name: 'Alpha Ltd', baseCurrency: 'GBP' });
+    prisma.account.findMany.mockResolvedValue([
+      { id: 'acc-1', code: '1010', name: 'Bank', accountType: AccountType.ASSET },
+      { id: 'acc-2', code: '4000', name: 'Sales', accountType: AccountType.REVENUE },
+      { id: 'acc-3', code: '4100', name: 'Other Income', accountType: AccountType.REVENUE },
+    ]);
+    // Ledger balances exactly at 4dp, but each credit row rounds down while the debit rounds up.
+    prisma.journalLine.findMany.mockResolvedValue([
+      { accountId: 'acc-1', debit: new Prisma.Decimal('10.0060'), credit: new Prisma.Decimal(0) },
+      { accountId: 'acc-2', debit: new Prisma.Decimal(0), credit: new Prisma.Decimal('5.0030') },
+      { accountId: 'acc-3', debit: new Prisma.Decimal(0), credit: new Prisma.Decimal('5.0030') },
+    ]);
+
+    const result = await service.generateTrialBalance('org-123', {});
+
+    const sum = (key: 'debitBalance' | 'creditBalance') =>
+      result.accounts.reduce((acc, r) => acc.plus(r[key]), new Prisma.Decimal(0)).toFixed(2);
+
+    expect(result.isBalanced).toBe(true);
+    expect(result.totalDebit).toBe(sum('debitBalance'));
+    expect(result.totalCredit).toBe(sum('creditBalance'));
+    expect(result.totalDebit).toBe('10.01');
+    expect(result.totalCredit).toBe('10.00');
+    expect(result.difference).toBe('0.00');
+    expect(result.roundingDifference).toBe('0.01');
+  });
+
+  it('reports the true ledger difference when unbalanced, separate from display rounding', async () => {
+    prisma.organization.findUnique.mockResolvedValue({ name: 'Alpha Ltd', baseCurrency: 'GBP' });
+    prisma.account.findMany.mockResolvedValue([
+      { id: 'acc-1', code: '1010', name: 'Bank', accountType: AccountType.ASSET },
+      { id: 'acc-2', code: '3010', name: 'Capital', accountType: AccountType.EQUITY },
+    ]);
+    prisma.journalLine.findMany.mockResolvedValue([
+      { accountId: 'acc-1', debit: new Prisma.Decimal('100.00'), credit: new Prisma.Decimal(0) },
+      { accountId: 'acc-2', debit: new Prisma.Decimal(0), credit: new Prisma.Decimal('99.50') },
+    ]);
+
+    const result = await service.generateTrialBalance('org-123', {});
+
+    expect(result.isBalanced).toBe(false);
+    expect(result.difference).toBe('0.50');
+    expect(result.roundingDifference).toBe('0.00');
   });
 
   it('queries only POSTED and REVERSED status lines', async () => {
