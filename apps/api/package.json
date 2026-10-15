@@ -20,6 +20,7 @@
     "admin:bootstrap": "ts-node scripts/bootstrap-super-admin.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.134.0",
     "@aws-sdk/client-s3": "^3.1146.0",
     "@aws-sdk/s3-request-presigner": "^3.1146.0",
     "@nestjs/cli": "^11.0.7",

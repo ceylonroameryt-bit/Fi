@@ -265,6 +265,8 @@ model Organization {
   addressLine2            String?            @map("address_line_2") @db.VarChar(200)
   city                    String?            @db.VarChar(100)
   postcode                String?            @db.VarChar(20)
+  // Master switch for every AI feature in this organisation (off until an admin enables it).
+  aiEnabled               Boolean            @default(false) @map("ai_enabled")
   status                  OrganizationStatus @default(ACTIVE)
   createdById             String             @map("created_by") @db.Uuid
   createdAt               DateTime           @default(now()) @map("created_at")
@@ -285,6 +287,7 @@ model Organization {
   aiDocuments     AiDocument[]
   aiExtractions   AiExtraction[]
   aiFeedbacks     AiFeedback[]
+  aiUsageLogs     AiUsageLog[]
 
   @@index([status])
   @@map("organizations")
@@ -839,15 +842,22 @@ enum AiSuggestionStatus {
 }
 
 model OrganizationBusinessContext {
-  id                  String   @id @default(uuid()) @db.Uuid
-  organizationId      String   @unique @map("organization_id") @db.Uuid
-  industry            String   @default("GENERAL") @db.VarChar(50)
-  inventoryEnabled    Boolean  @default(true) @map("inventory_enabled")
-  inventoryCategories Json     @default("[]") @map("inventory_categories")
-  salesChannels       Json     @default("[]") @map("sales_channels")
-  accountingMethod    String   @default("INVENTORY_BASED") @map("accounting_method") @db.VarChar(50)
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                  String     @id @default(uuid()) @db.Uuid
+  organizationId      String     @unique @map("organization_id") @db.Uuid
+  industry            String     @default("GENERAL") @db.VarChar(50)
+  inventoryEnabled    Boolean    @default(true) @map("inventory_enabled")
+  inventoryCategories Json       @default("[]") @map("inventory_categories")
+  salesChannels       Json       @default("[]") @map("sales_channels")
+  accountingMethod    String     @default("INVENTORY_BASED") @map("accounting_method") @db.VarChar(50)
+  // Set by a person; null means not yet stated (never inferred).
+  vatScheme           VatScheme? @map("vat_scheme")
+  // Derived from posted ledger history by BusinessProfileService.refresh (Stage 3).
+  usualSuppliers      Json       @default("[]") @map("usual_suppliers")
+  usualCustomers      Json       @default("[]") @map("usual_customers")
+  codingHabits        Json       @default("[]") @map("coding_habits")
+  profileRefreshedAt  DateTime?  @map("profile_refreshed_at")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -1023,4 +1033,55 @@ model AiAuditEvent {
   @@index([organizationId, documentId])
   @@index([organizationId, createdAt])
   @@map("ai_audit_events")
+}
+
+enum VatScheme {
+  STANDARD
+  CASH_ACCOUNTING
+  FLAT_RATE
+  ANNUAL_ACCOUNTING
+  NOT_REGISTERED
+}
+
+enum AiCallStatus {
+  /// Valid, schema-conforming output.
+  SUCCESS
+  /// Model declined (stop_reason = refusal).
+  REFUSED
+  /// Output missing, truncated or failed schema validation.
+  INVALID_OUTPUT
+  /// Provider/network error.
+  ERROR
+  /// Not sent: AI disabled for the organisation or no provider configured.
+  BLOCKED
+}
+
+/// One row per model call made through AiGatewayService (tokens, cost, prompt version).
+model AiUsageLog {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @map("organization_id") @db.Uuid
+  userId           String?      @map("user_id") @db.Uuid
+  feature          String       @db.VarChar(50)
+  provider         String       @db.VarChar(30)
+  model            String?      @db.VarChar(64)
+  promptKey        String       @map("prompt_key") @db.VarChar(64)
+  promptVersion    Int          @map("prompt_version")
+  promptHash       String       @map("prompt_hash") @db.Char(64)
+  status           AiCallStatus
+  errorCode        String?      @map("error_code") @db.VarChar(64)
+  inputTokens      Int          @default(0) @map("input_tokens")
+  outputTokens     Int          @default(0) @map("output_tokens")
+  cacheReadTokens  Int          @default(0) @map("cache_read_tokens")
+  cacheWriteTokens Int          @default(0) @map("cache_write_tokens")
+  /// USD; null when the model has no known price (never guessed as 0).
+  costUsd          Decimal?     @map("cost_usd") @db.Decimal(14, 6)
+  latencyMs        Int          @default(0) @map("latency_ms")
+  documentId       String?      @map("document_id") @db.Uuid
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, feature])
+  @@map("ai_usage_logs")
 }

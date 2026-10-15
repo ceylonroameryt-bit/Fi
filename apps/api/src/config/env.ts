@@ -49,6 +49,11 @@ const envSchema = z
     SMTP_PASS: z.string().optional(),
     SMTP_SECURE: booleanString,
     MAIL_FROM: z.string().email().optional().default('noreply@blynt.com'),
+    // AI gateway (Stage 3). 'none' disables model calls entirely; 'fake' is for tests/dev.
+    AI_PROVIDER: z.enum(['none', 'anthropic', 'fake']).default('none'),
+    AI_MODEL: z.string().min(1).default('claude-opus-5-5'),
+    // Minutes between background business-profile refreshes; 0 = off.
+    AI_PROFILE_REFRESH_MINUTES: z.coerce.number().int().min(0).default(0),
     // Owners and accountants must complete MFA before accessing an organisation.
     // May only be turned off outside production (e.g. legacy e2e fixtures).
     MFA_REQUIRED_FOR_PRIVILEGED_ROLES: z

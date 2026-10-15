@@ -70,6 +70,10 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDef[] = [
 
   // Audit
   { code: 'audit.view', description: 'View audit logs', category: 'Audit' },
+
+  // AI
+  { code: 'ai.manage', description: 'Turn AI features on/off and edit the business profile', category: 'AI' },
+  { code: 'ai.usage.view', description: 'View AI usage and cost', category: 'AI' },
 ];
 
 export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRoleKey, string[]> = {
@@ -114,6 +118,7 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'trial_balance.view',
     'trial_balance.export',
     'vat_return.view',
+    'ai.usage.view',
     'accounting_integrity.view',
     'audit.view',
   ],

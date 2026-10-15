@@ -26,6 +26,9 @@ describe('MailService (Production Safety & Transports)', () => {
     isTest: true,
     cookieSecure: false,
     MFA_REQUIRED_FOR_PRIVILEGED_ROLES: true,
+    AI_PROVIDER: 'none',
+    AI_MODEL: 'claude-opus-5-5',
+    AI_PROFILE_REFRESH_MINUTES: 0,
   };
 
   it('records outgoing messages in-memory when in test mode', async () => {
