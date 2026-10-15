@@ -42,10 +42,8 @@ export class DocumentIntelligenceController {
     });
 
     // Execute background processing
-    const processed = await this.docAi.processDocument(org.organizationId, doc.id, {
-      text: dto.text,
-      autoDraftIfHighConfidence: dto.autoDraftIfHighConfidence ?? false,
-    });
+    // Suggestions only: a person must approve every draft (no auto-drafting).
+    const processed = await this.docAi.processDocument(org.organizationId, doc.id, { text: dto.text });
 
     return processed;
   }
@@ -71,7 +69,7 @@ export class DocumentIntelligenceController {
     @Param('docId', ParseUUIDPipe) docId: string,
     @Body() dto: ApproveSuggestionDto,
   ) {
-    return this.docAi.approveSuggestion(org.organizationId, docId, actor.userId ?? '', dto.contactId);
+    return this.docAi.approveSuggestion(org.organizationId, docId, org, actor, dto.contactId);
   }
 
   @Post('documents/:docId/edit')
@@ -83,7 +81,7 @@ export class DocumentIntelligenceController {
     @Param('docId', ParseUUIDPipe) docId: string,
     @Body() dto: EditAndApproveDto,
   ) {
-    return this.docAi.editAndApproveSuggestion(org.organizationId, docId, actor.userId ?? '', dto);
+    return this.docAi.editAndApproveSuggestion(org.organizationId, docId, org, actor, dto);
   }
 
   @Post('documents/:docId/reject')
@@ -105,7 +103,7 @@ export class DocumentIntelligenceController {
   }
 
   @Put('business-context')
-  @RequirePermission('org.admin')
+  @RequirePermission('ai.manage')
   async updateBusinessContext(@CurrentOrg() org: OrgContext, @Body() dto: UpdateBusinessContextDto) {
     return this.businessContext.updateProfile(org.organizationId, {
       ...(dto.industry ? { industry: dto.industry } : {}),

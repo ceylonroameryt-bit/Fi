@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { BusinessContextProfile, DEFAULT_BUSINESS_PROFILES } from './business-context.types';
+import { BusinessContextProfile, NEUTRAL_BUSINESS_PROFILE } from './business-context.types';
 
 @Injectable()
 export class BusinessContextService {
@@ -23,55 +23,8 @@ export class BusinessContextService {
       };
     }
 
-    // Default fallback based on organization name heuristics
-    const org = await this.db.organization.findUnique({
-      where: { id: organizationId },
-      select: { name: true, legalName: true },
-    });
-
-    const combined = `${org?.name ?? ''} ${org?.legalName ?? ''}`.toLowerCase();
-    let detectedIndustry = 'GENERAL';
-
-    if (
-      combined.includes('petrol') ||
-      combined.includes('fuel') ||
-      combined.includes('oil') ||
-      combined.includes('station')
-    ) {
-      detectedIndustry = 'PETROL_STATION';
-    } else if (
-      combined.includes('construction') ||
-      combined.includes('build') ||
-      combined.includes('contract')
-    ) {
-      detectedIndustry = 'CONSTRUCTION';
-    } else if (
-      combined.includes('consult') ||
-      combined.includes('advisory') ||
-      combined.includes('services')
-    ) {
-      detectedIndustry = 'CONSULTING';
-    } else if (combined.includes('retail') || combined.includes('shop') || combined.includes('store')) {
-      detectedIndustry = 'RETAIL';
-    }
-
-    const defaultProfile = DEFAULT_BUSINESS_PROFILES[detectedIndustry] ?? DEFAULT_BUSINESS_PROFILES.GENERAL;
-
-    // Seed into DB for future persistence
-    await this.db.organizationBusinessContext.upsert({
-      where: { organizationId },
-      create: {
-        organizationId,
-        industry: defaultProfile.industry,
-        inventoryEnabled: defaultProfile.inventoryEnabled,
-        inventoryCategories: defaultProfile.inventoryCategories,
-        salesChannels: defaultProfile.salesChannels,
-        accountingMethod: defaultProfile.accountingMethod,
-      },
-      update: {},
-    });
-
-    return defaultProfile;
+    // Not described yet: neutral profile. Industry is never inferred from the organisation name.
+    return { ...NEUTRAL_BUSINESS_PROFILE };
   }
 
   async updateProfile(
@@ -88,14 +41,14 @@ export class BusinessContextService {
       where: { organizationId },
       create: {
         organizationId,
-        industry: updated.industry,
+        industry: updated.industry ?? undefined,
         inventoryEnabled: updated.inventoryEnabled,
         inventoryCategories: updated.inventoryCategories,
         salesChannels: updated.salesChannels,
         accountingMethod: updated.accountingMethod,
       },
       update: {
-        industry: updated.industry,
+        industry: updated.industry ?? undefined,
         inventoryEnabled: updated.inventoryEnabled,
         inventoryCategories: updated.inventoryCategories,
         salesChannels: updated.salesChannels,

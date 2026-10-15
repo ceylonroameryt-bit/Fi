@@ -1,178 +1,95 @@
+import { AiDirection, ContactType } from '@prisma/client';
 import { TransactionDirectionService } from './transaction-direction.service';
-import { AiDirection, Contact, ContactType } from '@prisma/client';
-import { RawExtractionResult } from '../providers/llm-provider.interface';
+import type { EntityMatchResult } from './entity-resolution.service';
+import {
+  NAME_MATCH_VAT_MISMATCH,
+  NO_PARTIES,
+  ORG,
+  ORG_ON_BOTH_SIDES,
+  OWN_SALES_INVOICE,
+  SHORT_NAME_ORG,
+  SUBSTRING_NAME_INVOICE,
+  SUPPLIER_BILL_BY_COMPANY_NUMBER,
+} from '../__fixtures__/safety-fixtures';
 
-describe('TransactionDirectionService (5-Tier Priority Hierarchy)', () => {
-  let service: TransactionDirectionService;
+const noMatch: EntityMatchResult = { contact: null, matchType: 'NONE', confidence: 0, reason: '' };
+const contactMatch = (type: ContactType, matchType: EntityMatchResult['matchType']): EntityMatchResult => ({
+  contact: { id: 'c-1', name: 'Known Co', type } as any,
+  matchType,
+  confidence: 0.99,
+  reason: '',
+});
 
-  const blyntStation = {
-    name: 'Blynt Petrol Station',
-    legalName: 'Blynt Petrol Station Ltd',
-    taxNumber: 'GB987654321',
-    registrationNumber: '12345678',
-  };
+describe('TransactionDirectionService (Stage 4 safety rules)', () => {
+  const service = new TransactionDirectionService();
 
-  beforeEach(() => {
-    service = new TransactionDirectionService();
+  it('BUG-01: our own sales invoice is a SALE, decided by our VAT number as issuer', () => {
+    const r = service.resolveDirection(OWN_SALES_INVOICE, ORG, noMatch, noMatch);
+    expect(r).toMatchObject({ direction: AiDirection.SALE, basis: 'ORG_VAT' });
   });
 
-  describe('Petrol Station Scenario A: Buying Fuel', () => {
-    it('Priority 1: resolves PURCHASE when ABC Fuel Ltd issues to Blynt Petrol Station', () => {
-      const extraction: RawExtractionResult = {
-        invoiceNumber: 'INV-10482',
-        issuer: { name: 'ABC Fuel Ltd', vatNumber: 'GB123456789' },
-        recipient: { name: 'Blynt Petrol Station', vatNumber: 'GB987654321' },
-        lines: [
-          {
-            description: '10,000 litres Diesel',
-            quantity: '10000',
-            unitPrice: '1.20',
-            net: '12000',
-            vat: '2400',
-            total: '14400',
-          },
-        ],
-        subtotal: '12000',
-        vatTotal: '2400',
-        total: '14400',
-      };
-
-      const result = service.resolveDirection(extraction, blyntStation, null);
-
-      expect(result.direction).toBe(AiDirection.PURCHASE);
-      expect(result.priorityApplied).toBe(1);
-      expect(result.confidence).toBeGreaterThanOrEqual(0.95);
-      expect(result.reasoning).toContain('Blynt Petrol Station');
-    });
+  it('BUG-02: a bill addressed to our company number is a PURCHASE (leading zeros normalised)', () => {
+    const r = service.resolveDirection(SUPPLIER_BILL_BY_COMPANY_NUMBER, ORG, noMatch, noMatch);
+    expect(r).toMatchObject({ direction: AiDirection.PURCHASE, basis: 'ORG_COMPANY_NUMBER' });
   });
 
-  describe('Petrol Station Scenario B: Selling Fuel', () => {
-    it('Priority 1: resolves SALE when Blynt Petrol Station issues to XYZ Transport Ltd', () => {
-      const extraction: RawExtractionResult = {
-        invoiceNumber: 'INV-00291',
-        issuer: { name: 'Blynt Petrol Station', vatNumber: 'GB987654321' },
-        recipient: { name: 'XYZ Transport Ltd', vatNumber: 'GB555666777' },
-        lines: [
-          {
-            description: '2,000 litres Diesel',
-            quantity: '2000',
-            unitPrice: '1.20',
-            net: '2400',
-            vat: '480',
-            total: '2880',
-          },
-        ],
-        subtotal: '2400',
-        vatTotal: '480',
-        total: '2880',
-      };
-
-      const result = service.resolveDirection(extraction, blyntStation, null);
-
-      expect(result.direction).toBe(AiDirection.SALE);
-      expect(result.priorityApplied).toBe(1);
-      expect(result.confidence).toBeGreaterThanOrEqual(0.95);
-      expect(result.reasoning).toContain('Blynt Petrol Station');
-    });
+  it('BUG-03: a short organisation name is never matched as a substring of another name', () => {
+    const r = service.resolveDirection(SUBSTRING_NAME_INVOICE, SHORT_NAME_ORG, noMatch, noMatch);
+    expect(r.direction).toBe(AiDirection.UNKNOWN);
   });
 
-  describe('Priority 2: VAT / Business Identifiers', () => {
-    it('resolves PURCHASE when recipient VAT matches organisation VAT', () => {
-      const extraction: RawExtractionResult = {
-        invoiceNumber: 'INV-777',
-        issuer: { name: 'Unknown Trading Company', vatNumber: 'GB111111111' },
-        recipient: { name: 'Trading Branch 4', vatNumber: 'GB987654321' },
-        lines: [],
-      };
-
-      const result = service.resolveDirection(extraction, blyntStation, null);
-
-      expect(result.direction).toBe(AiDirection.PURCHASE);
-      expect(result.priorityApplied).toBe(2);
-      expect(result.reasoning).toContain('VAT');
-    });
-
-    it('resolves SALE when issuer VAT matches organisation VAT', () => {
-      const extraction: RawExtractionResult = {
-        invoiceNumber: 'INV-888',
-        issuer: { name: 'Trading Station #1', vatNumber: 'GB987654321' },
-        recipient: { name: 'Fleet Delivery Co', vatNumber: 'GB222222222' },
-        lines: [],
-      };
-
-      const result = service.resolveDirection(extraction, blyntStation, null);
-
-      expect(result.direction).toBe(AiDirection.SALE);
-      expect(result.priorityApplied).toBe(2);
-      expect(result.reasoning).toContain('VAT');
-    });
+  it('BUG-04: no identifying data gives UNKNOWN, not a default PURCHASE', () => {
+    const r = service.resolveDirection(NO_PARTIES, ORG, noMatch, noMatch);
+    expect(r).toMatchObject({ direction: AiDirection.UNKNOWN, basis: 'NONE', confidence: 0 });
   });
 
-  describe('Priority 3: Blynt Master Data (Known Contact Type)', () => {
-    it('resolves PURCHASE when matched contact is configured as SUPPLIER', () => {
-      const extraction: RawExtractionResult = {
-        invoiceNumber: 'INV-999',
-        lines: [],
-      };
-
-      const mockSupplier = {
-        id: 'contact-sup-1',
-        type: ContactType.SUPPLIER,
-        name: 'Oil Refineries UK',
-      } as Contact;
-
-      const result = service.resolveDirection(extraction, { name: 'Unknown Name Holding' }, mockSupplier);
-
-      expect(result.direction).toBe(AiDirection.PURCHASE);
-      expect(result.priorityApplied).toBe(3);
-      expect(result.reasoning).toContain('Master Data');
-    });
-
-    it('resolves SALE when matched contact is configured as CUSTOMER', () => {
-      const extraction: RawExtractionResult = {
-        invoiceNumber: 'INV-1000',
-        lines: [],
-      };
-
-      const mockCustomer = {
-        id: 'contact-cust-1',
-        type: ContactType.CUSTOMER,
-        name: 'Metro Coaches Ltd',
-      } as Contact;
-
-      const result = service.resolveDirection(extraction, { name: 'Unknown Name Holding' }, mockCustomer);
-
-      expect(result.direction).toBe(AiDirection.SALE);
-      expect(result.priorityApplied).toBe(3);
-      expect(result.reasoning).toContain('Master Data');
-    });
+  it('BUG-05: a matching name with a different VAT number is not us', () => {
+    const r = service.resolveDirection(NAME_MATCH_VAT_MISMATCH, ORG, noMatch, noMatch);
+    expect(r.direction).toBe(AiDirection.UNKNOWN);
   });
 
-  describe('Priority 4 & 5: Document Language and LLM Fallback', () => {
-    it('Priority 4: resolves PURCHASE when text contains "bill to" organisation name', () => {
-      const extraction: RawExtractionResult = {
-        invoiceNumber: 'INV-1001',
-        rawText: 'INVOICE\nSUPPLIER: Shell\nBILL TO: Blynt Petrol Station\nTOTAL: 500',
-        lines: [],
-      };
+  it('BUG-06: the organisation on both sides is ambiguous, not a guess', () => {
+    const r = service.resolveDirection(ORG_ON_BOTH_SIDES, ORG, noMatch, noMatch);
+    expect(r).toMatchObject({ direction: AiDirection.UNKNOWN, basis: 'CONFLICT' });
+  });
 
-      const result = service.resolveDirection(extraction, { name: 'Blynt Petrol Station' }, null);
+  it('matches company-suffix variants of our exact name (Ltd / Limited)', () => {
+    const r = service.resolveDirection(
+      { issuer: { name: 'Acme Fuels' }, recipient: { name: 'BLYNT PETROL STATION LIMITED' }, lines: [] },
+      ORG,
+      noMatch,
+      noMatch,
+    );
+    expect(r).toMatchObject({ direction: AiDirection.PURCHASE, basis: 'ORG_NAME' });
+  });
 
-      expect(result.direction).toBe(AiDirection.PURCHASE);
-    });
+  it('falls back to a known supplier identified by VAT/company number as issuer', () => {
+    const r = service.resolveDirection(
+      { issuer: { name: 'Known Co', vatNumber: 'GB123123123' }, recipient: {}, lines: [] },
+      ORG,
+      contactMatch(ContactType.SUPPLIER, 'EXACT_VAT'),
+      noMatch,
+    );
+    expect(r).toMatchObject({ direction: AiDirection.PURCHASE, basis: 'CONTACT_ROLE' });
+  });
 
-    it('Priority 5: uses LLM interpretation fallback when no deterministic rule matches', () => {
-      const extraction: RawExtractionResult = {
-        invoiceNumber: 'DOC-99',
-        rawText: 'Some unlabelled voucher document',
-        lines: [],
-      };
+  it('does not use a fuzzy/name-only contact match to decide direction', () => {
+    const r = service.resolveDirection(
+      { issuer: { name: 'Known Co' }, recipient: {}, lines: [] },
+      ORG,
+      contactMatch(ContactType.SUPPLIER, 'FUZZY_NAME'),
+      noMatch,
+    );
+    expect(r.direction).toBe(AiDirection.UNKNOWN);
+  });
 
-      const result = service.resolveDirection(extraction, { name: 'Unrelated Org Name' }, null, 'PURCHASE');
-
-      expect(result.direction).toBe(AiDirection.PURCHASE);
-      expect(result.priorityApplied).toBe(5);
-      expect(result.confidence).toBe(0.75);
-    });
+  it('does not decide from a contact that is both customer and supplier', () => {
+    const r = service.resolveDirection(
+      { issuer: { name: 'Known Co', vatNumber: 'GB123123123' }, recipient: {}, lines: [] },
+      ORG,
+      contactMatch(ContactType.BOTH, 'EXACT_VAT'),
+      noMatch,
+    );
+    expect(r.direction).toBe(AiDirection.UNKNOWN);
   });
 });

@@ -71,15 +71,16 @@ interface DetailedDoc {
     id: string;
     lineNumber: number;
     rawDescription: string;
-    quantity: string;
+    // null = not on the document (never filled in)
+    quantity: string | null;
     unit?: string;
-    unitPrice: string;
-    netAmount: string;
-    taxAmount: string;
-    totalAmount: string;
+    unitPrice: string | null;
+    netAmount: string | null;
+    taxAmount: string | null;
+    totalAmount: string | null;
     productType: string;
     productClassification: string;
-    taxClassification: string;
+    taxClassification: string | null;
     accountingCategory: string;
     resolvedAccountId?: string;
     account?: { id: string; code: string; name: string };
@@ -99,6 +100,12 @@ interface DetailedDoc {
   }>;
 }
 
+
+/** Shows an em dash for values the document did not contain. */
+function money(value: string | null): string {
+  return value === null ? '—' : `£${value}`;
+}
+
 export default function DocumentIntelligencePage() {
   const { activeOrg } = useAuth();
   const [documents, setDocuments] = useState<AiDocItem[]>([]);
@@ -115,7 +122,6 @@ export default function DocumentIntelligencePage() {
   const [uploadText, setUploadText] = useState(
     `ABC Fuel Ltd\nInvoice: INV-10482\nDate: 2026-10-08\nVAT: GB123456789\n\nBill To:\nBlynt Petrol Station\nVAT: GB987654321\n\n10,000 litres Diesel @ £1.20 = £12,000.00\nVAT (20%): £2,400.00\nTotal: £14,400.00`,
   );
-  const [autoDraft, setAutoDraft] = useState(false);
 
   const loadDocDetails = useCallback(async (id: string) => {
     try {
@@ -167,7 +173,6 @@ export default function DocumentIntelligencePage() {
           fileName: uploadFileName,
           text: uploadText,
           mimeType: 'text/plain',
-          autoDraftIfHighConfidence: autoDraft,
         }),
       });
       setShowUploadModal(false);
@@ -531,7 +536,7 @@ export default function DocumentIntelligencePage() {
 
                   <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#64748B' }}>
                     {classification?.reasoning ||
-                      'Transaction direction determined by 5-tier legal hierarchy.'}
+                      'Direction is decided from the organisation’s own VAT number, company number and name.'}
                   </p>
                 </div>
 
@@ -709,12 +714,12 @@ export default function DocumentIntelligencePage() {
                             {l.accountingCategory}
                           </td>
                           <td style={{ padding: '0.65rem 0.85rem', color: '#334155' }}>
-                            {l.account ? `${l.account.code} - ${l.account.name}` : 'Default Ledger'}
+                            {l.account ? `${l.account.code} - ${l.account.name}` : 'Needs an account'}
                           </td>
-                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>£{l.netAmount}</td>
-                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>£{l.taxAmount}</td>
+                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>{money(l.netAmount)}</td>
+                          <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>{money(l.taxAmount)}</td>
                           <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', fontWeight: 600 }}>
-                            £{l.totalAmount}
+                            {money(l.totalAmount)}
                           </td>
                         </tr>
                       ))}
@@ -925,21 +930,6 @@ export default function DocumentIntelligencePage() {
                     fontSize: '0.8rem',
                   }}
                 />
-              </div>
-
-              <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="checkbox"
-                  id="autodraft"
-                  checked={autoDraft}
-                  onChange={(e) => setAutoDraft(e.target.checked)}
-                />
-                <label
-                  htmlFor="autodraft"
-                  style={{ fontSize: '0.825rem', color: '#475569', cursor: 'pointer' }}
-                >
-                  Auto-draft into invoices if confidence is HIGH (&gt;90%)
-                </label>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>

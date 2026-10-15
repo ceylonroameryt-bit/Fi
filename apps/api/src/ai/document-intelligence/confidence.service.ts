@@ -6,6 +6,7 @@ import { DirectionResolutionResult } from './transaction-direction.service';
 import { ClassifiedLineResult } from './line-classification.service';
 import { ProposedAccountingIntent } from './accounting-classification.service';
 
+/** Confidence only orders the review queue; it never approves or drafts anything. */
 export interface ConfidenceEvaluationResult {
   score: number;
   level: AiConfidenceLevel;
@@ -24,7 +25,7 @@ export class ConfidenceService {
     entityMatch: EntityMatchResult,
     directionResult: DirectionResolutionResult,
     classifiedLines: ClassifiedLineResult[],
-    accountingIntent: ProposedAccountingIntent,
+    accountingIntent: ProposedAccountingIntent | null,
   ): ConfidenceEvaluationResult {
     const reasons: string[] = [];
 
@@ -44,18 +45,18 @@ export class ConfidenceService {
     }
 
     // 2. Transaction Direction Component (weight: 0.30)
-    let directionScore = 0.1;
-    if (directionResult.priorityApplied <= 2) {
+    let directionScore = 0;
+    if (directionResult.basis === 'ORG_VAT' || directionResult.basis === 'ORG_COMPANY_NUMBER') {
       directionScore = 0.3;
-      reasons.push('Direction verified by legal document roles or VAT identity.');
-    } else if (directionResult.priorityApplied === 3) {
+      reasons.push("Direction decided by the organisation's own VAT or company number.");
+    } else if (directionResult.basis === 'ORG_NAME') {
       directionScore = 0.25;
-      reasons.push('Direction aligned with existing supplier/customer master role.');
-    } else if (directionResult.priorityApplied === 4) {
+      reasons.push("Direction decided by the organisation's registered name.");
+    } else if (directionResult.basis === 'CONTACT_ROLE') {
       directionScore = 0.2;
-      reasons.push('Direction inferred from billing language clause.');
+      reasons.push('Direction inferred from an existing single-role contact.');
     } else {
-      reasons.push('Direction inferred with lower confidence.');
+      reasons.push('Direction could not be determined; a reviewer must choose sales or purchase.');
     }
 
     // 3. Line Items Component (weight: 0.25)
@@ -71,7 +72,11 @@ export class ConfidenceService {
 
     // 4. Mathematical Balance Component (weight: 0.10)
     let balanceScore = 0.0;
-    if (accountingIntent.isBalanced) {
+    if (!accountingIntent) {
+      reasons.push('No accounting proposal (direction unknown).');
+    } else if (!accountingIntent.isComplete) {
+      reasons.push(`Incomplete proposal: ${accountingIntent.missing.length} item(s) need a reviewer.`);
+    } else if (accountingIntent.isBalanced) {
       balanceScore = 0.1;
       reasons.push('Proposed double-entry journal is mathematically balanced.');
     } else {

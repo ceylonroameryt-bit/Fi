@@ -35,7 +35,7 @@ Monorepo (npm workspaces): `apps/api` (NestJS 11 + Prisma 6 + PostgreSQL, Jest),
 | 1 | Authentication | **done** (feature/auth-hardening) — was partial: | Refresh rotation exists (`auth.service.ts:164`) but no reuse detection (old token simply misses). Session revoke exists (`:230`). Login throttle 10/min + `failedLoginAttempts`/`lockedUntil`. Auth audit via `audit.record`. `User.mfaEnabled` / `Session.mfaVerifiedAt` columns exist but **no MFA implementation**. |
 | 2 | VAT & tax engine | **done** (feature/vat-engine) — was missing: | No `TaxCode` model. VAT stored only as `InvoiceLine.taxRate`. `ai.constants.ts` hardcodes `STANDARD_VAT_RATE`. No VAT return. |
 | 3 | AI gateway + business profile | **done** (feature/ai-gateway) — was partial: | `ILlmProvider` interface exists; only a heuristic regex provider. No prompt versioning, usage/cost log, or per-org AI switch. `OrganizationBusinessContext` exists (industry, inventory) but no VAT scheme/supplier habits/refresh job. |
-| 4 | AI safety fixes | **missing** | See risks below. |
+| 4 | AI safety fixes | **done** (feature/ai-safety) — was missing: | See risks below. |
 | 5 | Upload/storage/OCR | **partial** | Storage service exists; `AiDocument` has no content hash; no PDF text layer / OCR / word positions. |
 | 6 | Background processing | **missing** | `processDocument` runs synchronously in the upload request (`document-intelligence.controller.ts:45`). No queue. |
 | 7 | LLM extraction | **missing** | No real model; no schema, source quotes, or prompt-injection handling. |
@@ -125,3 +125,31 @@ Every stage: branch `feature/<stage>`, tests first, full unit + e2e suite green,
 - **Decision affecting Stage 7:** current Claude models (incl. `claude-opus-5-5`) reject `temperature` with a 400, so "temperature 0" cannot be sent. Determinism comes from strict JSON-schema structured outputs, a fixed prompt version, and code-side validation instead.
 - Deferred: server-side refusal fallbacks (the documented `fallbacks` parameter is on the beta messages endpoint; combining it with `messages.parse` is not documented, so not guessed); per-org rate/cost limits (Stage 6); prompt-cache tuning; web UI for AI settings/usage.
 - Found for Stage 4: `BusinessContextService.getProfile` guesses `industry` from the organisation name and seeds it; `PUT /ai/business-context` requires permission `org.admin`, which does not exist (endpoint unreachable). Both superseded by the new profile endpoints and to be removed in Stage 4.
+
+### Stage 4 – AI safety audit fixes: done (branch `feature/ai-safety`, stacked on `feature/ai-gateway`)
+Every defect is a named fixture in `src/ai/__fixtures__/safety-fixtures.ts` with a test (unit and/or `test/ai-safety.e2e-spec.ts`):
+
+| Bug | Was | Now |
+|---|---|---|
+| 01–02 | Direction by substring name match | Exact identity match against org VAT no. → company no. (zero-padded) → normalised name (`src/ai/identity/party-identity.ts`) |
+| 03 | Org "ABC" matched "ABC Supplies Ltd" | No substring matching anywhere (direction and contact lookup) |
+| 04 | No parties → PURCHASE @ 0.5 | UNKNOWN; approval refused with `AI_DIRECTION_UNRESOLVED` |
+| 05 | Matching name, different VAT → treated as us | A registered identifier on both sides decides; mismatch = not us |
+| 06 | Org on both sides → first rule wins | UNKNOWN (`CONFLICT`) |
+| 07 | Invented `INV-<timestamp>`, today's date, GBP | Left null |
+| 08 | 20% VAT computed on every line | VAT only as printed (or a single line's share when its net equals the subtotal) |
+| 09 | Fake "Standard Line Item" | No lines → flagged as missing |
+| 10 | Quantity 1 / price 0 defaults | null; unit price derived only if net ÷ qty is exact at 4dp |
+| 11 | Unparseable date → today | null; impossible dates rejected |
+| 12 | "Customer VAT: <ours>" read as issuer VAT → bill became a sale | Buyer-context lines attribute identifiers to the recipient |
+| 13 | Unknown line → first active account; tax default VAT_STANDARD_20 | account/tax code null and listed in `missing`; tax code only when doc VAT/net = 20% or 5% within 1p |
+| 14 | HIGH confidence auto-drafted and marked APPROVED | Removed: every suggestion is `REQUIRES_REVIEW`; confidence only orders the queue |
+| 15 | Approving a purchase created a **sales** invoice | Refused with `AI_BILLS_NOT_AVAILABLE` until Stage 11; nothing created |
+| 16 | Duplicate invoice number renamed `-1234` | Refused with `AI_DUPLICATE_DOCUMENT` |
+| 17 | Pipeline ignored the org AI switch | `AI_DISABLED` |
+| — | Industry guessed from org name and saved | Removed; neutral profile until a person sets it |
+| — | `PUT /ai/business-context` required non-existent `org.admin` | Now `ai.manage` |
+
+- Approved sales documents go through `InvoicesService.createInvoice` (code does all arithmetic, Stage 2 tax codes) as **DRAFT**s with the document number as `reference`; anything missing (dates, currency, quantity, unit price, account, tax code) returns `AI_DRAFT_INCOMPLETE` with the list. Nothing posts.
+- `ai_line_classifications` amount/tax columns are now nullable (migration `20261015200000_ai_safety_nullable_lines`); `TaxClassificationService` and `AiActionPolicyService` deleted; upload DTO and web page no longer offer auto-draft.
+- Known, deferred: `POST /ai/documents` is unreachable (stacked `@Post` decorators register only `/ai/documents/upload`) – fix with Stage 5 upload rework. The regex extractor is a stop-gap until Stage 7. Approve permission is still `invoice.create` until `ai_draft.approve` (Stage 12).

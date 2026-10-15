@@ -2,7 +2,6 @@ import { AccountingClassificationService } from './accounting-classification.ser
 import { MoneyService } from '../../accounting-engine/money.service';
 import { Account, AccountSubtype, Contact } from '@prisma/client';
 import { ClassifiedLineResult } from './line-classification.service';
-import { ResolvedTaxInfo } from './tax-classification.service';
 import { SemanticCategory } from '../ai.constants';
 
 describe('AccountingClassificationService (Deterministic Double-Entry Mapping)', () => {
@@ -73,13 +72,6 @@ describe('AccountingClassificationService (Deterministic Double-Entry Mapping)',
     },
   };
 
-  const mockTaxInfo: ResolvedTaxInfo = {
-    taxCode: 'VAT_STANDARD_20',
-    rate: '0.20',
-    isRecoverable: true,
-    taxAccountId: 'acc-vat-2200',
-  };
-
   beforeEach(() => {
     money = new MoneyService();
     service = new AccountingClassificationService(mockDb as any, money);
@@ -101,7 +93,7 @@ describe('AccountingClassificationService (Deterministic Double-Entry Mapping)',
           totalAmount: '14400.00',
           productType: 'INVENTORY',
           productClassification: 'FUEL_DIESEL',
-          taxClassification: 'VAT_STANDARD',
+          taxClassification: 'UK_SR',
           accountingCategory: SemanticCategory.FUEL_INVENTORY,
           confidence: 0.98,
         },
@@ -112,7 +104,7 @@ describe('AccountingClassificationService (Deterministic Double-Entry Mapping)',
         name: 'ABC Fuel Ltd',
       } as Contact;
 
-      const intent = await service.buildAccountingIntent('org-1', 'PURCHASE', lines, mockTaxInfo, contact);
+      const intent = await service.buildAccountingIntent('org-1', 'PURCHASE', lines, contact);
 
       expect(intent.direction).toBe('PURCHASE');
       expect(intent.isBalanced).toBe(true);
@@ -153,7 +145,7 @@ describe('AccountingClassificationService (Deterministic Double-Entry Mapping)',
           totalAmount: '2880.00',
           productType: 'INVENTORY',
           productClassification: 'FUEL_DIESEL',
-          taxClassification: 'VAT_STANDARD',
+          taxClassification: 'UK_SR',
           accountingCategory: SemanticCategory.FUEL_SALE,
           confidence: 0.98,
         },
@@ -164,7 +156,7 @@ describe('AccountingClassificationService (Deterministic Double-Entry Mapping)',
         name: 'XYZ Transport Ltd',
       } as Contact;
 
-      const intent = await service.buildAccountingIntent('org-1', 'SALE', lines, mockTaxInfo, contact);
+      const intent = await service.buildAccountingIntent('org-1', 'SALE', lines, contact);
 
       expect(intent.direction).toBe('SALE');
       expect(intent.isBalanced).toBe(true);
@@ -192,7 +184,67 @@ describe('AccountingClassificationService (Deterministic Double-Entry Mapping)',
       // COGS Rule: Check that deterministic notice is attached and LLM does NOT calculate COGS
       expect(intent.inventoryValuationNotice).toBeDefined();
       expect(intent.inventoryValuationNotice).toContain('stock valuation engine');
-      expect(intent.inventoryValuationNotice).toContain('not estimated by LLM');
+      expect(intent.inventoryValuationNotice).toContain('not estimated by AI');
+    });
+  });
+
+  describe('Stage 4 safety', () => {
+    const line = (over: Partial<ClassifiedLineResult> = {}): ClassifiedLineResult => ({
+      lineNumber: 1,
+      description: 'Consultancy',
+      quantity: null,
+      unitPrice: null,
+      netAmount: '100.00',
+      taxAmount: '20.00',
+      totalAmount: '120.00',
+      productType: 'UNKNOWN',
+      productClassification: SemanticCategory.GENERAL_EXPENSE,
+      taxClassification: 'UK_SR',
+      accountingCategory: SemanticCategory.GENERAL_EXPENSE,
+      confidence: 0.5,
+      ...over,
+    });
+    const supplier = { id: 'sup-1', name: 'ABC Ltd' } as Contact;
+
+    it('BUG-13: an unrecognised line gets no account (was: first active account) and is flagged', async () => {
+      const intent = await service.buildAccountingIntent('org-1', 'PURCHASE', [line()], supplier);
+      expect(intent.lines[0].accountId).toBeNull();
+      expect(intent.isComplete).toBe(false);
+      expect(intent.missing).toContain('Line 1: account');
+    });
+
+    it('flags missing VAT, tax code, supplier and lines instead of filling them in', async () => {
+      const intent = await service.buildAccountingIntent(
+        'org-1',
+        'PURCHASE',
+        [line({ taxAmount: null, taxClassification: null, accountingCategory: SemanticCategory.FUEL_INVENTORY })],
+        null,
+      );
+      expect(intent.missing).toEqual(expect.arrayContaining(['Line 1: VAT amount', 'Line 1: tax code', 'Supplier']));
+      const empty = await service.buildAccountingIntent('org-1', 'PURCHASE', [], supplier);
+      expect(empty.missing).toContain('No line items were found on the document');
+    });
+
+    it('calculates the control total from net + VAT, never from the document total', async () => {
+      const intent = await service.buildAccountingIntent(
+        'org-1',
+        'PURCHASE',
+        [line({ accountingCategory: SemanticCategory.FUEL_INVENTORY, totalAmount: '999.99' })],
+        supplier,
+      );
+      expect(intent.lines.find((l) => l.accountCode === '2100')?.credit).toBe('120.00');
+      expect(intent.isBalanced).toBe(true);
+    });
+
+    it('does not pick between several accounts of the same kind', async () => {
+      mockDb.account.findMany.mockResolvedValue([...mockAccounts, { ...mockAccounts[0], id: 'acc-inv-1210', code: '1210' }]);
+      const intent = await service.buildAccountingIntent(
+        'org-1',
+        'PURCHASE',
+        [line({ accountingCategory: SemanticCategory.FUEL_INVENTORY })],
+        supplier,
+      );
+      expect(intent.lines[0].accountId).toBeNull();
     });
   });
 });

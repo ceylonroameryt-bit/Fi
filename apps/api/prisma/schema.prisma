@@ -952,15 +952,15 @@ model AiLineClassification {
   documentId            String        @map("document_id") @db.Uuid
   lineNumber            Int           @map("line_number") @db.SmallInt
   rawDescription        String        @map("raw_description") @db.VarChar(255)
-  quantity              Decimal       @default(1) @db.Decimal(19, 4)
+  quantity              Decimal?      @db.Decimal(19, 4)
   unit                  String?       @db.VarChar(30)
-  unitPrice             Decimal       @map("unit_price") @db.Decimal(19, 4)
-  netAmount             Decimal       @map("net_amount") @db.Decimal(19, 4)
-  taxAmount             Decimal       @map("tax_amount") @db.Decimal(19, 4)
-  totalAmount           Decimal       @map("total_amount") @db.Decimal(19, 4)
+  unitPrice             Decimal?      @map("unit_price") @db.Decimal(19, 4)
+  netAmount             Decimal?      @map("net_amount") @db.Decimal(19, 4)
+  taxAmount             Decimal?      @map("tax_amount") @db.Decimal(19, 4)
+  totalAmount           Decimal?      @map("total_amount") @db.Decimal(19, 4)
   productType           AiProductType @map("product_type")
   productClassification String        @map("product_classification") @db.VarChar(100)
-  taxClassification     String        @map("tax_classification") @db.VarChar(50)
+  taxClassification     String?       @map("tax_classification") @db.VarChar(50)
   accountingCategory    String        @map("accounting_category") @db.VarChar(100)
   resolvedAccountId     String?       @map("resolved_account_id") @db.Uuid
   confidenceScore       Decimal       @map("confidence_score") @db.Decimal(5, 4)

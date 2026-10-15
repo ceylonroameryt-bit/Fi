@@ -15,6 +15,11 @@ export class AccountingSafetyService {
     intent: ProposedAccountingIntent,
     contactId?: string | null,
   ): Promise<void> {
+    // 0. Every line must name an account (incomplete proposals are never validated as safe)
+    if (intent.lines.some((l) => !l.accountId)) {
+      throw new BadRequestException('AI proposal has lines without an account; a reviewer must assign them.');
+    }
+
     // 1. Strict mathematical balance assertion: sum(debit) === sum(credit)
     let sumDebit = this.money.ZERO;
     let sumCredit = this.money.ZERO;
@@ -40,7 +45,7 @@ export class AccountingSafetyService {
     }
 
     // 2. Tenant isolation verification for every referenced account
-    const accountIds = Array.from(new Set(intent.lines.map((l) => l.accountId)));
+    const accountIds = Array.from(new Set(intent.lines.map((l) => l.accountId as string)));
     const accounts = await this.db.account.findMany({
       where: {
         organizationId,

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { Contact, ContactType } from '@prisma/client';
 import { RawExtractedEntity } from '../providers/llm-provider.interface';
+import { normaliseCompanyName } from '../identity/party-identity';
 
 export interface EntityMatchResult {
   contact: Contact | null;
@@ -121,22 +122,18 @@ export class EntityResolutionService {
         },
       });
 
-      const normalizedSearch = this.normalizeCompanyName(name);
-
-      for (const contact of contacts) {
-        const normalizedExisting = this.normalizeCompanyName(contact.name);
-        if (
-          normalizedSearch === normalizedExisting ||
-          normalizedSearch.includes(normalizedExisting) ||
-          normalizedExisting.includes(normalizedSearch)
-        ) {
-          return {
-            contact,
-            matchType: 'FUZZY_NAME',
-            confidence: 0.88,
-            reason: `Normalized company name match ("${extractedEntity.name}" ~ "${contact.name}").`,
-          };
-        }
+      // Same name once legal suffixes/punctuation are removed ("ABC Fuel Ltd" = "ABC Fuel Limited").
+      // No substring matching: "ABC" must never match "ABC Supplies". Thresholded fuzzy matching is Stage 9.
+      const normalizedSearch = normaliseCompanyName(name);
+      const equal = normalizedSearch ? contacts.filter((c) => normaliseCompanyName(c.name) === normalizedSearch) : [];
+      if (equal.length === 1) {
+        const contact = equal[0];
+        return {
+          contact,
+          matchType: 'FUZZY_NAME',
+          confidence: 0.88,
+          reason: `Normalized company name match ("${extractedEntity.name}" ~ "${contact.name}").`,
+        };
       }
     }
 
@@ -171,16 +168,5 @@ export class EntityResolutionService {
       confidence: 0,
       reason: 'Entity not found in organisation contact directory.',
     };
-  }
-
-  private normalizeCompanyName(name: string): string {
-    return name
-      .toLowerCase()
-      .replace(/\blimited\b/g, 'ltd')
-      .replace(/\bcorporation\b/g, 'corp')
-      .replace(/\bincorporated\b/g, 'inc')
-      .replace(/\bcompany\b/g, 'co')
-      .replace(/[^a-z0-9]/g, '')
-      .trim();
   }
 }
