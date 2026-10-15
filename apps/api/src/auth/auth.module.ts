@@ -6,12 +6,13 @@ import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
 import { MailService } from './mail.service';
 import { AuthGuard } from './auth.guard';
+import { MfaService } from './mfa.service';
 
 @Global()
 @Module({
   imports: [JwtModule.register({})],
   controllers: [AuthController],
-  providers: [AuthService, PasswordService, TokenService, MailService, AuthGuard],
-  exports: [AuthService, AuthGuard, JwtModule, PasswordService, TokenService, MailService],
+  providers: [AuthService, PasswordService, TokenService, MailService, MfaService, AuthGuard],
+  exports: [AuthService, MfaService, AuthGuard, JwtModule, PasswordService, TokenService, MailService],
 })
 export class AuthModule {}

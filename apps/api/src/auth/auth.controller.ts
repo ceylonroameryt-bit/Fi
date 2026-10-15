@@ -5,7 +5,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Public, CurrentAuth, CurrentActor } from '../common/decorators';
 import type { Actor, AppRequest, AuthContext } from '../common/types/request-context.types';
 import { AuthService } from './auth.service';
-import { AcceptInvitationDto, LoginDto, RegisterDto, RequestPasswordResetDto, ResetPasswordDto, VerifyEmailDto } from './dto/auth.dto';
+import { AcceptInvitationDto, LoginDto, MfaCodeDto, RegisterDto, RequestPasswordResetDto, ResetPasswordDto, VerifyEmailDto } from './dto/auth.dto';
 import { DomainException } from '../common/errors/domain.exception';
 import { APP_CONFIG } from '../config/config.module';
 import type { AppEnv } from '../config/env';
@@ -49,6 +49,7 @@ export class AuthController {
       user: session.user,
       expiresInSeconds: session.expiresInSeconds,
       accessToken: session.accessToken,
+      mfaRequired: session.mfaRequired,
     };
   }
 
@@ -68,6 +69,7 @@ export class AuthController {
       user: session.user,
       expiresInSeconds: session.expiresInSeconds,
       accessToken: session.accessToken,
+      mfaRequired: session.mfaRequired,
     };
   }
 
@@ -91,6 +93,7 @@ export class AuthController {
       user: session.user,
       expiresInSeconds: session.expiresInSeconds,
       accessToken: session.accessToken,
+      mfaRequired: session.mfaRequired,
     };
   }
 
@@ -147,6 +150,7 @@ export class AuthController {
       user: session.user,
       expiresInSeconds: session.expiresInSeconds,
       accessToken: session.accessToken,
+      mfaRequired: session.mfaRequired,
     };
   }
 
@@ -168,6 +172,44 @@ export class AuthController {
     @CurrentActor() actor: Actor,
   ) {
     await this.auth.revokeSession(id, auth.userId, actor);
+    return { success: true };
+  }
+
+  @Post('sessions/revoke-all')
+  @HttpCode(HttpStatus.OK)
+  async revokeAllSessions(@CurrentAuth() auth: AuthContext, @CurrentActor() actor: Actor) {
+    const revoked = await this.auth.revokeAllSessions(auth.userId, auth.sessionId, actor);
+    return { success: true, revoked };
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('mfa/setup')
+  @HttpCode(HttpStatus.OK)
+  async beginMfaSetup(@CurrentAuth() auth: AuthContext, @CurrentActor() actor: Actor) {
+    return this.auth.beginMfaSetup(auth.userId, actor);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('mfa/enable')
+  @HttpCode(HttpStatus.OK)
+  async enableMfa(@Body() dto: MfaCodeDto, @CurrentAuth() auth: AuthContext, @CurrentActor() actor: Actor) {
+    const recoveryCodes = await this.auth.enableMfa(auth.userId, auth.sessionId, dto.code, actor);
+    return { success: true, recoveryCodes };
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('mfa/verify')
+  @HttpCode(HttpStatus.OK)
+  async verifyMfa(@Body() dto: MfaCodeDto, @CurrentAuth() auth: AuthContext, @CurrentActor() actor: Actor) {
+    await this.auth.verifyMfa(auth.userId, auth.sessionId, dto.code, actor);
+    return { success: true };
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('mfa/disable')
+  @HttpCode(HttpStatus.OK)
+  async disableMfa(@Body() dto: MfaCodeDto, @CurrentAuth() auth: AuthContext, @CurrentActor() actor: Actor) {
+    await this.auth.disableMfa(auth.userId, dto.code, actor);
     return { success: true };
   }
 

@@ -151,64 +151,86 @@ enum JournalSourceType {
 // ─────────────────────────── Identity & auth ──────────────────────────
 
 model User {
-  id                  String     @id @default(uuid()) @db.Uuid
-  email               String     @unique @db.VarChar(254)
-  passwordHash        String?    @map("password_hash") @db.VarChar(255)
-  firstName           String     @default("") @map("first_name") @db.VarChar(100)
-  lastName            String     @default("") @map("last_name") @db.VarChar(100)
-  emailVerified       Boolean    @default(false) @map("email_verified")
-  emailVerifiedAt     DateTime?  @map("email_verified_at")
-  status              UserStatus @default(ACTIVE)
-  isSuperAdmin        Boolean    @default(false) @map("is_super_admin")
-  mfaEnabled          Boolean    @default(false) @map("mfa_enabled")
-  failedLoginAttempts Int        @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime?  @map("locked_until")
-  lastLoginAt         DateTime?  @map("last_login_at")
-  createdAt           DateTime   @default(now()) @map("created_at")
-  updatedAt           DateTime   @updatedAt @map("updated_at")
+  id                        String     @id @default(uuid()) @db.Uuid
+  email                     String     @unique @db.VarChar(254)
+  passwordHash              String?    @map("password_hash") @db.VarChar(255)
+  firstName                 String     @default("") @map("first_name") @db.VarChar(100)
+  lastName                  String     @default("") @map("last_name") @db.VarChar(100)
+  emailVerified             Boolean    @default(false) @map("email_verified")
+  emailVerifiedAt           DateTime?  @map("email_verified_at")
+  status                    UserStatus @default(ACTIVE)
+  isSuperAdmin              Boolean    @default(false) @map("is_super_admin")
+  mfaEnabled                Boolean    @default(false) @map("mfa_enabled")
+  // AES-256-GCM encrypted TOTP secrets (see MfaService); never plaintext.
+  mfaSecretEncrypted        String?    @map("mfa_secret_encrypted") @db.VarChar(255)
+  mfaPendingSecretEncrypted String?    @map("mfa_pending_secret_encrypted") @db.VarChar(255)
+  // Last accepted TOTP time step, to block code replay.
+  mfaLastUsedStep           Int?       @map("mfa_last_used_step")
+  failedLoginAttempts       Int        @default(0) @map("failed_login_attempts")
+  lockedUntil               DateTime?  @map("locked_until")
+  lastLoginAt               DateTime?  @map("last_login_at")
+  createdAt                 DateTime   @default(now()) @map("created_at")
+  updatedAt                 DateTime   @updatedAt @map("updated_at")
 
   sessions              Session[]
   tokens                UserToken[]
-  memberships           OrganizationMember[]   @relation("MemberUser")
-  invitedMemberships    OrganizationMember[]   @relation("MemberInvitedBy")
-  organizationsCreated  Organization[]         @relation("OrganizationCreatedBy")
-  accountsCreated       Account[]              @relation("AccountCreatedBy")
-  accountsUpdated       Account[]              @relation("AccountUpdatedBy")
-  financialYearsCreated FinancialYear[]        @relation("FinancialYearCreatedBy")
-  periodsLocked         AccountingPeriod[]     @relation("PeriodLockedBy")
-  journalsCreated       JournalEntry[]         @relation("JournalCreatedBy")
-  journalsUpdated       JournalEntry[]         @relation("JournalUpdatedBy")
-  journalsValidated     JournalEntry[]         @relation("JournalValidatedBy")
-  journalsPosted        JournalEntry[]         @relation("JournalPostedBy")
-  contactsCreated       Contact[]              @relation("ContactCreatedBy")
-  invoicesCreated       Invoice[]              @relation("InvoiceCreatedBy")
-  aiDocumentsCreated    AiDocument[]           @relation("AiDocumentCreatedBy")
-  aiSuggestionsReviewed AiSuggestion[]         @relation("AiSuggestionReviewedBy")
-  aiFeedbacksGiven      AiFeedback[]           @relation("AiFeedbackCorrectedBy")
+  mfaRecoveryCodes      MfaRecoveryCode[]
+  memberships           OrganizationMember[] @relation("MemberUser")
+  invitedMemberships    OrganizationMember[] @relation("MemberInvitedBy")
+  organizationsCreated  Organization[]       @relation("OrganizationCreatedBy")
+  accountsCreated       Account[]            @relation("AccountCreatedBy")
+  accountsUpdated       Account[]            @relation("AccountUpdatedBy")
+  financialYearsCreated FinancialYear[]      @relation("FinancialYearCreatedBy")
+  periodsLocked         AccountingPeriod[]   @relation("PeriodLockedBy")
+  journalsCreated       JournalEntry[]       @relation("JournalCreatedBy")
+  journalsUpdated       JournalEntry[]       @relation("JournalUpdatedBy")
+  journalsValidated     JournalEntry[]       @relation("JournalValidatedBy")
+  journalsPosted        JournalEntry[]       @relation("JournalPostedBy")
+  contactsCreated       Contact[]            @relation("ContactCreatedBy")
+  invoicesCreated       Invoice[]            @relation("InvoiceCreatedBy")
+  aiDocumentsCreated    AiDocument[]         @relation("AiDocumentCreatedBy")
+  aiSuggestionsReviewed AiSuggestion[]       @relation("AiSuggestionReviewedBy")
+  aiFeedbacksGiven      AiFeedback[]         @relation("AiFeedbackCorrectedBy")
   auditLogs             AuditLog[]
 
   @@map("users")
 }
 
 model Session {
-  id                   String    @id @default(uuid()) @db.Uuid
-  userId               String    @map("user_id") @db.Uuid
-  refreshTokenHash     String    @unique @map("refresh_token_hash") @db.VarChar(128)
-  activeOrganizationId String?   @map("active_organization_id") @db.Uuid
-  ipAddress            String?   @map("ip_address") @db.VarChar(64)
-  userAgent            String?   @map("user_agent") @db.VarChar(512)
+  id                       String    @id @default(uuid()) @db.Uuid
+  userId                   String    @map("user_id") @db.Uuid
+  refreshTokenHash         String    @unique @map("refresh_token_hash") @db.VarChar(128)
+  // Hash of the refresh token this one replaced; presenting it again means the token was stolen.
+  previousRefreshTokenHash String?   @map("previous_refresh_token_hash") @db.VarChar(128)
+  activeOrganizationId     String?   @map("active_organization_id") @db.Uuid
+  ipAddress                String?   @map("ip_address") @db.VarChar(64)
+  userAgent                String?   @map("user_agent") @db.VarChar(512)
   // MFA-ready: when MFA is introduced a session is only fully trusted once verified.
-  mfaVerifiedAt        DateTime? @map("mfa_verified_at")
-  expiresAt            DateTime  @map("expires_at")
-  lastUsedAt           DateTime  @default(now()) @map("last_used_at")
-  revokedAt            DateTime? @map("revoked_at")
-  revokedReason        String?   @map("revoked_reason") @db.VarChar(64)
-  createdAt            DateTime  @default(now()) @map("created_at")
+  mfaVerifiedAt            DateTime? @map("mfa_verified_at")
+  expiresAt                DateTime  @map("expires_at")
+  lastUsedAt               DateTime  @default(now()) @map("last_used_at")
+  revokedAt                DateTime? @map("revoked_at")
+  revokedReason            String?   @map("revoked_reason") @db.VarChar(64)
+  createdAt                DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([previousRefreshTokenHash])
   @@map("sessions")
+}
+
+model MfaRecoveryCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @unique @map("code_hash") @db.VarChar(128)
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa_recovery_codes")
 }
 
 model UserToken {
@@ -229,40 +251,40 @@ model UserToken {
 // ─────────────────────────── Organisations ───────────────────────────
 
 model Organization {
-  id                     String             @id @default(uuid()) @db.Uuid
-  name                   String             @db.VarChar(150)
-  legalName              String?            @map("legal_name") @db.VarChar(200)
-  registrationNumber     String?            @map("registration_number") @db.VarChar(50)
-  country                String             @db.Char(2)
-  baseCurrency           String             @map("base_currency") @db.Char(3)
-  timezone               String             @db.VarChar(64)
-  financialYearStartMonth Int               @default(4) @map("financial_year_start_month") @db.SmallInt
-  financialYearStartDay  Int                @default(1) @map("financial_year_start_day") @db.SmallInt
-  taxNumber              String?            @map("tax_number") @db.VarChar(50)
-  addressLine1           String?            @map("address_line_1") @db.VarChar(200)
-  addressLine2           String?            @map("address_line_2") @db.VarChar(200)
-  city                   String?            @db.VarChar(100)
-  postcode               String?            @db.VarChar(20)
-  status                 OrganizationStatus @default(ACTIVE)
-  createdById            String             @map("created_by") @db.Uuid
-  createdAt              DateTime           @default(now()) @map("created_at")
-  updatedAt              DateTime           @updatedAt @map("updated_at")
+  id                      String             @id @default(uuid()) @db.Uuid
+  name                    String             @db.VarChar(150)
+  legalName               String?            @map("legal_name") @db.VarChar(200)
+  registrationNumber      String?            @map("registration_number") @db.VarChar(50)
+  country                 String             @db.Char(2)
+  baseCurrency            String             @map("base_currency") @db.Char(3)
+  timezone                String             @db.VarChar(64)
+  financialYearStartMonth Int                @default(4) @map("financial_year_start_month") @db.SmallInt
+  financialYearStartDay   Int                @default(1) @map("financial_year_start_day") @db.SmallInt
+  taxNumber               String?            @map("tax_number") @db.VarChar(50)
+  addressLine1            String?            @map("address_line_1") @db.VarChar(200)
+  addressLine2            String?            @map("address_line_2") @db.VarChar(200)
+  city                    String?            @db.VarChar(100)
+  postcode                String?            @db.VarChar(20)
+  status                  OrganizationStatus @default(ACTIVE)
+  createdById             String             @map("created_by") @db.Uuid
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
 
-  createdBy      User                   @relation("OrganizationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  members        OrganizationMember[]
-  roles          Role[]
-  accounts       Account[]
-  financialYears FinancialYear[]
-  periods        AccountingPeriod[]
-  journals       JournalEntry[]
-  contacts       Contact[]
-  invoices       Invoice[]
-  sequences      OrganizationSequence[]
-  auditLogs      AuditLog[]
+  createdBy       User                         @relation("OrganizationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  members         OrganizationMember[]
+  roles           Role[]
+  accounts        Account[]
+  financialYears  FinancialYear[]
+  periods         AccountingPeriod[]
+  journals        JournalEntry[]
+  contacts        Contact[]
+  invoices        Invoice[]
+  sequences       OrganizationSequence[]
+  auditLogs       AuditLog[]
   businessContext OrganizationBusinessContext?
-  aiDocuments    AiDocument[]
-  aiExtractions  AiExtraction[]
-  aiFeedbacks    AiFeedback[]
+  aiDocuments     AiDocument[]
+  aiExtractions   AiExtraction[]
+  aiFeedbacks     AiFeedback[]
 
   @@index([status])
   @@map("organizations")
@@ -326,9 +348,9 @@ model Permission {
 }
 
 model RolePermission {
-  roleId       String     @map("role_id") @db.Uuid
-  permissionId String     @map("permission_id") @db.Uuid
-  createdAt    DateTime   @default(now()) @map("created_at")
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
 
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
@@ -362,15 +384,15 @@ model Account {
   updatedById        String?        @map("updated_by") @db.Uuid
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
-  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  parentAccount Account?      @relation("AccountHierarchy", fields: [organizationId, parentAccountId], references: [organizationId, id], onDelete: Restrict)
-  childAccounts Account[]     @relation("AccountHierarchy")
-  createdBy     User?         @relation("AccountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy     User?         @relation("AccountUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  journalLines  JournalLine[]
-  invoiceLines  InvoiceLine[]
-  receivableContacts Contact[] @relation("ContactReceivableAccount")
-  payableContacts    Contact[] @relation("ContactPayableAccount")
+  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parentAccount         Account?               @relation("AccountHierarchy", fields: [organizationId, parentAccountId], references: [organizationId, id], onDelete: Restrict)
+  childAccounts         Account[]              @relation("AccountHierarchy")
+  createdBy             User?                  @relation("AccountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy             User?                  @relation("AccountUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  journalLines          JournalLine[]
+  invoiceLines          InvoiceLine[]
+  receivableContacts    Contact[]              @relation("ContactReceivableAccount")
+  payableContacts       Contact[]              @relation("ContactPayableAccount")
   aiLineClassifications AiLineClassification[] @relation("AiLineResolvedAccount")
 
   @@unique([organizationId, code])
@@ -528,19 +550,19 @@ model OrganizationSequence {
 // ─────────────────────────────── Audit ───────────────────────────────
 
 model AuditLog {
-  id             String    @id @default(uuid()) @db.Uuid
-  organizationId String?   @map("organization_id") @db.Uuid
-  userId         String?   @map("user_id") @db.Uuid
-  eventType      String    @map("event_type") @db.VarChar(64)
-  entityType     String    @map("entity_type") @db.VarChar(64)
-  entityId       String?   @map("entity_id") @db.VarChar(64)
-  oldValues      Json?     @map("old_values")
-  newValues      Json?     @map("new_values")
-  ipAddress      String?   @map("ip_address") @db.VarChar(64)
-  userAgent      String?   @map("user_agent") @db.VarChar(512)
-  sessionId      String?   @map("session_id") @db.Uuid
-  requestId      String?   @map("request_id") @db.VarChar(100)
-  createdAt      DateTime  @default(now()) @map("created_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @map("organization_id") @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  eventType      String   @map("event_type") @db.VarChar(64)
+  entityType     String   @map("entity_type") @db.VarChar(64)
+  entityId       String?  @map("entity_id") @db.VarChar(64)
+  oldValues      Json?    @map("old_values")
+  newValues      Json?    @map("new_values")
+  ipAddress      String?  @map("ip_address") @db.VarChar(64)
+  userAgent      String?  @map("user_agent") @db.VarChar(512)
+  sessionId      String?  @map("session_id") @db.Uuid
+  requestId      String?  @map("request_id") @db.VarChar(100)
+  createdAt      DateTime @default(now()) @map("created_at")
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   user         User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
@@ -554,48 +576,48 @@ model AuditLog {
 // ─────────────────────────── Contacts ─────────────────────────────────
 
 model Contact {
-  id                  String        @id @default(uuid()) @db.Uuid
-  organizationId      String        @map("organization_id") @db.Uuid
-  type                ContactType   @default(CUSTOMER)
-  status              ContactStatus @default(ACTIVE)
-  name                String        @db.VarChar(200)
-  companyName         String?       @map("company_name") @db.VarChar(200)
-  companyNumber       String?       @map("company_number") @db.VarChar(50)
-  vatNumber           String?       @map("vat_number") @db.VarChar(50)
-  email               String?       @db.VarChar(254)
-  phone               String?       @db.VarChar(50)
-  website             String?       @db.VarChar(200)
-  taxNumber           String?       @map("tax_number") @db.VarChar(50)
-  currency            String?       @db.Char(3)
-  paymentTermsDays    Int           @default(30) @map("payment_terms_days")
-  creditLimit         Decimal?      @map("credit_limit") @db.Decimal(19, 4)
-  addressLine1        String?       @map("address_line_1") @db.VarChar(200)
-  addressLine2        String?       @map("address_line_2") @db.VarChar(200)
-  city                String?       @db.VarChar(100)
-  state               String?       @db.VarChar(100)
-  postcode            String?       @db.VarChar(20)
-  country             String        @default("GB") @db.Char(2)
-  shippingAddressLine1 String?      @map("shipping_address_line_1") @db.VarChar(200)
-  shippingAddressLine2 String?      @map("shipping_address_line_2") @db.VarChar(200)
-  shippingCity         String?      @map("shipping_city") @db.VarChar(100)
-  shippingState        String?      @map("shipping_state") @db.VarChar(100)
-  shippingPostcode     String?      @map("shipping_postcode") @db.VarChar(20)
-  shippingCountry      String?      @map("shipping_country") @db.Char(2)
-  notes               String?       @db.VarChar(1000)
-  receivableAccountId String?       @map("receivable_account_id") @db.Uuid
-  payableAccountId    String?       @map("payable_account_id") @db.Uuid
-  createdById         String?       @map("created_by") @db.Uuid
-  createdAt           DateTime      @default(now()) @map("created_at")
-  updatedById         String?       @map("updated_by") @db.Uuid
-  updatedAt           DateTime      @updatedAt @map("updated_at")
+  id                   String        @id @default(uuid()) @db.Uuid
+  organizationId       String        @map("organization_id") @db.Uuid
+  type                 ContactType   @default(CUSTOMER)
+  status               ContactStatus @default(ACTIVE)
+  name                 String        @db.VarChar(200)
+  companyName          String?       @map("company_name") @db.VarChar(200)
+  companyNumber        String?       @map("company_number") @db.VarChar(50)
+  vatNumber            String?       @map("vat_number") @db.VarChar(50)
+  email                String?       @db.VarChar(254)
+  phone                String?       @db.VarChar(50)
+  website              String?       @db.VarChar(200)
+  taxNumber            String?       @map("tax_number") @db.VarChar(50)
+  currency             String?       @db.Char(3)
+  paymentTermsDays     Int           @default(30) @map("payment_terms_days")
+  creditLimit          Decimal?      @map("credit_limit") @db.Decimal(19, 4)
+  addressLine1         String?       @map("address_line_1") @db.VarChar(200)
+  addressLine2         String?       @map("address_line_2") @db.VarChar(200)
+  city                 String?       @db.VarChar(100)
+  state                String?       @db.VarChar(100)
+  postcode             String?       @db.VarChar(20)
+  country              String        @default("GB") @db.Char(2)
+  shippingAddressLine1 String?       @map("shipping_address_line_1") @db.VarChar(200)
+  shippingAddressLine2 String?       @map("shipping_address_line_2") @db.VarChar(200)
+  shippingCity         String?       @map("shipping_city") @db.VarChar(100)
+  shippingState        String?       @map("shipping_state") @db.VarChar(100)
+  shippingPostcode     String?       @map("shipping_postcode") @db.VarChar(20)
+  shippingCountry      String?       @map("shipping_country") @db.Char(2)
+  notes                String?       @db.VarChar(1000)
+  receivableAccountId  String?       @map("receivable_account_id") @db.Uuid
+  payableAccountId     String?       @map("payable_account_id") @db.Uuid
+  createdById          String?       @map("created_by") @db.Uuid
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedById          String?       @map("updated_by") @db.Uuid
+  updatedAt            DateTime      @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  receivableAccount   Account?      @relation("ContactReceivableAccount", fields: [organizationId, receivableAccountId], references: [organizationId, id], onDelete: Restrict)
-  payableAccount      Account?      @relation("ContactPayableAccount", fields: [organizationId, payableAccountId], references: [organizationId, id], onDelete: Restrict)
-  createdBy    User?        @relation("ContactCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  invoices     Invoice[]
-  people       ContactPerson[]
-  journalLines JournalLine[]
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  receivableAccount Account?           @relation("ContactReceivableAccount", fields: [organizationId, receivableAccountId], references: [organizationId, id], onDelete: Restrict)
+  payableAccount    Account?           @relation("ContactPayableAccount", fields: [organizationId, payableAccountId], references: [organizationId, id], onDelete: Restrict)
+  createdBy         User?              @relation("ContactCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  invoices          Invoice[]
+  people            ContactPerson[]
+  journalLines      JournalLine[]
   aiClassifications AiClassification[] @relation("AiClassificationContact")
 
   @@unique([organizationId, id])
@@ -754,15 +776,15 @@ enum AiSuggestionStatus {
 }
 
 model OrganizationBusinessContext {
-  id                  String       @id @default(uuid()) @db.Uuid
-  organizationId      String       @unique @map("organization_id") @db.Uuid
-  industry            String       @default("GENERAL") @db.VarChar(50)
-  inventoryEnabled    Boolean      @default(true) @map("inventory_enabled")
-  inventoryCategories Json         @default("[]") @map("inventory_categories")
-  salesChannels       Json         @default("[]") @map("sales_channels")
-  accountingMethod    String       @default("INVENTORY_BASED") @map("accounting_method") @db.VarChar(50)
-  createdAt           DateTime     @default(now()) @map("created_at")
-  updatedAt           DateTime     @updatedAt @map("updated_at")
+  id                  String   @id @default(uuid()) @db.Uuid
+  organizationId      String   @unique @map("organization_id") @db.Uuid
+  industry            String   @default("GENERAL") @db.VarChar(50)
+  inventoryEnabled    Boolean  @default(true) @map("inventory_enabled")
+  inventoryCategories Json     @default("[]") @map("inventory_categories")
+  salesChannels       Json     @default("[]") @map("sales_channels")
+  accountingMethod    String   @default("INVENTORY_BASED") @map("accounting_method") @db.VarChar(50)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -787,13 +809,13 @@ model AiDocument {
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
-  organization         Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  createdBy            User                   @relation("AiDocumentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  extractions          AiExtraction[]
-  classifications      AiClassification[]
-  lineClassifications  AiLineClassification[]
-  suggestions          AiSuggestion[]
-  auditEvents          AiAuditEvent[]
+  organization        Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy           User                   @relation("AiDocumentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  extractions         AiExtraction[]
+  classifications     AiClassification[]
+  lineClassifications AiLineClassification[]
+  suggestions         AiSuggestion[]
+  auditEvents         AiAuditEvent[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status])
@@ -939,4 +961,3 @@ model AiAuditEvent {
   @@index([organizationId, createdAt])
   @@map("ai_audit_events")
 }
-

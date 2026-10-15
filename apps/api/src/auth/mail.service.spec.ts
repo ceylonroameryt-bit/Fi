@@ -25,6 +25,7 @@ describe('MailService (Production Safety & Transports)', () => {
     isProduction: false,
     isTest: true,
     cookieSecure: false,
+    MFA_REQUIRED_FOR_PRIVILEGED_ROLES: true,
   };
 
   it('records outgoing messages in-memory when in test mode', async () => {

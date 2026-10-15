@@ -49,6 +49,12 @@ const envSchema = z
     SMTP_PASS: z.string().optional(),
     SMTP_SECURE: booleanString,
     MAIL_FROM: z.string().email().optional().default('noreply@blynt.com'),
+    // Owners and accountants must complete MFA before accessing an organisation.
+    // May only be turned off outside production (e.g. legacy e2e fixtures).
+    MFA_REQUIRED_FOR_PRIVILEGED_ROLES: z
+      .enum(['true', 'false', '1', '0', ''])
+      .optional()
+      .transform((value) => value !== 'false' && value !== '0'),
   })
   .superRefine((env, ctx) => {
     const isProd = env.APP_ENV === 'production';
@@ -111,6 +117,14 @@ const envSchema = z
           message: 'SESSION_SECRET must be at least 32 characters.',
         });
       }
+    }
+
+    if (isProd && !env.MFA_REQUIRED_FOR_PRIVILEGED_ROLES) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['MFA_REQUIRED_FOR_PRIVILEGED_ROLES'],
+        message: 'MFA cannot be disabled for privileged roles in production.',
+      });
     }
 
     // 3. Secrets must not be identical
