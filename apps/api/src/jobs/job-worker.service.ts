@@ -36,6 +36,9 @@ type WorkerConfig = Pick<AppEnv, 'JOB_WORKER_ENABLED' | 'JOB_POLL_INTERVAL_MS' |
 
 const RATE_WINDOW_MS = 60_000;
 
+/** Domain errors that describe a temporary condition and should be retried with backoff. */
+const RETRYABLE_CODES: ReadonlySet<string> = new Set(['AI_PROVIDER_ERROR', 'SERVICE_UNAVAILABLE']);
+
 @Injectable()
 export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(JobWorkerService.name);
@@ -101,7 +104,8 @@ export class JobWorkerService implements OnApplicationBootstrap, OnModuleDestroy
       await this.queue.complete(job);
     } catch (err) {
       const failure = toFailure(err);
-      const permanent = err instanceof PermanentJobError || err instanceof DomainException;
+      const permanent =
+        err instanceof PermanentJobError || (err instanceof DomainException && !RETRYABLE_CODES.has(err.code));
       const outcome = permanent ? (await this.queue.bury(job, `${failure.code}: ${failure.message}`), 'dead') : await this.queue.retryOrBury(job, failure.message);
       if (outcome === 'dead') {
         this.logger.warn(`Job ${job.id} (${job.type}) dead-lettered: ${failure.code} ${failure.message}`);

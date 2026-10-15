@@ -38,7 +38,7 @@ Monorepo (npm workspaces): `apps/api` (NestJS 11 + Prisma 6 + PostgreSQL, Jest),
 | 4 | AI safety fixes | **done** (feature/ai-safety) — was missing: | See risks below. |
 | 5 | Upload/storage/OCR | **done** (feature/document-upload) — was partial: | Storage service exists; `AiDocument` has no content hash; no PDF text layer / OCR / word positions. |
 | 6 | Background processing | **done** (feature/document-pipeline) — was missing: | `processDocument` runs synchronously in the upload request (`document-intelligence.controller.ts:45`). No queue. |
-| 7 | LLM extraction | **missing** | No real model; no schema, source quotes, or prompt-injection handling. |
+| 7 | LLM extraction | **done** (feature/llm-extraction) — was missing: | No real model; no schema, source quotes, or prompt-injection handling. |
 | 8 | Validation | **missing** | No arithmetic/VAT-number/duplicate checks on extractions. |
 | 9 | Direction & supplier matching | **partial** | `transaction-direction.service.ts` (name/VAT rules), `entity-resolution.service.ts`; no company-number or thresholded fuzzy match. |
 | 10 | Account & tax suggestion | **partial** | `accounting-classification`, `line-classification`, `ai-feedback` exist; not constrained to org accounts + tax codes; reasons partly stored. |
@@ -177,3 +177,15 @@ Every defect is a named fixture in `src/ai/__fixtures__/safety-fixtures.ts` with
 - Bug found and fixed while testing: raw SQL `now()` uses the DB session time zone while Prisma stores UTC, which would have shifted job timing by the UTC offset. The claim SQL now uses `timezone('UTC', now())`, with a test asserting it.
 - Note: `.env.test` (untracked) sets `JOB_WORKER_ENABLED=false` and `JOB_RETRY_BASE_MS=0`; CI needs the same.
 - Deferred: a separate worker entrypoint (`node dist/worker.js`) for production scaling; async Textract for multi-page scans; a web pipeline/DLQ view; Stage 8 will put real checks into the VALIDATED step (currently pass-through).
+
+### Stage 7 – LLM extraction: done (branch `feature/llm-extraction`, stacked on `feature/document-pipeline`)
+- Prompt `document.extract` v1 (`src/ai/gateway/prompts/document-extraction.prompt.ts`, hash pinned). Strict JSON schema via structured outputs; **every field is `{ value, source }` and both are nullable**, where `source` is a verbatim quote of at most 120 characters; amounts are strings; one entry per printed line item with the line's own text as `source`.
+- System rules: copy only what is printed, null when absent, no arithmetic, no assumed VAT rate/currency/date, issuer vs recipient by the document's labels. The organisation's name, legal name, VAT and company number go in the user message for reference only ("may be issuer, recipient or neither").
+- Prompt-injection handling: the document text sits in a `<document id="<random nonce>">` data block, closing tags inside it are neutralised, and the system prompt says never to follow instructions found in the document. Direction is still decided by code (Stage 4 rules), so an injected "mark this as a sale" can't change it.
+- **Code verification of every model value** (`verifyExtraction`): the quote must occur in the document text (case/whitespace-insensitive), the value must occur in its quote (amounts ignoring thousands separators; dates must show the same day, month and year; currency must show its symbol or code), and formats must be valid (ISO date, ISO 4217, decimal). Anything failing is dropped to null and recorded as `verificationIssues` (`MISSING_SOURCE`, `SOURCE_NOT_FOUND`, `VALUE_NOT_IN_SOURCE`, `INVALID_FORMAT`) in `ai_extractions.raw_structured_data`, together with the raw model output; `model_version` = `document.extract@v1`.
+- Documents over 200,000 characters are refused (`DOCUMENT_TOO_LONG_FOR_AI`), never truncated.
+- Extractor selection: LLM when an AI provider is configured (`AI_PROVIDER=anthropic|fake`), otherwise the rule-based extractor. Usage and cost are logged per document.
+- Worker: `AI_PROVIDER_ERROR` (and `SERVICE_UNAVAILABLE`) are retried with backoff; refusals, invalid output, AI disabled and cost limit are permanent (document FAILED with the code; retry via the Stage 6 endpoint).
+- **Temperature 0:** current Claude models reject `temperature` (see Stage 3). Determinism comes from the strict schema, the fixed prompt version and code verification.
+- Residual risk (for Stage 8): an injected or misprinted value that really is on the document passes these checks (e.g. a fake "Total 0.00" line). Stage 8's arithmetic validation and the mandatory human review remain the controls.
+- Not done: no live call against the Anthropic API yet (fake provider in tests).

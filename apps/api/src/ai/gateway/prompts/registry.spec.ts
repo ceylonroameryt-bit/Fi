@@ -6,6 +6,7 @@ import { PROMPT_REGISTRY } from './registry';
  */
 const PINNED: Record<string, { version: number; hash: string }> = {
   'ai.connection_check': { version: 1, hash: 'ee4425883290fc88dc024364d4b5d58bc5b46975193492759e5ca1f3d6d93a2f' },
+  'document.extract': { version: 1, hash: 'e0aef6ab1bcb3cd0fe631b3f626a93474e186a08c95a1fa0f3df329b4ad827ef' },
 };
 
 describe('prompt registry', () => {

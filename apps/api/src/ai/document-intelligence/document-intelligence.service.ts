@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { LlmExtractionService } from '../extraction/llm-extraction.service';
+import { AI_PROVIDER, AiProvider } from '../gateway/ai-provider.interface';
 import { AiDirection, AiDocumentStatus, AiSuggestionStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { DomainException } from '../../common/errors/domain.exception';
@@ -55,6 +57,8 @@ export class DocumentIntelligenceService {
     private readonly audit: AiAuditService,
     private readonly feedback: AiFeedbackService,
     private readonly invoices: InvoicesService,
+    private readonly llmExtraction: LlmExtractionService,
+    @Optional() @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider | null,
   ) {}
 
   async processDocument(organizationId: string, documentId: string, options?: ProcessDocumentOptions) {
@@ -77,14 +81,33 @@ export class DocumentIntelligenceService {
 
     await this.audit.logEvent(organizationId, documentId, 'REQUESTED', doc.createdById);
 
-    // 1. Extraction: only what the document states
-    const extraction = await this.llmProvider.extractDocumentData({
-      buffer: options?.buffer ?? Buffer.from(doc.extractedText ?? options?.text ?? '', 'utf8'),
-      fileName: doc.fileName,
-      mimeType: doc.mimeType,
-      // Text comes from upload intake (PDF text layer / OCR); options.text only for legacy callers.
-      text: doc.extractedText ?? options?.text,
-    });
+    // 1. Extraction: only what the document states. With an AI provider the model reads the text
+    //    and code verifies every value against it; otherwise the rule-based extractor runs.
+    const text = doc.extractedText ?? options?.text ?? '';
+    const organisation = {
+      name: doc.organization.name,
+      legalName: doc.organization.legalName,
+      taxNumber: doc.organization.taxNumber,
+      registrationNumber: doc.organization.registrationNumber,
+    };
+    let extraction: RawExtractionResult;
+    let modelVersion: string;
+    let rawStructuredData: Record<string, unknown>;
+    if (this.aiProvider) {
+      const llm = await this.llmExtraction.extract({ organizationId, userId: doc.createdById, documentId, text, organisation });
+      extraction = llm.result;
+      modelVersion = `${llm.promptKey}@v${llm.promptVersion}`;
+      rawStructuredData = { extractor: 'llm', result: llm.result, verificationIssues: llm.issues, modelOutput: llm.modelOutput };
+    } else {
+      extraction = await this.llmProvider.extractDocumentData({
+        buffer: options?.buffer ?? Buffer.from(text, 'utf8'),
+        fileName: doc.fileName,
+        mimeType: doc.mimeType,
+        text,
+      });
+      modelVersion = 'blynt-rules-v2';
+      rawStructuredData = { extractor: 'rules', result: extraction, verificationIssues: [] };
+    }
 
     await this.db.aiExtraction.create({
       data: {
@@ -103,8 +126,8 @@ export class DocumentIntelligenceService {
         subtotal: decimalOrNull(extraction.subtotal),
         taxAmount: decimalOrNull(extraction.vatTotal),
         totalAmount: decimalOrNull(extraction.total),
-        rawStructuredData: extraction as unknown as Prisma.InputJsonValue,
-        modelVersion: 'blynt-rules-v2',
+        rawStructuredData: rawStructuredData as unknown as Prisma.InputJsonValue,
+        modelVersion,
       },
     });
     await this.setStatus(documentId, AiDocumentStatus.AI_EXTRACTED);
@@ -120,12 +143,7 @@ export class DocumentIntelligenceService {
     ]);
     const directionResult = this.directionResolver.resolveDirection(
       extraction,
-      {
-        name: doc.organization.name,
-        legalName: doc.organization.legalName,
-        taxNumber: doc.organization.taxNumber,
-        registrationNumber: doc.organization.registrationNumber,
-      },
+      organisation,
       issuerMatch,
       recipientMatch,
     );
