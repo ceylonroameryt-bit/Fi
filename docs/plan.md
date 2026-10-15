@@ -33,7 +33,7 @@ Monorepo (npm workspaces): `apps/api` (NestJS 11 + Prisma 6 + PostgreSQL, Jest),
 | # | Stage | Status | Evidence |
 |---|---|---|---|
 | 1 | Authentication | **done** (feature/auth-hardening) — was partial: | Refresh rotation exists (`auth.service.ts:164`) but no reuse detection (old token simply misses). Session revoke exists (`:230`). Login throttle 10/min + `failedLoginAttempts`/`lockedUntil`. Auth audit via `audit.record`. `User.mfaEnabled` / `Session.mfaVerifiedAt` columns exist but **no MFA implementation**. |
-| 2 | VAT & tax engine | **missing** | No `TaxCode` model. VAT stored only as `InvoiceLine.taxRate`. `ai.constants.ts` hardcodes `STANDARD_VAT_RATE`. No VAT return. |
+| 2 | VAT & tax engine | **done** (feature/vat-engine) — was missing: | No `TaxCode` model. VAT stored only as `InvoiceLine.taxRate`. `ai.constants.ts` hardcodes `STANDARD_VAT_RATE`. No VAT return. |
 | 3 | AI gateway + business profile | **partial** | `ILlmProvider` interface exists; only a heuristic regex provider. No prompt versioning, usage/cost log, or per-org AI switch. `OrganizationBusinessContext` exists (industry, inventory) but no VAT scheme/supplier habits/refresh job. |
 | 4 | AI safety fixes | **missing** | See risks below. |
 | 5 | Upload/storage/OCR | **partial** | Storage service exists; `AiDocument` has no content hash; no PDF text layer / OCR / word positions. |
@@ -101,4 +101,16 @@ Every stage: branch `feature/<stage>`, tests first, full unit + e2e suite green,
 - Failed MFA codes share the login lockout counter (5 → 15 min lock + all sessions revoked).
 - New audit events: MFA_SETUP_STARTED/ENABLED/ENABLE_FAILED/DISABLED/VERIFIED/FAILED/RECOVERY_CODE_USED, SESSIONS_REVOKED_ALL, REFRESH_TOKEN_REUSE_DETECTED.
 - Deferred: web UI for MFA enrolment/challenge (API only); recovery-code regeneration endpoint; WebAuthn.
-- Known pre-existing failure (not Stage 1): `monetary-correctness.e2e` "reconciles Trial Balance displayed rows" fails as the shared test DB grows. Root cause in `reports/trial-balance.service.ts` ~L180: when balanced, `totalCredit` is overwritten with `totalDebit`, so it can differ from the sum of displayed (rounded) credit rows; the test also sums with floats.
+- Trial-balance totals bug found during Stage 1 was fixed separately on `fix/trial-balance-totals` (totals = sum of displayed rows; new `roundingDifference` field).
+
+### Stage 2 – VAT & tax engine: done (branch `feature/vat-engine`, stacked on `fix/trial-balance-totals`)
+- `tax_codes` + dated `tax_code_rates` (global system reference data, not tenant data): UK_SR (17.5% 2010 → 20% from 2011-01-04), UK_RR 5%, UK_ZR, UK_EX, UK_OS, UK_DRC_SR/RR, UK_RC_SERV, UK_PIVA_SR/RR. `GET /tax-codes?date=`.
+- One calculation function `src/tax/vat-calculation.ts` (`calculateVat`): net or gross entry, line or invoice rounding (invoice mode allocates pennies by largest remainder so each line stays within 1p), reverse-charge/PIVA return 0 charged VAT plus notional VAT. Rounding goes through `MoneyService.round` (half-up); `MoneyService.wholePounds` added for boxes 6–9.
+- Journal lines gain `tax_code_id`, `tax_direction` (OUTPUT/INPUT), `tax_net_amount`, `tax_amount` (signed; all-or-nothing DB CHECK). For reverse-charge treatments `tax_amount` is the self-accounted VAT.
+- Posting validation (Rule 15): complete fields, code in force on posting date, net = line amount, VAT within 1p of net × rate, purchase-only codes rejected on sales, and every non-control line of an INVOICE/BILL journal must be coded (`TAX_CODE_MISSING`). Manual journals may omit tax codes (they then do not appear on the return).
+- Reversals copy tax analysis with opposite sign, so voids/reversals come off the return in the reversal's period.
+- VAT return: `GET /organizations/:orgId/vat-return?from&to` (boxes 1–9; 1–5 to the penny, 6–9 whole pounds) with a box-5 vs VAT-control-account reconciliation, and drill-down `GET .../vat-return/boxes/:box/lines`. New permission `vat_return.view` (Owner/Admin/Accountant; granted to existing roles by migration).
+- Single VAT control account (2100 Tax Payable) holds both input and output VAT; boxes come from the tax fields, not account balances.
+- Sales invoices: lines take `taxCodeId` (rate from the code on the issue date); net and VAT rounded to the penny via `calculateVat` (previously 4dp). Posting is blocked with `TAX_CODE_REQUIRED` if any line lacks a code. Legacy `taxRate`-only drafts still save but cannot post. Web new-invoice form uses a VAT-code select with no default; detail page shows the code. No backfill of already-posted invoices, so the box-5 reconciliation only holds for periods posted after this change.
+- Behaviour change: invoice amounts are now whole pennies; e2e tests updated accordingly (sub-penny test rewritten).
+- Deferred: boxes 2/8/9 (NI/EU goods) always 0; cash accounting and flat-rate schemes; MTD submission; gross entry / invoice-level rounding are in `calculateVat` but not yet exposed on the sales invoice form; VAT return web page; tax codes on manual journals.

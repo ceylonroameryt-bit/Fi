@@ -61,6 +61,8 @@ export function resolveEndpoint(endpoint: string, activeOrgId?: string | null): 
       clean = `/organizations/${activeOrgId}${clean}`;
     } else if (clean.startsWith('/invoices')) {
       clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/vat-return')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
     } else if (clean.startsWith('/ai')) {
       clean = `/organizations/${activeOrgId}${clean}`;
     }

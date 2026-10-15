@@ -51,6 +51,7 @@ export const SYSTEM_PERMISSIONS: SystemPermissionDef[] = [
   { code: 'ledger.export', description: 'Export general ledger data', category: 'Reporting' },
   { code: 'trial_balance.view', description: 'View trial balance', category: 'Reporting' },
   { code: 'trial_balance.export', description: 'Export trial balance data', category: 'Reporting' },
+  { code: 'vat_return.view', description: 'View VAT return and drill-down', category: 'Reporting' },
   { code: 'accounting_integrity.view', description: 'View system-wide accounting integrity diagnostics', category: 'Controls' },
 
   // Contacts
@@ -112,6 +113,7 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'ledger.export',
     'trial_balance.view',
     'trial_balance.export',
+    'vat_return.view',
     'accounting_integrity.view',
     'audit.view',
   ],

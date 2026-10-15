@@ -278,3 +278,31 @@ describe('JournalReversalService (Phase 10)', () => {
     ).rejects.toThrow('belongs to another organisation');
   });
 });
+
+describe('JournalReversalService.generateReversalLines – VAT analysis', () => {
+  it('negates tax net and VAT so the reversal cancels the original on the VAT return', () => {
+    const { Prisma } = jest.requireActual('@prisma/client');
+    const svc = Object.create(JournalReversalService.prototype) as JournalReversalService;
+    const [rev] = svc.generateReversalLines(
+      [
+        {
+          lineNumber: 2,
+          accountId: 'acc-sales',
+          description: 'Sales',
+          debit: new Prisma.Decimal(0),
+          credit: new Prisma.Decimal('100.00'),
+          taxCodeId: 'tc-sr',
+          taxDirection: 'OUTPUT',
+          taxNetAmount: new Prisma.Decimal('100.00'),
+          taxAmount: new Prisma.Decimal('20.00'),
+        },
+      ],
+      'Reversal',
+    );
+    expect(rev.debit.toFixed(2)).toBe('100.00');
+    expect(rev.taxCodeId).toBe('tc-sr');
+    expect(rev.taxDirection).toBe('OUTPUT');
+    expect(rev.taxNetAmount!.toFixed(2)).toBe('-100.00');
+    expect(rev.taxAmount!.toFixed(2)).toBe('-20.00');
+  });
+});

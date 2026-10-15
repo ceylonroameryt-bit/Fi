@@ -508,21 +508,29 @@ model JournalEntry {
 }
 
 model JournalLine {
-  id             String   @id @default(uuid()) @db.Uuid
-  journalEntryId String   @map("journal_entry_id") @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  lineNumber     Int      @map("line_number") @db.SmallInt
-  accountId      String   @map("account_id") @db.Uuid
-  description    String?  @db.VarChar(255)
-  debit          Decimal  @default(0) @db.Decimal(19, 4)
-  credit         Decimal  @default(0) @db.Decimal(19, 4)
-  currency       String   @db.Char(3)
-  exchangeRate   Decimal  @default(1) @map("exchange_rate") @db.Decimal(19, 8)
-  contactId      String?  @map("contact_id") @db.Uuid
-  taxRateId      String?  @map("tax_rate_id") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id             String        @id @default(uuid()) @db.Uuid
+  journalEntryId String        @map("journal_entry_id") @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  lineNumber     Int           @map("line_number") @db.SmallInt
+  accountId      String        @map("account_id") @db.Uuid
+  description    String?       @db.VarChar(255)
+  debit          Decimal       @default(0) @db.Decimal(19, 4)
+  credit         Decimal       @default(0) @db.Decimal(19, 4)
+  currency       String        @db.Char(3)
+  exchangeRate   Decimal       @default(1) @map("exchange_rate") @db.Decimal(19, 8)
+  contactId      String?       @map("contact_id") @db.Uuid
+  taxRateId      String?       @map("tax_rate_id") @db.Uuid
+  // VAT analysis (Stage 2). Set on the net (revenue/expense/asset) line of a taxable
+  // transaction; signed (negative for credit notes and reversals). For reverse-charge
+  // treatments taxAmount is the self-accounted (notional) VAT.
+  taxCodeId      String?       @map("tax_code_id") @db.Uuid
+  taxDirection   TaxDirection? @map("tax_direction")
+  taxNetAmount   Decimal?      @map("tax_net_amount") @db.Decimal(19, 4)
+  taxAmount      Decimal?      @map("tax_amount") @db.Decimal(19, 4)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
+  taxCode      TaxCode?     @relation(fields: [taxCodeId], references: [id], onDelete: Restrict)
   // Composite FKs: a line can only reference a journal, an account, and a contact of its own organisation.
   journalEntry JournalEntry @relation(fields: [organizationId, journalEntryId], references: [organizationId, id], onDelete: Cascade)
   account      Account      @relation(fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
@@ -532,7 +540,60 @@ model JournalLine {
   @@index([organizationId, accountId])
   @@index([organizationId, contactId])
   @@index([journalEntryId])
+  @@index([organizationId, taxCodeId])
   @@map("journal_lines")
+}
+
+// ─────────────────────────── VAT / tax codes ───────────────────────────
+
+enum TaxTreatment {
+  STANDARD
+  REDUCED
+  ZERO
+  EXEMPT
+  OUTSIDE_SCOPE
+  DOMESTIC_REVERSE_CHARGE
+  REVERSE_CHARGE_SERVICES
+  POSTPONED_IMPORT_VAT
+}
+
+/// OUTPUT = sales side (VAT charged), INPUT = purchase side (VAT reclaimed).
+enum TaxDirection {
+  OUTPUT
+  INPUT
+}
+
+/// System reference data shared by all organisations (UK VAT). Rates are dated rows.
+model TaxCode {
+  id          String       @id @default(uuid()) @db.Uuid
+  code        String       @unique @db.VarChar(30)
+  name        String       @db.VarChar(100)
+  description String?      @db.VarChar(500)
+  country     String       @default("GB") @db.Char(2)
+  treatment   TaxTreatment
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  rates        TaxCodeRate[]
+  journalLines JournalLine[]
+  invoiceLines InvoiceLine[]
+
+  @@map("tax_codes")
+}
+
+model TaxCodeRate {
+  id            String    @id @default(uuid()) @db.Uuid
+  taxCodeId     String    @map("tax_code_id") @db.Uuid
+  rate          Decimal   @db.Decimal(7, 4)
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  taxCode TaxCode @relation(fields: [taxCodeId], references: [id], onDelete: Cascade)
+
+  @@unique([taxCodeId, effectiveFrom])
+  @@map("tax_code_rates")
 }
 
 model OrganizationSequence {
@@ -711,11 +772,13 @@ model InvoiceLine {
   taxRate        Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 4)
   taxAmount      Decimal  @default(0) @map("tax_amount") @db.Decimal(19, 4)
   lineTotal      Decimal  @map("line_total") @db.Decimal(19, 4)
+  taxCodeId      String?  @map("tax_code_id") @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  invoice Invoice @relation(fields: [organizationId, invoiceId], references: [organizationId, id], onDelete: Cascade)
-  account Account @relation(fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
+  taxCode TaxCode? @relation(fields: [taxCodeId], references: [id], onDelete: Restrict)
+  invoice Invoice  @relation(fields: [organizationId, invoiceId], references: [organizationId, id], onDelete: Cascade)
+  account Account  @relation(fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
 
   @@unique([invoiceId, lineNumber])
   @@index([organizationId, accountId])

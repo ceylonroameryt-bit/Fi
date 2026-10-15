@@ -113,6 +113,11 @@ export const ErrorCodes = {
   INVOICE_NO_LINES: HttpStatus.UNPROCESSABLE_ENTITY,
   INVOICE_INVALID_LINE: HttpStatus.UNPROCESSABLE_ENTITY,
   INVOICE_MISSING_CUSTOMER: HttpStatus.BAD_REQUEST,
+
+  // Tax / VAT
+  TAX_CODE_NOT_FOUND: HttpStatus.NOT_FOUND,
+  TAX_CODE_NOT_EFFECTIVE: HttpStatus.UNPROCESSABLE_ENTITY,
+  TAX_CODE_REQUIRED: HttpStatus.UNPROCESSABLE_ENTITY,
 } as const satisfies Record<string, HttpStatus>;
 
 export type ErrorCode = keyof typeof ErrorCodes;

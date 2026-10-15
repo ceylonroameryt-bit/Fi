@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JournalSourceType, JournalStatus, Prisma } from '@prisma/client';
+import { JournalSourceType, JournalStatus, Prisma, TaxDirection } from '@prisma/client';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
 import type { Actor, OrgContext } from '../common/types/request-context.types';
@@ -154,6 +154,10 @@ export class JournalReversalService {
               debit: line.debit,
               credit: line.credit,
               contactId: line.contactId ?? null,
+              taxCodeId: line.taxCodeId,
+              taxDirection: line.taxDirection,
+              taxNetAmount: line.taxNetAmount,
+              taxAmount: line.taxAmount,
             })),
           },
         },
@@ -359,7 +363,18 @@ export class JournalReversalService {
    * Generates opposite lines: Original Debit -> Reversal Credit, Original Credit -> Reversal Debit.
    */
   generateReversalLines(
-    originalLines: Array<{ lineNumber: number; accountId: string; description: string | null; debit: Prisma.Decimal; credit: Prisma.Decimal; contactId?: string | null }>,
+    originalLines: Array<{
+      lineNumber: number;
+      accountId: string;
+      description: string | null;
+      debit: Prisma.Decimal;
+      credit: Prisma.Decimal;
+      contactId?: string | null;
+      taxCodeId?: string | null;
+      taxDirection?: TaxDirection | null;
+      taxNetAmount?: Prisma.Decimal | null;
+      taxAmount?: Prisma.Decimal | null;
+    }>,
     reason: string,
   ) {
     return originalLines.map((line) => ({
@@ -370,6 +385,11 @@ export class JournalReversalService {
       debit: line.credit,
       credit: line.debit,
       contactId: line.contactId ?? null,
+      // Keep the VAT analysis with opposite sign so the reversal cancels it on the VAT return.
+      taxCodeId: line.taxCodeId ?? null,
+      taxDirection: line.taxDirection ?? null,
+      taxNetAmount: line.taxNetAmount !== null && line.taxNetAmount !== undefined ? new Prisma.Decimal(line.taxNetAmount).negated() : null,
+      taxAmount: line.taxAmount !== null && line.taxAmount !== undefined ? new Prisma.Decimal(line.taxAmount).negated() : null,
     }));
   }
 
