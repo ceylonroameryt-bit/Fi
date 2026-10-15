@@ -17,6 +17,7 @@ import type { RawExtractionResult } from '../providers/llm-provider.interface';
 import type { DocumentExtractionOutput } from '../gateway/prompts/document-extraction.prompt';
 import type { ApproveReviewedDto, ReviewedLineDto } from '../dto/review.dto';
 import { findBoxes, HighlightBox } from './highlight';
+import { matchesOrganisation } from '../identity/party-identity';
 
 type FieldStatus = 'verified' | 'inconsistent' | 'missing';
 
@@ -319,6 +320,24 @@ export class AiReviewService {
     const needed = purchase ? 'bill.create' : 'invoice.create';
     if (!orgContext.permissions.has(needed)) {
       throw new DomainException('PERMISSION_DENIED', `You do not have the required permission: ${needed}`, { requiredPermission: needed });
+    }
+    // A registered identifier showing the organisation as issuer (or recipient) cannot be overridden:
+    // our own sales invoice must never become a supplier bill, and vice versa.
+    const org = await this.prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { name: true, legalName: true, taxNumber: true, registrationNumber: true },
+    });
+    const ai = payload.extraction;
+    const ourSide = purchase
+      ? matchesOrganisation({ ...ai.issuer, vatNumber: dto.issuerVatNumber ?? ai.issuer?.vatNumber }, org)
+      : matchesOrganisation({ ...ai.recipient, vatNumber: dto.recipientVatNumber ?? ai.recipient?.vatNumber }, org);
+    if (ourSide === 'VAT' || ourSide === 'COMPANY_NUMBER') {
+      throw new DomainException(
+        'AI_DIRECTION_CONFLICT',
+        purchase
+          ? `The document was issued under this organisation's own ${ourSide === 'VAT' ? 'VAT' : 'company'} number, so it cannot be approved as a supplier bill.`
+          : `The document is addressed to this organisation's own ${ourSide === 'VAT' ? 'VAT' : 'company'} number, so it cannot be approved as a sales invoice.`,
+      );
     }
     const contact = await this.prisma.contact.findFirst({ where: { organizationId, id: dto.contactId, status: 'ACTIVE' } });
     if (!contact) throw new DomainException('CONTACT_NOT_FOUND', 'Contact is inactive, archived or not in this organisation');

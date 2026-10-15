@@ -44,7 +44,7 @@ Monorepo (npm workspaces): `apps/api` (NestJS 11 + Prisma 6 + PostgreSQL, Jest),
 | 10 | Account & tax suggestion | **done** (feature/coding-suggestion) — was partial: | `accounting-classification`, `line-classification`, `ai-feedback` exist; not constrained to org accounts + tax codes; reasons partly stored. |
 | 11 | Supplier bills | **done** (feature/supplier-bills) — was missing: | No bill model. `JournalSourceType.BILL` enum value exists only. |
 | 12 | Human review & permissions | **done** (feature/ai-review) — was partial: | `AiSuggestion` approve/edit/reject endpoints; no `ai_draft.approve` permission, no side-by-side log, no review UI with highlights. |
-| 13 | E2E test | **missing** | |
+| 13 | E2E test | **done** (feature/e2e-supplier-bills) — was missing | |
 | 14 | Email ingestion (added 2026-10-15) | **missing** | Not in the original stage list; deferred from Stage 5 at the user's request. |
 
 ## c) Risks found (existing AI prototype)
@@ -237,3 +237,10 @@ Every defect is a named fixture in `src/ai/__fixtures__/safety-fixtures.ts` with
 - Checked in the browser on the dev stack: queue → review (total flagged inconsistent, approval blocked) → corrected total → draft bill → approve and post (journal created). This found and fixed two bugs: the contact list ignored the paginated `/contacts` response (the matched supplier wasn't selected), and the account list offered bank/cash accounts.
 - Deferred: pixel-perfect PDF rendering in the browser (pdf.js) under the highlights; a confirmation step specifically for MODEL-basis direction (the reviewer sets the type explicitly in the form, and changes are logged); picking a fuzzy candidate with one click.
 - Local preview: `.claude/launch.json` runs the web app; the API runs separately (the preview tool's PORT applies to the whole process).
+
+### Stage 13 – End-to-end test, 10 sample supplier documents: done (branch `feature/e2e-supplier-bills`, stacked on `feature/ai-review`)
+- `apps/api/test/e2e-supplier-bills.e2e-spec.ts` runs ten documents through upload → text/OCR → extraction → validation → matching → coding → review → draft bill → approval → posting engine in a **fresh organisation** (default chart, FY 2026/27, own VAT number), so it does not depend on demo data. It writes the results table to `docs/e2e-results.md` (no run-specific values in it, so the file is the same on every run).
+- Documents are generated in the test (text PDFs via `makeTextPdf`; photos as PNG bytes with the OCR text queued on the fake OCR provider) instead of files under `test/fixtures/bills/` as first planned: the supplier VAT numbers and the organisation's name must match the fresh organisation.
+- Per document the test checks: direction, every extracted value appears in the document text (no fabrication), validation statuses, supplier match type, suggested account/tax code and source, no journal before a person approves, posted journal balances, trial balance balances, and exact VAT box movements (boxes 1, 4, 6, 7). A final test checks the whole VAT return equals the sum of the posted documents.
+- **Found and fixed:** our own sales invoice could still be approved as a purchase if the reviewer changed the type to PURCHASE. Approval now refuses a purchase whose issuer is this organisation by VAT or company number (and a sale whose recipient is), `AI_DIRECTION_CONFLICT` (422).
+- Notes: no "No VAT" tax code exists, so the unregistered supplier (D06) was coded zero rate (box 7 only, which matches HMRC's treatment); a dedicated code would be clearer. With no live model, lines with no history and no printed VAT get no suggestion (NONE) and the reviewer chooses: this is the intended "no guessing" behaviour.
