@@ -12,7 +12,8 @@ import { BusinessContextService } from '../business-context/business-context.ser
 import { HeuristicLlmProvider } from '../providers/heuristic-llm.provider';
 import { RawExtractionResult } from '../providers/llm-provider.interface';
 import { DocumentClassifierService } from './document-classifier.service';
-import { EntityResolutionService } from './entity-resolution.service';
+import { EntityMatchResult, EntityResolutionService } from './entity-resolution.service';
+import { DirectionFallbackService } from './direction-fallback.service';
 import { TransactionDirectionService } from './transaction-direction.service';
 import { LineClassificationService, ClassifiedLineResult } from './line-classification.service';
 import { AccountingClassificationService, ProposedAccountingIntent } from './accounting-classification.service';
@@ -26,12 +27,23 @@ export interface ProcessDocumentOptions {
   text?: string;
 }
 
-interface SuggestionPayload {
+/** A contact the reviewer may create for an unmatched counterparty. Never created automatically. */
+export interface ProposedContact {
+  type: 'SUPPLIER' | 'CUSTOMER';
+  name: string;
+  vatNumber?: string;
+  companyNumber?: string;
+  address?: string;
+}
+
+export interface SuggestionPayload {
   extraction: RawExtractionResult;
   direction: AiDirection;
   entity: { id: string; name: string } | null;
   lines: ClassifiedLineResult[];
   accountingIntent: ProposedAccountingIntent | null;
+  counterpartyMatch?: Pick<EntityMatchResult, 'matchType' | 'confidence' | 'reason' | 'candidates'> | null;
+  proposedContact?: ProposedContact | null;
 }
 
 const decimalOrNull = (v: string | null | undefined) => (v === null || v === undefined ? null : new Prisma.Decimal(v));
@@ -60,6 +72,7 @@ export class DocumentIntelligenceService {
     private readonly invoices: InvoicesService,
     private readonly llmExtraction: LlmExtractionService,
     private readonly validator: ExtractionValidationService,
+    private readonly directionFallback: DirectionFallbackService,
     @Optional() @Inject(AI_PROVIDER) private readonly aiProvider: AiProvider | null,
   ) {}
 
@@ -143,12 +156,15 @@ export class DocumentIntelligenceService {
       this.entityResolver.resolveEntity(organizationId, extraction.issuer, 'SUPPLIER'),
       this.entityResolver.resolveEntity(organizationId, extraction.recipient, 'CUSTOMER'),
     ]);
-    const directionResult = this.directionResolver.resolveDirection(
-      extraction,
+    // Rules first; the model is asked only when the rules have nothing to go on.
+    const directionResult = await this.directionFallback.decide({
+      organizationId,
+      userId: doc.createdById,
+      documentId,
+      text,
       organisation,
-      issuerMatch,
-      recipientMatch,
-    );
+      rules: this.directionResolver.resolveDirection(extraction, organisation, issuerMatch, recipientMatch),
+    });
     const direction = directionResult.direction;
     const counterparty =
       direction === AiDirection.PURCHASE ? issuerMatch : direction === AiDirection.SALE ? recipientMatch : null;
@@ -250,12 +266,28 @@ export class DocumentIntelligenceService {
       rules: validation.findings.map((f) => f.rule),
     });
 
+    const counterpartyParty =
+      direction === AiDirection.PURCHASE ? extraction.issuer : direction === AiDirection.SALE ? extraction.recipient : undefined;
     const payload: SuggestionPayload = {
       extraction,
       direction,
       entity: targetEntity ? { id: targetEntity.id, name: targetEntity.name } : null,
       lines,
       accountingIntent: intent,
+      counterpartyMatch: counterparty
+        ? { matchType: counterparty.matchType, confidence: counterparty.confidence, reason: counterparty.reason, candidates: counterparty.candidates }
+        : null,
+      // Unmatched counterparty: propose a contact from the document's own details (reviewer decides).
+      proposedContact:
+        !targetEntity && counterpartyParty?.name
+          ? {
+              type: direction === AiDirection.PURCHASE ? 'SUPPLIER' : 'CUSTOMER',
+              name: counterpartyParty.name,
+              ...(counterpartyParty.vatNumber ? { vatNumber: counterpartyParty.vatNumber } : {}),
+              ...(counterpartyParty.companyNumber ? { companyNumber: counterpartyParty.companyNumber } : {}),
+              ...(counterpartyParty.address ? { address: counterpartyParty.address } : {}),
+            }
+          : null,
     };
     const suggestion = await this.db.aiSuggestion.create({
       data: {

@@ -137,6 +137,36 @@ describe('LLM extraction (Stage 7 E2E)', () => {
     expect((await prisma.aiDocument.findUniqueOrThrow({ where: { id: again.id } })).status).toBe('AWAITING_REVIEW');
   });
 
+  it('asks the model for direction only when the rules have nothing to go on, and keeps it as a suggestion', async () => {
+    const invoiceNo = `DIR-${run}`;
+    const text = ['Hilltop Garage', `Ref ${invoiceNo}`, 'Tyres fitted to your van, charged to your account', 'Total: GBP 216.00'];
+    const answer = modelAnswer(invoiceNo);
+    ai.enqueue({
+      output: {
+        ...answer,
+        invoiceNumber: q(invoiceNo, `Ref ${invoiceNo}`),
+        invoiceDate: none,
+        dueDate: none,
+        currency: q('GBP', 'Total: GBP 216.00'),
+        issuer: party(q('Hilltop Garage', 'Hilltop Garage')),
+        recipient: party(none),
+        lines: [],
+        subtotal: none,
+        vatTotal: none,
+        total: q('216.00', 'Total: GBP 216.00'),
+      },
+    });
+    ai.enqueue({ output: { direction: 'PURCHASE', evidence: 'charged to your account', reason: 'The garage charges the organisation.' } });
+    const doc = (await upload(makeTextPdf(text))).body;
+    await drain();
+
+    const stored = await prisma.aiDocument.findUniqueOrThrow({ where: { id: doc.id }, include: { classifications: true } });
+    expect(stored.direction).toBe('PURCHASE');
+    expect(stored.classifications[0].reasoning).toContain('Suggested by AI (reviewer must confirm)');
+    const calls = await prisma.aiUsageLog.findMany({ where: { documentId: doc.id }, orderBy: { createdAt: 'asc' } });
+    expect(calls.map((c) => c.promptKey)).toEqual(['document.extract', 'document.direction']);
+  });
+
   it('retries a provider outage with backoff and then succeeds', async () => {
     const invoiceNo = `RETRY-${run}`;
     ai.enqueueError(new Error('503 overloaded')).enqueue({ output: modelAnswer(invoiceNo) });

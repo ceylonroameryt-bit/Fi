@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { AiDocumentStatus, Job, JobStatus } from '@prisma/client';
+import { AiDocumentStatus, AiSuggestionStatus, ContactType, Job, JobStatus } from '@prisma/client';
+import type { Actor } from '../../common/types/request-context.types';
+import { ContactsService } from '../../contacts/contacts.service';
+import type { CreateContactDto } from '../../contacts/dto/contact.dto';
+import { AiAuditService } from '../audit/ai-audit.service';
+import type { SuggestionPayload } from '../document-intelligence/document-intelligence.service';
 import { PrismaService } from '../../database/prisma.service';
 import { DomainException } from '../../common/errors/domain.exception';
 import { JobQueueService } from '../../jobs/job-queue.service';
@@ -18,7 +23,57 @@ export class DocumentPipelineService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly queue: JobQueueService,
+    private readonly contacts: ContactsService,
+    private readonly audit: AiAuditService,
   ) {}
+
+  /**
+   * A reviewer accepts the contact proposed for an unmatched supplier/customer. The contact is
+   * created through ContactsService (normal validation and audit), then the document is analysed
+   * again so it matches the new contact by its identifiers. Nothing is ever created automatically.
+   */
+  async acceptProposedContact(organizationId: string, documentId: string, actor: Actor, overrides: { name?: string } = {}) {
+    const doc = await this.prisma.aiDocument.findFirst({ where: { id: documentId, organizationId } });
+    if (!doc) throw new NotFoundException('Document not found');
+    if (doc.status !== AiDocumentStatus.AWAITING_REVIEW) {
+      throw new DomainException('CONFLICT', `Document is ${doc.status}, not awaiting review`);
+    }
+    const suggestion = await this.prisma.aiSuggestion.findFirst({
+      where: { organizationId, documentId, status: AiSuggestionStatus.PENDING_REVIEW },
+    });
+    const proposed = (suggestion?.payload as unknown as SuggestionPayload | undefined)?.proposedContact;
+    if (!suggestion || !proposed) throw new DomainException('CONFLICT', 'This document has no proposed contact');
+
+    const contact = await this.contacts.createContact(
+      organizationId,
+      {
+        type: proposed.type === 'SUPPLIER' ? ContactType.SUPPLIER : ContactType.CUSTOMER,
+        name: overrides.name?.trim() || proposed.name,
+        vatNumber: proposed.vatNumber,
+        companyNumber: proposed.companyNumber,
+      } as CreateContactDto,
+      actor,
+    );
+
+    await this.prisma.transaction(async (tx) => {
+      await tx.aiDocument.update({ where: { id: documentId }, data: { status: AiDocumentStatus.TEXT_EXTRACTED } });
+      await this.queue.enqueue(
+        {
+          organizationId,
+          type: DOCUMENT_JOB.ANALYSE,
+          payload: { documentId },
+          idempotencyKey: `${DOCUMENT_JOB.ANALYSE}:${documentId}:contact-${contact.id}`,
+        },
+        tx,
+      );
+    });
+    await this.audit.logEvent(organizationId, documentId, 'REVIEWED', actor.userId ?? undefined, {
+      action: 'PROPOSED_CONTACT_ACCEPTED',
+      contactId: contact.id,
+      proposed: proposed as unknown as Record<string, unknown>,
+    });
+    return contact;
+  }
 
   listDeadJobs(organizationId: string) {
     return this.queue.listDead(organizationId);

@@ -6,7 +6,7 @@ import { matchesOrganisation, OrganisationIdentity, OrganisationMatch } from '..
 
 export type { OrganisationIdentity } from '../identity/party-identity';
 
-export type DirectionBasis = 'ORG_VAT' | 'ORG_COMPANY_NUMBER' | 'ORG_NAME' | 'CONTACT_ROLE' | 'CONFLICT' | 'NONE';
+export type DirectionBasis = 'ORG_VAT' | 'ORG_COMPANY_NUMBER' | 'ORG_NAME' | 'CONTACT_ROLE' | 'MODEL' | 'CONFLICT' | 'NONE';
 
 export interface DirectionResolutionResult {
   direction: AiDirection;

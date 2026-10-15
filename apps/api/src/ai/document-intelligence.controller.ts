@@ -21,7 +21,7 @@ import { DocumentIntelligenceService } from './document-intelligence/document-in
 import { BusinessContextService } from './business-context/business-context.service';
 import { AiFeedbackService } from './feedback/ai-feedback.service';
 import { UploadDocumentDto } from './dto/upload-document.dto';
-import { ApproveSuggestionDto, EditAndApproveDto, RejectSuggestionDto } from './dto/review-action.dto';
+import { AcceptProposedContactDto, ApproveSuggestionDto, EditAndApproveDto, RejectSuggestionDto } from './dto/review-action.dto';
 import { UpdateBusinessContextDto } from './dto/business-context.dto';
 
 /** Multer stops reading beyond this; DocumentIntakeService enforces DOCUMENT_MAX_BYTES precisely. */
@@ -84,6 +84,20 @@ export class DocumentIntelligenceController {
   async retryDocument(@CurrentOrg() org: OrgContext, @Param('docId', ParseUUIDPipe) docId: string) {
     await this.pipeline.retryDocument(org.organizationId, docId);
     return this.docAi.getDocument(org.organizationId, docId);
+  }
+
+  /** Create the contact proposed for an unmatched supplier/customer; the document is then re-analysed. */
+  @Post('documents/:docId/proposed-contact')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @RequirePermission('contact.create')
+  async acceptProposedContact(
+    @CurrentOrg() org: OrgContext,
+    @CurrentActor() actor: Actor,
+    @Param('docId', ParseUUIDPipe) docId: string,
+    @Body() dto: AcceptProposedContactDto,
+  ) {
+    const contact = await this.pipeline.acceptProposedContact(org.organizationId, docId, actor, dto);
+    return { contact, document: await this.docAi.getDocument(org.organizationId, docId) };
   }
 
   /** Dead-letter queue: jobs that failed permanently or ran out of retries. */

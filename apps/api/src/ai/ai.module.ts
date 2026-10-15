@@ -4,6 +4,7 @@ import { StorageModule } from '../common/storage/storage.module';
 import { AccountingEngineModule } from '../accounting-engine/accounting-engine.module';
 import { InvoicesModule } from '../invoices/invoices.module';
 import { DocumentsModule } from '../documents/documents.module';
+import { ContactsModule } from '../contacts/contacts.module';
 import { BusinessContextService } from './business-context/business-context.service';
 import { HeuristicLlmProvider } from './providers/heuristic-llm.provider';
 import { DocumentClassifierService } from './document-intelligence/document-classifier.service';
@@ -32,6 +33,7 @@ import { AnalyseDocumentJobHandler, ExtractTextJobHandler } from './pipeline/doc
 import { DocumentPipelineService } from './pipeline/document-pipeline.service';
 import { LlmExtractionService } from './extraction/llm-extraction.service';
 import { ExtractionValidationService } from './validation/extraction-validation.service';
+import { DirectionFallbackService } from './document-intelligence/direction-fallback.service';
 
 /** Picks the model provider from AI_PROVIDER; null means AI calls are blocked (and logged as such). */
 function createAiProvider(config: AppEnv): AiProvider | null {
@@ -51,7 +53,7 @@ function createAiProvider(config: AppEnv): AiProvider | null {
 }
 
 @Module({
-  imports: [DatabaseModule, StorageModule, AccountingEngineModule, InvoicesModule, DocumentsModule],
+  imports: [DatabaseModule, StorageModule, AccountingEngineModule, InvoicesModule, DocumentsModule, ContactsModule],
   controllers: [DocumentIntelligenceController, AiGatewayController],
   providers: [
     BusinessContextService,
@@ -76,6 +78,7 @@ function createAiProvider(config: AppEnv): AiProvider | null {
     DocumentPipelineService,
     LlmExtractionService,
     ExtractionValidationService,
+    DirectionFallbackService,
   ],
   exports: [
     DocumentIntelligenceService,

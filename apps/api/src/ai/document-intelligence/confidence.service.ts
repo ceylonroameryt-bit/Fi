@@ -52,6 +52,9 @@ export class ConfidenceService {
     } else if (directionResult.basis === 'ORG_NAME') {
       directionScore = 0.25;
       reasons.push("Direction decided by the organisation's registered name.");
+    } else if (directionResult.basis === 'MODEL') {
+      directionScore = 0.1;
+      reasons.push('Direction suggested by AI fallback; the reviewer must confirm it.');
     } else if (directionResult.basis === 'CONTACT_ROLE') {
       directionScore = 0.2;
       reasons.push('Direction inferred from an existing single-role contact.');
