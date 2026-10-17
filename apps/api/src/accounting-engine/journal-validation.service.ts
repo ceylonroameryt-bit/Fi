@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { AccountSubtype, ContactStatus, JournalSourceType, JournalStatus, Prisma, TaxDirection, TaxTreatment } from '@prisma/client';
+import { AccountSubtype, ContactStatus, JournalSourceType, JournalStatus, Prisma, TaxDirection, TaxTreatment, VatScheme } from '@prisma/client';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { MoneyService } from './money.service';
 import { FinancialYearsService } from '../financial-years/financial-years.service';
 import type { OrgContext } from '../common/types/request-context.types';
 import { rateOnDate } from '../tax/tax-codes.service';
 import { INPUT_ONLY_TREATMENTS } from '../tax/vat-boxes';
+import { vatSchemeOn } from '../tax/vat-schemes';
 
 /** Journals generated from sales/purchase documents must VAT-analyse every non-control line. */
 const TAX_ANALYSED_SOURCES: ReadonlySet<JournalSourceType> = new Set([JournalSourceType.INVOICE, JournalSourceType.BILL]);
@@ -220,6 +221,20 @@ export class JournalValidationService {
         issues.push({ lineIndex: index, accountId: line.accountId, ...problem });
       }
     });
+
+    // Rule 16: an organisation that is not VAT-registered on the posting date can neither charge
+    // nor reclaim VAT; only outside-the-scope codes may be used.
+    if (journal.lines.some((l) => l.taxCode && l.taxCode.treatment !== TaxTreatment.OUTSIDE_SCOPE)) {
+      const scheme = await vatSchemeOn(client, orgContext.organizationId, journal.postingDate);
+      if (scheme.scheme === VatScheme.NOT_REGISTERED) {
+        journal.lines.forEach((line, index) => {
+          if (!line.taxCode || line.taxCode.treatment === TaxTreatment.OUTSIDE_SCOPE) return;
+          const message = `Tax code ${line.taxCode.code} cannot be used: the organisation is not VAT-registered on ${journal.postingDate.toISOString().slice(0, 10)} (use Outside the scope of VAT)`;
+          errors.push(`Line ${line.lineNumber}: ${message}`);
+          issues.push({ lineIndex: index, accountId: line.accountId, message, code: 'VAT_NOT_REGISTERED' });
+        });
+      }
+    }
 
     // Rule 7: Double Entry Balance
     const diff = sumDebit.sub(sumCredit);

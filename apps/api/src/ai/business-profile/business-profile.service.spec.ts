@@ -29,6 +29,7 @@ describe('BusinessProfileService', () => {
 
   beforeEach(() => {
     prisma = {
+      organizationVatScheme: { findFirst: jest.fn().mockResolvedValue(null) },
       journalEntry: {
         findMany: jest.fn().mockResolvedValue([
           { sourceType: 'BILL', postingDate: new Date('2026-09-01'), lines: [control('sup-1', '0', '120', '2000'), coded('6100', 'UK_SR', '100', '0')] },

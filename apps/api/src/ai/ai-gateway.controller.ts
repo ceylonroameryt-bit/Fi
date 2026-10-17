@@ -96,8 +96,8 @@ export class AiGatewayController {
       eventType: AuditEvents.BUSINESS_PROFILE_UPDATED,
       entityType: 'ORGANIZATION',
       entityId: org.organizationId,
-      oldValues: { industry: before.industry, vatScheme: before.vatScheme },
-      newValues: { industry: after.industry, vatScheme: after.vatScheme },
+      oldValues: { industry: before.industry },
+      newValues: { industry: after.industry },
     });
     return after;
   }

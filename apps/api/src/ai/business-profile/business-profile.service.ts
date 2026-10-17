@@ -52,9 +52,11 @@ export class BusinessProfileService {
 
   async get(organizationId: string): Promise<BusinessProfile> {
     const row = await this.prisma.organizationBusinessContext.findUnique({ where: { organizationId } });
+    // The VAT scheme is the organisation's dated setting (Settings → Taxes); null until someone sets it.
+    const scheme = await this.prisma.organizationVatScheme.findFirst({ where: { organizationId, startDate: { lte: new Date() } }, orderBy: { startDate: 'desc' } });
     return {
       industry: row?.industry ?? null,
-      vatScheme: row?.vatScheme ?? null,
+      vatScheme: scheme?.scheme ?? null,
       usualSuppliers: (row?.usualSuppliers as unknown as UsualContact[]) ?? [],
       usualCustomers: (row?.usualCustomers as unknown as UsualContact[]) ?? [],
       codingHabits: (row?.codingHabits as unknown as CodingHabit[]) ?? [],
@@ -62,11 +64,8 @@ export class BusinessProfileService {
     };
   }
 
-  async update(organizationId: string, changes: { industry?: string; vatScheme?: VatScheme | null }): Promise<BusinessProfile> {
-    const data = {
-      ...(changes.industry !== undefined ? { industry: changes.industry } : {}),
-      ...(changes.vatScheme !== undefined ? { vatScheme: changes.vatScheme } : {}),
-    };
+  async update(organizationId: string, changes: { industry?: string }): Promise<BusinessProfile> {
+    const data = changes.industry !== undefined ? { industry: changes.industry } : {};
     await this.prisma.organizationBusinessContext.upsert({
       where: { organizationId },
       create: { organizationId, ...data },

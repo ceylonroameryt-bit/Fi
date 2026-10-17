@@ -292,6 +292,7 @@ model Organization {
   aiUsageLogs     AiUsageLog[]
   jobs            Job[]
   bills           Bill[]
+  vatSchemes      OrganizationVatScheme[]
 
   @@index([status])
   @@map("organizations")
@@ -860,8 +861,6 @@ model OrganizationBusinessContext {
   inventoryCategories Json       @default("[]") @map("inventory_categories")
   salesChannels       Json       @default("[]") @map("sales_channels")
   accountingMethod    String     @default("INVENTORY_BASED") @map("accounting_method") @db.VarChar(50)
-  // Set by a person; null means not yet stated (never inferred).
-  vatScheme           VatScheme? @map("vat_scheme")
   // Derived from posted ledger history by BusinessProfileService.refresh (Stage 3).
   usualSuppliers      Json       @default("[]") @map("usual_suppliers")
   usualCustomers      Json       @default("[]") @map("usual_customers")
@@ -1185,6 +1184,25 @@ model Job {
 }
 
 // ─────────────────────────── Supplier bills (Stage 11) ───────────────────────────
+
+/// Stage 0 (sales & purchases): the organisation's VAT scheme, dated. A row applies from its start
+/// date until the next row's start date. No row means STANDARD (VAT-registered, invoice basis).
+model OrganizationVatScheme {
+  id                String    @id @default(uuid()) @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  scheme            VatScheme
+  startDate         DateTime  @map("start_date") @db.Date
+  /// Flat Rate Scheme percentage chosen by the user (e.g. 12.50); only for FLAT_RATE.
+  flatRatePercent   Decimal?  @map("flat_rate_percent") @db.Decimal(5, 2)
+  limitedCostTrader Boolean   @default(false) @map("limited_cost_trader")
+  createdById       String?   @map("created_by") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, startDate])
+  @@map("organization_vat_schemes")
+}
 
 enum BillStatus {
   DRAFT

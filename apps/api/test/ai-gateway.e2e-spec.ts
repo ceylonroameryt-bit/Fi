@@ -97,9 +97,10 @@ describe('AI gateway + business profile (Stage 3 E2E)', () => {
     const before = (await auth(http().get(url('/business-profile'))).expect(200)).body;
     expect(before).toHaveProperty('vatScheme');
 
-    const updated = (await auth(http().put(url('/business-profile'))).send({ vatScheme: 'STANDARD' }).expect(200)).body;
-    expect(updated.vatScheme).toBe('STANDARD');
-    await auth(http().put(url('/business-profile'))).send({ vatScheme: 'MADE_UP' }).expect(400);
+    const updated = (await auth(http().put(url('/business-profile'))).send({ industry: 'CONSULTING' }).expect(200)).body;
+    expect(updated.industry).toBe('CONSULTING');
+    // The VAT scheme is the organisation's dated setting (PUT /vat-scheme), not an AI profile field.
+    await auth(http().put(url('/business-profile'))).send({ vatScheme: 'STANDARD' }).expect(400);
 
     const refreshed = (await auth(http().post(url('/business-profile/refresh'))).expect(200)).body;
     expect(refreshed.profileRefreshedAt).toBeTruthy();
@@ -110,7 +111,8 @@ describe('AI gateway + business profile (Stage 3 E2E)', () => {
         expect.objectContaining({ contactId: expect.any(String), transactionCount: expect.any(Number), totalAmount: expect.stringMatching(/^\d+\.\d{2}$/) }),
       );
     }
-    expect(refreshed.vatScheme).toBe('STANDARD');
+    expect(refreshed.vatScheme).toBe(before.vatScheme);
+    expect(refreshed.industry).toBe('CONSULTING');
   });
 
   it('switching AI off blocks calls again', async () => {

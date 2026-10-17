@@ -22,6 +22,7 @@ describe('VatReturnService', () => {
 
   beforeEach(() => {
     prisma = {
+      organizationVatScheme: { findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
       journalLine: {
         findMany: jest.fn().mockResolvedValue([
           line('OUTPUT', 'STANDARD', '1000.00', '200.00'),

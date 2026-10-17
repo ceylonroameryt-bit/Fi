@@ -1,5 +1,4 @@
-import { VatScheme } from '@prisma/client';
-import { IsBoolean, IsEnum, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateAiSettingsDto {
   @IsBoolean()
@@ -12,9 +11,5 @@ export class UpdateBusinessProfileDto {
   @MaxLength(50)
   industry?: string;
 
-  /** null clears it back to "not stated". */
-  @IsOptional()
-  @ValidateIf((_, v) => v !== null)
-  @IsEnum(VatScheme)
-  vatScheme?: VatScheme | null;
+  // The VAT scheme is no longer set here: it is the organisation's dated setting (PUT /organizations/:orgId/vat-scheme).
 }

@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { AccountSubtype, JournalStatus, Prisma } from '@prisma/client';
+import { AccountSubtype, JournalStatus, Prisma, VatScheme } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { MoneyService } from '../accounting-engine/money.service';
 import { DomainException } from '../common/errors/domain.exception';
 import { parseIsoDate, toIsoDate } from '../common/utils/dates';
 import { SOURCE_BOXES, VAT_BOXES, VatBox, vatBoxContributions } from './vat-boxes';
+import { flatRateBoxes, SchemePeriod, vatSchemesBetween } from './vat-schemes';
 
 export interface VatReturnRange {
   from: string;
@@ -15,6 +16,10 @@ export interface VatReturnReport {
   organizationId: string;
   from: string;
   to: string;
+  /** The VAT scheme the return was prepared under. */
+  scheme: VatScheme;
+  /** Flat Rate Scheme percentage used for box 1 (FLAT_RATE only). */
+  flatRatePercent: string | null;
   /** Boxes 1–5 in pounds and pence; boxes 6–9 in whole pounds (pence dropped), per HMRC. */
   boxes: Record<VatBox, string>;
   lineCount: number;
@@ -53,11 +58,28 @@ export class VatReturnService {
 
   async getReturn(organizationId: string, range: VatReturnRange): Promise<VatReturnReport> {
     const { from, to } = this.parseRange(range);
+    const scheme = await this.schemeFor(organizationId, from, to);
     const lines = await this.loadLines(organizationId, from, to);
 
     const totals = Object.fromEntries(VAT_BOXES.map((b) => [b, this.money.ZERO])) as Record<VatBox, Prisma.Decimal>;
-    for (const line of lines) {
-      for (const [box, amount] of this.contributions(line)) totals[box] = totals[box].plus(amount);
+    if (scheme.scheme === VatScheme.FLAT_RATE) {
+      const frs = flatRateBoxes(
+        this.money,
+        scheme.flatRatePercent!,
+        lines.map((l) => ({
+          journalId: l.journalEntry.id,
+          direction: l.taxDirection!,
+          treatment: l.taxCode!.treatment,
+          accountSubtype: l.account.accountSubtype,
+          net: this.money.toDecimal(l.taxNetAmount!),
+          vat: this.money.toDecimal(l.taxAmount!),
+        })),
+      );
+      for (const [box, amount] of Object.entries(frs) as [VatBox, Prisma.Decimal][]) totals[box] = amount;
+    } else {
+      for (const line of lines) {
+        for (const [box, amount] of this.contributions(line)) totals[box] = totals[box].plus(amount);
+      }
     }
     totals.box3 = totals.box1.plus(totals.box2);
     totals.box5 = totals.box3.minus(totals.box4);
@@ -79,6 +101,8 @@ export class VatReturnService {
       organizationId,
       from: toIsoDate(from),
       to: toIsoDate(to),
+      scheme: scheme.scheme,
+      flatRatePercent: scheme.flatRatePercent ? this.money.toDecimal(scheme.flatRatePercent).toFixed(2) : null,
       boxes,
       lineCount: lines.length,
       unsupportedBoxes: ['box2', 'box8', 'box9'],
@@ -97,6 +121,10 @@ export class VatReturnService {
       throw new DomainException('VALIDATION_FAILED', `Box must be one of ${[...SOURCE_BOXES].join(', ')}`);
     }
     const { from, to } = this.parseRange(range);
+    const scheme = await this.schemeFor(organizationId, from, to);
+    if (scheme.scheme === VatScheme.FLAT_RATE) {
+      throw new DomainException('VAT_SCHEME_NOT_SUPPORTED', 'Box drill-down is for the standard basis; Flat Rate boxes are computed from turnover');
+    }
     const lines = await this.loadLines(organizationId, from, to);
     const result: VatBoxLine[] = [];
     for (const line of lines) {
@@ -145,11 +173,32 @@ export class VatReturnService {
         taxNetAmount: true,
         taxAmount: true,
         taxCode: { select: { code: true, treatment: true } },
-        account: { select: { code: true, name: true } },
+        account: { select: { code: true, name: true, accountSubtype: true } },
         journalEntry: { select: { id: true, journalNumber: true, postingDate: true } },
       },
       orderBy: [{ journalEntry: { postingDate: 'asc' } }, { lineNumber: 'asc' }],
     });
+  }
+
+  /**
+   * The one scheme in force for the whole return. A return may not straddle a scheme change, and
+   * schemes this engine cannot compute yet are refused rather than approximated.
+   */
+  private async schemeFor(organizationId: string, from: Date, to: Date): Promise<SchemePeriod> {
+    const periods = await vatSchemesBetween(this.prisma, organizationId, from, to);
+    if (periods.length > 1) {
+      throw new DomainException('VAT_SCHEME_CHANGED_IN_PERIOD', `The VAT scheme changes on ${toIsoDate(periods[1].startDate!)}; prepare separate returns before and after that date`, {
+        changes: periods.slice(1).map((p) => ({ scheme: p.scheme, startDate: toIsoDate(p.startDate!) })),
+      });
+    }
+    const scheme = periods[0];
+    if (scheme.scheme === VatScheme.NOT_REGISTERED) {
+      throw new DomainException('VAT_NOT_REGISTERED', 'The organisation is not VAT-registered for this period; there is no VAT return');
+    }
+    if (scheme.scheme === VatScheme.CASH_ACCOUNTING) {
+      throw new DomainException('VAT_SCHEME_NOT_SUPPORTED', 'Cash accounting returns need customer and supplier payments, which are not recorded yet');
+    }
+    return scheme;
   }
 
   /** Net credit movement (credits − debits) on VAT control accounts in the range. */
