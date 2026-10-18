@@ -79,7 +79,7 @@ function BankTransactionsContent() {
   const [lines, setLines] = useState<BankStatementLine[]>([]);
   const [selectedLineIds, setSelectedLineIds] = useState<Set<string>>(new Set());
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [aiRunning, setAiRunning] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [batchConfirming, setBatchConfirming] = useState(false);
@@ -123,7 +123,12 @@ function BankTransactionsContent() {
 
   // Load supporting options (accounts, contacts, bank accounts)
   useEffect(() => {
-    if (!activeOrg) return;
+    if (!activeOrg) {
+      setBankAccounts([]);
+      setAccounts([]);
+      setContacts([]);
+      return;
+    }
     Promise.all([
       apiRequest<BankAccount[]>('/bank-accounts'),
       apiRequest<any>('/accounts'),
@@ -142,7 +147,13 @@ function BankTransactionsContent() {
 
   // Load statement lines
   const loadLines = useCallback(async () => {
-    if (!activeOrg) return;
+    if (!activeOrg) {
+      setLoading(false);
+      setLines([]);
+      setTotalPages(1);
+      setTotalLines(0);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
