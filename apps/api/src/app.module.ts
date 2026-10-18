@@ -19,8 +19,14 @@ import { AccountingEngineModule } from './accounting-engine/accounting-engine.mo
 import { JournalsModule } from './journals/journals.module';
 import { LedgerModule } from './ledger/ledger.module';
 import { ReportsModule } from './reports/reports.module';
+import { TaxModule } from './tax/tax.module';
+import { JobsModule } from './jobs/jobs.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { InvoicesModule } from './invoices/invoices.module';
+import { BillsModule } from './bills/bills.module';
+import { PaymentsModule } from './payments/payments.module';
+import { CreditNotesModule } from './credit-notes/credit-notes.module';
+import { BankingModule } from './banking/banking.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
 import { StorageModule } from './common/storage/storage.module';
@@ -53,8 +59,14 @@ import { AllExceptionsFilter } from './common/errors/all-exceptions.filter';
     JournalsModule,
     LedgerModule,
     ReportsModule,
+    TaxModule,
+    JobsModule,
     ContactsModule,
     InvoicesModule,
+    BillsModule,
+    PaymentsModule,
+    CreditNotesModule,
+    BankingModule,
     AdminModule,
     HealthModule,
     StorageModule,

@@ -6,9 +6,11 @@ import { createValidationPipe } from '../src/common/validation/validation.pipe';
 import { RolesService } from '../src/roles/roles.service';
 import { PrismaService } from '../src/database/prisma.service';
 import cookieParser from 'cookie-parser';
+import { loadTaxCodeIds } from './tax-codes.helper';
 
 describe('Contacts V2 & Subledger Foundation (E2E Integration)', () => {
   let app: INestApplication;
+  let tax: Record<string, string>;
   let prisma: PrismaService;
   let ownerToken: string;
   let orgId: string;
@@ -38,6 +40,7 @@ describe('Contacts V2 & Subledger Foundation (E2E Integration)', () => {
     prisma = app.get(PrismaService);
 
     await app.init();
+    tax = await loadTaxCodeIds(app);
   });
 
   afterAll(async () => {
@@ -287,7 +290,7 @@ describe('Contacts V2 & Subledger Foundation (E2E Integration)', () => {
               description: 'Services',
               quantity: 1,
               unitPrice: 1000,
-              taxRate: 0.2,
+              taxCodeId: tax.UK_SR,
             },
           ],
         })
@@ -311,7 +314,7 @@ describe('Contacts V2 & Subledger Foundation (E2E Integration)', () => {
               description: 'Logistics Joint Venture',
               quantity: 1,
               unitPrice: 500,
-              taxRate: 0,
+              taxCodeId: tax.UK_ZR,
             },
           ],
         })
@@ -335,7 +338,7 @@ describe('Contacts V2 & Subledger Foundation (E2E Integration)', () => {
               description: 'Aeronautics Consulting',
               quantity: 1,
               unitPrice: 1000, // 1000.00 Net
-              taxRate: 0.20,   // 200.00 VAT
+              taxCodeId: tax.UK_SR,   // 200.00 VAT
             },
           ],
         })
@@ -473,7 +476,7 @@ describe('Contacts V2 & Subledger Foundation (E2E Integration)', () => {
           issueDate: '2026-04-25',
           dueDate: '2026-05-25',
           lines: [
-            { accountId: salesAccountId, description: 'Test', quantity: 1, unitPrice: 100, taxRate: 0 },
+            { accountId: salesAccountId, description: 'Test', quantity: 1, unitPrice: 100, taxCodeId: tax.UK_ZR },
           ],
         })
         .expect(422);
@@ -506,7 +509,7 @@ describe('Contacts V2 & Subledger Foundation (E2E Integration)', () => {
           issueDate: '2026-04-25',
           dueDate: '2026-05-25',
           lines: [
-            { accountId: salesAccountId, description: 'Test', quantity: 1, unitPrice: 100, taxRate: 0 },
+            { accountId: salesAccountId, description: 'Test', quantity: 1, unitPrice: 100, taxCodeId: tax.UK_ZR },
           ],
         })
         .expect(201);

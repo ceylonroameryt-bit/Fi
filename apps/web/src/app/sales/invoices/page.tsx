@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { Sparkles } from 'lucide-react';
+import { AiInvoiceDraftModal } from '@/components/sales/ai-invoice-draft-modal';
 
 interface InvoiceListItem {
   id: string;
@@ -83,22 +85,48 @@ export default function InvoicesPage() {
     .reduce((acc, curr) => acc + Number(curr.totalAmount || 0), 0);
 
   const draftCount = invoices.filter((i) => i.status === 'DRAFT').length;
+  const [showAiModal, setShowAiModal] = useState(false);
 
   return (
     <AppShell>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Sales Invoices</h1>
           <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Authoritative sales invoicing engine automatically integrated into the General Ledger.
           </p>
         </div>
-        {canCreate && (
-          <Link href="/sales/invoices/new" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>+</span> New Invoice
-          </Link>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          {canCreate && (
+            <button
+              onClick={() => setShowAiModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                backgroundColor: '#F0FDFA',
+                border: '1px solid #99F6E4',
+                color: '#0F766E',
+                padding: '0.55rem 1rem',
+                borderRadius: '0.375rem',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+              }}
+            >
+              <Sparkles size={16} color="#0D9488" />
+              <span>✨ AI Draft Invoice</span>
+            </button>
+          )}
+          {canCreate && (
+            <Link href="/sales/invoices/new" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>+</span> New Invoice
+            </Link>
+          )}
+        </div>
       </div>
+
+      <AiInvoiceDraftModal isOpen={showAiModal} onClose={() => setShowAiModal(false)} />
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>

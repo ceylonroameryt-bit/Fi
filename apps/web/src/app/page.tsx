@@ -21,13 +21,20 @@ import {
   ChevronDown,
   CheckCircle2,
   AlertTriangle,
-  Clock,
   Info,
   Building,
   Monitor,
   Share2,
   Code,
+  SlidersHorizontal,
+  Sparkles,
+  Settings,
 } from 'lucide-react';
+import {
+  DashboardCustomizerModal,
+  DashboardPreferences,
+  DEFAULT_DASHBOARD_PREFERENCES,
+} from '@/components/dashboard/dashboard-customizer-modal';
 
 interface JournalEntry {
   id: string;
@@ -71,6 +78,32 @@ export default function DashboardPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [yearFilter, setYearFilter] = useState('This Year');
+  const [showCustomizerModal, setShowCustomizerModal] = useState(false);
+  const [dashPrefs, setDashPrefs] = useState<DashboardPreferences>(DEFAULT_DASHBOARD_PREFERENCES);
+
+  // Load saved dashboard preferences per organization
+  useEffect(() => {
+    if (!activeOrg?.id) return;
+    try {
+      const stored = localStorage.getItem(`blynt_dash_prefs_${activeOrg.id}`);
+      if (stored) {
+        setDashPrefs((prev) => ({ ...prev, ...JSON.parse(stored) }));
+      }
+    } catch (e) {
+      console.warn('Failed to load dashboard preferences', e);
+    }
+  }, [activeOrg?.id]);
+
+  const handleUpdatePreferences = (newPrefs: DashboardPreferences) => {
+    setDashPrefs(newPrefs);
+    if (activeOrg?.id) {
+      try {
+        localStorage.setItem(`blynt_dash_prefs_${activeOrg.id}`, JSON.stringify(newPrefs));
+      } catch (e) {
+        console.warn('Failed to save dashboard preferences', e);
+      }
+    }
+  };
 
   const greetingName = user?.firstName || 'John';
 
@@ -117,6 +150,15 @@ export default function DashboardPage() {
       .join(' ');
   }, []);
 
+  const activeTableCount =
+    (dashPrefs.tableTransactions ? 1 : 0) +
+    (dashPrefs.tableInvoices ? 1 : 0) +
+    (dashPrefs.tableBills ? 1 : 0);
+
+  const activeChartCount =
+    (dashPrefs.chartCashFlow ? 1 : 0) +
+    (dashPrefs.chartIncomeExpenses ? 1 : 0);
+
   return (
     <AppShell>
       <div className="dashboard-canvas">
@@ -125,144 +167,216 @@ export default function DashboardPage() {
            ========================================================= */}
         <section className="hero-greeting-card">
           <div className="hero-wave-bg" />
-          <div style={{ zIndex: 2 }}>
-            <div className="hero-greeting-sub">Good morning, {greetingName}</div>
-            <h1 className="hero-greeting-title">Here&apos;s how your business is doing</h1>
-            <p className="hero-greeting-desc">
-              A clear view of your finances, with everything you need in one place.
-            </p>
+
+          {/* Left Column: Greeting & Customizer Action */}
+          <div className="hero-greeting-left" style={{ zIndex: 2, display: 'flex', flexDirection: 'column', gap: '0.85rem', maxWidth: '560px' }}>
+            <div>
+              <div className="hero-greeting-sub">Good morning, {greetingName}</div>
+              <h1 className="hero-greeting-title">Here&apos;s how your business is doing</h1>
+              <p className="hero-greeting-desc">
+                A clear view of your finances, with everything you need in one place.
+              </p>
+            </div>
+
+            <div>
+              <button
+                onClick={() => setShowCustomizerModal(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  backgroundColor: '#FFFFFF',
+                  color: '#0F172A',
+                  border: '1px solid #CBD5E1',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.825rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#94A3B8';
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
+                }}
+                title="Tick or untick what appears on your dashboard"
+              >
+                <SlidersHorizontal size={14} color="#0EA5E9" />
+                <span>Customize Dashboard</span>
+                <span
+                  style={{
+                    backgroundColor: '#EFF6FF',
+                    color: '#1D4ED8',
+                    fontSize: '0.7rem',
+                    padding: '0.1rem 0.45rem',
+                    borderRadius: '999px',
+                    fontWeight: 700,
+                    marginLeft: '0.2rem',
+                    border: '1px solid #DBEAFE',
+                  }}
+                >
+                  {Object.values(dashPrefs).filter(Boolean).length} Active
+                </span>
+              </button>
+            </div>
           </div>
 
-          {/* Quick Action Buttons Grid */}
-          <div className="hero-actions-grid">
-            <Link href="/sales/invoices/new" className="btn-hero-primary">
-              <Plus size={15} />
-              <span>New Invoice</span>
-            </Link>
-            <Link href="/sales/payments" className="btn-hero-white">
-              <CreditCard size={14} style={{ color: '#2563EB' }} />
-              <span>Record Payment</span>
-            </Link>
-            <Link href="/purchases/bills" className="btn-hero-white">
-              <FileText size={14} style={{ color: '#2563EB' }} />
-              <span>New Bill</span>
-            </Link>
-            <Link href="/purchases/expenses" className="btn-hero-white">
-              <Receipt size={14} style={{ color: '#2563EB' }} />
-              <span>New Expense</span>
-            </Link>
-            <Link href="/sales/contacts" className="btn-hero-white">
-              <UserPlus size={14} style={{ color: '#2563EB' }} />
-              <span>Add Contact</span>
-            </Link>
-            <Link href="/accounting/journals/new" className="btn-hero-white">
-              <BookOpen size={14} style={{ color: '#2563EB' }} />
-              <span>New Journal</span>
-            </Link>
-          </div>
+          {/* Right Column: Quick Action Buttons Grid */}
+          {dashPrefs.quickActions && (
+            <div className="hero-actions-grid">
+              <Link href="/sales/invoices/new" className="btn-hero-primary">
+                <Plus size={15} />
+                <span>New Invoice</span>
+              </Link>
+              <Link href="/sales/payments" className="btn-hero-white">
+                <CreditCard size={14} style={{ color: '#2563EB' }} />
+                <span>Record Payment</span>
+              </Link>
+              <Link href="/purchases/bills" className="btn-hero-white">
+                <FileText size={14} style={{ color: '#2563EB' }} />
+                <span>New Bill</span>
+              </Link>
+              <Link href="/purchases/expenses" className="btn-hero-white">
+                <Receipt size={14} style={{ color: '#2563EB' }} />
+                <span>New Expense</span>
+              </Link>
+              <Link href="/sales/contacts" className="btn-hero-white">
+                <UserPlus size={14} style={{ color: '#2563EB' }} />
+                <span>Add Contact</span>
+              </Link>
+              <Link href="/accounting/journals/new" className="btn-hero-white">
+                <BookOpen size={14} style={{ color: '#2563EB' }} />
+                <span>New Journal</span>
+              </Link>
+            </div>
+          )}
         </section>
 
         {/* =========================================================
             2. SIX KPI METRIC CARDS ROW
            ========================================================= */}
-        <section className="kpi-metrics-row">
-          {/* Card 1: Cash Balance */}
-          <div className="kpi-metric-card">
-            <div className="kpi-header">
-              <div className="kpi-icon-box" style={{ backgroundColor: '#EFF6FF', color: '#2563EB' }}>
-                <Landmark size={15} />
+        {(dashPrefs.kpiCash || dashPrefs.kpiIncome || dashPrefs.kpiExpenses || dashPrefs.kpiProfit || dashPrefs.kpiInvoices || dashPrefs.kpiBills) && (
+          <section className="kpi-metrics-row">
+            {/* Card 1: Cash Balance */}
+            {dashPrefs.kpiCash && (
+              <div className="kpi-metric-card">
+                <div className="kpi-header">
+                  <div className="kpi-icon-box" style={{ backgroundColor: '#EFF6FF', color: '#2563EB' }}>
+                    <Landmark size={15} />
+                  </div>
+                  <span className="kpi-label">Cash Balance</span>
+                </div>
+                <div className="kpi-amount">£24,320.50</div>
+                <div className="kpi-trend up">
+                  <span>▲ +12%</span>
+                  <span className="kpi-trend-sub">vs last month</span>
+                </div>
               </div>
-              <span className="kpi-label">Cash Balance</span>
-            </div>
-            <div className="kpi-amount">£24,320.50</div>
-            <div className="kpi-trend up">
-              <span>▲ +12%</span>
-              <span className="kpi-trend-sub">vs last month</span>
-            </div>
-          </div>
+            )}
 
-          {/* Card 2: Income */}
-          <div className="kpi-metric-card">
-            <div className="kpi-header">
-              <div className="kpi-icon-box" style={{ backgroundColor: '#ECFDF5', color: '#10B981' }}>
-                <TrendingUp size={15} />
+            {/* Card 2: Income */}
+            {dashPrefs.kpiIncome && (
+              <div className="kpi-metric-card">
+                <div className="kpi-header">
+                  <div className="kpi-icon-box" style={{ backgroundColor: '#ECFDF5', color: '#10B981' }}>
+                    <TrendingUp size={15} />
+                  </div>
+                  <span className="kpi-label">Income</span>
+                </div>
+                <div className="kpi-amount">£12,480.00</div>
+                <div className="kpi-trend up">
+                  <span>▲ +8%</span>
+                  <span className="kpi-trend-sub">vs last month</span>
+                </div>
               </div>
-              <span className="kpi-label">Income</span>
-            </div>
-            <div className="kpi-amount">£12,480.00</div>
-            <div className="kpi-trend up">
-              <span>▲ +8%</span>
-              <span className="kpi-trend-sub">vs last month</span>
-            </div>
-          </div>
+            )}
 
-          {/* Card 3: Expenses */}
-          <div className="kpi-metric-card">
-            <div className="kpi-header">
-              <div className="kpi-icon-box" style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}>
-                <TrendingDown size={15} />
+            {/* Card 3: Expenses */}
+            {dashPrefs.kpiExpenses && (
+              <div className="kpi-metric-card">
+                <div className="kpi-header">
+                  <div className="kpi-icon-box" style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}>
+                    <TrendingDown size={15} />
+                  </div>
+                  <span className="kpi-label">Expenses</span>
+                </div>
+                <div className="kpi-amount">£8,230.00</div>
+                <div className="kpi-trend down-red">
+                  <span>▼ +5%</span>
+                  <span className="kpi-trend-sub">vs last month</span>
+                </div>
               </div>
-              <span className="kpi-label">Expenses</span>
-            </div>
-            <div className="kpi-amount">£8,230.00</div>
-            <div className="kpi-trend down-red">
-              <span>▼ +5%</span>
-              <span className="kpi-trend-sub">vs last month</span>
-            </div>
-          </div>
+            )}
 
-          {/* Card 4: Net Profit */}
-          <div className="kpi-metric-card">
-            <div className="kpi-header">
-              <div className="kpi-icon-box" style={{ backgroundColor: '#EEF2FF', color: '#6366F1' }}>
-                <BarChart3 size={15} />
+            {/* Card 4: Net Profit */}
+            {dashPrefs.kpiProfit && (
+              <div className="kpi-metric-card">
+                <div className="kpi-header">
+                  <div className="kpi-icon-box" style={{ backgroundColor: '#EEF2FF', color: '#6366F1' }}>
+                    <BarChart3 size={15} />
+                  </div>
+                  <span className="kpi-label">Net Profit</span>
+                </div>
+                <div className="kpi-amount">£4,250.00</div>
+                <div className="kpi-trend up">
+                  <span>▲ +18%</span>
+                  <span className="kpi-trend-sub">vs last month</span>
+                </div>
               </div>
-              <span className="kpi-label">Net Profit</span>
-            </div>
-            <div className="kpi-amount">£4,250.00</div>
-            <div className="kpi-trend up">
-              <span>▲ +18%</span>
-              <span className="kpi-trend-sub">vs last month</span>
-            </div>
-          </div>
+            )}
 
-          {/* Card 5: Outstanding Invoices */}
-          <div className="kpi-metric-card">
-            <div className="kpi-header">
-              <div className="kpi-icon-box" style={{ backgroundColor: '#FFF7ED', color: '#F97316' }}>
-                <FileText size={15} />
+            {/* Card 5: Outstanding Invoices */}
+            {dashPrefs.kpiInvoices && (
+              <div className="kpi-metric-card">
+                <div className="kpi-header">
+                  <div className="kpi-icon-box" style={{ backgroundColor: '#FFF7ED', color: '#F97316' }}>
+                    <FileText size={15} />
+                  </div>
+                  <span className="kpi-label">Outstanding Invoices</span>
+                </div>
+                <div className="kpi-amount">£6,430.00</div>
+                <div className="kpi-trend down-red">
+                  <span>▼ +15%</span>
+                  <span className="kpi-trend-sub">vs last month</span>
+                </div>
               </div>
-              <span className="kpi-label">Outstanding Invoices</span>
-            </div>
-            <div className="kpi-amount">£6,430.00</div>
-            <div className="kpi-trend down-red">
-              <span>▼ +15%</span>
-              <span className="kpi-trend-sub">vs last month</span>
-            </div>
-          </div>
+            )}
 
-          {/* Card 6: Bills Due */}
-          <div className="kpi-metric-card">
-            <div className="kpi-header">
-              <div className="kpi-icon-box" style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}>
-                <Calendar size={15} />
+            {/* Card 6: Bills Due */}
+            {dashPrefs.kpiBills && (
+              <div className="kpi-metric-card">
+                <div className="kpi-header">
+                  <div className="kpi-icon-box" style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}>
+                    <Calendar size={15} />
+                  </div>
+                  <span className="kpi-label">Bills Due</span>
+                </div>
+                <div className="kpi-amount">£3,210.00</div>
+                <div className="kpi-trend down-red">
+                  <span>▼ +22%</span>
+                  <span className="kpi-trend-sub">vs last month</span>
+                </div>
               </div>
-              <span className="kpi-label">Bills Due</span>
-            </div>
-            <div className="kpi-amount">£3,210.00</div>
-            <div className="kpi-trend down-red">
-              <span>▼ +22%</span>
-              <span className="kpi-trend-sub">vs last month</span>
-            </div>
-          </div>
-        </section>
+            )}
+          </section>
+        )}
 
         {/* =========================================================
             3. DUAL CHARTS GRID: CASH FLOW & INCOME VS EXPENSES
            ========================================================= */}
-        <section className="dashboard-charts-grid">
-          {/* Chart 1: Cash Flow (12 Months) */}
-          <div className="chart-card-shell">
+        {activeChartCount > 0 && (
+          <section
+            className="dashboard-charts-grid"
+            style={activeChartCount === 1 ? { gridTemplateColumns: '1fr' } : undefined}
+          >
+            {/* Chart 1: Cash Flow (12 Months) */}
+            {dashPrefs.chartCashFlow && (
+              <div className="chart-card-shell">
             <div className="chart-header">
               <div>
                 <h2 className="chart-title">Cash Flow</h2>
@@ -361,8 +475,10 @@ export default function DashboardPage() {
               </svg>
             </div>
           </div>
+        )}
 
-          {/* Chart 2: Income vs Expenses (Donut Chart) */}
+        {/* Chart 2: Income vs Expenses (Donut Chart) */}
+        {dashPrefs.chartIncomeExpenses && (
           <div className="chart-card-shell">
             <div className="chart-header">
               <div>
@@ -457,14 +573,27 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </section>
+        )}
+      </section>
+    )}
 
         {/* =========================================================
             4. THREE BOTTOM DATA COLUMNS
            ========================================================= */}
-        <section className="dashboard-data-grid">
-          {/* Column 1: Recent Transactions */}
-          <div className="data-panel-card">
+        {activeTableCount > 0 && (
+          <section
+            className="dashboard-data-grid"
+            style={
+              activeTableCount === 1
+                ? { gridTemplateColumns: '1fr' }
+                : activeTableCount === 2
+                ? { gridTemplateColumns: 'repeat(2, 1fr)' }
+                : undefined
+            }
+          >
+            {/* Column 1: Recent Transactions */}
+            {dashPrefs.tableTransactions && (
+              <div className="data-panel-card">
             <div className="panel-header">
               <h3 className="panel-title">Recent Transactions</h3>
               <Link href="/accounting/journals" className="panel-link">
@@ -565,8 +694,10 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
+        )}
 
-          {/* Column 2: Outstanding Invoices */}
+        {/* Column 2: Outstanding Invoices */}
+        {dashPrefs.tableInvoices && (
           <div className="data-panel-card">
             <div className="panel-header">
               <h3 className="panel-title">Outstanding Invoices</h3>
@@ -633,8 +764,10 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
+        )}
 
-          {/* Column 3: Bills Due */}
+        {/* Column 3: Bills Due */}
+        {dashPrefs.tableBills && (
           <div className="data-panel-card">
             <div className="panel-header">
               <h3 className="panel-title">Bills Due</h3>
@@ -730,7 +863,9 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        )}
+      </section>
+    )}
 
         {/* =========================================================
             5. FINANCIAL ALERTS FOOTER BANNER
@@ -806,6 +941,13 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
+
+      <DashboardCustomizerModal
+        isOpen={showCustomizerModal}
+        onClose={() => setShowCustomizerModal(false)}
+        preferences={dashPrefs}
+        onChangePreferences={handleUpdatePreferences}
+      />
     </AppShell>
   );
 }

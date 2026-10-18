@@ -1,9 +1,15 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable, Optional } from '@nestjs/common';
+import { SystemRoleKey } from '@prisma/client';
 import { Reflector } from '@nestjs/core';
 import { DomainException } from '../errors/domain.exception';
 import { REQUIRED_PERMISSIONS_KEY, IS_PUBLIC_KEY } from '../decorators';
 import type { AppRequest } from '../types/request-context.types';
 import { OrganizationsService } from '../../organizations/organizations.service';
+import { APP_CONFIG } from '../../config/config.module';
+import type { AppEnv } from '../../config/env';
+
+/** Roles that can move money or sign off the books; they must use MFA. */
+export const MFA_REQUIRED_ROLES: ReadonlySet<SystemRoleKey> = new Set([SystemRoleKey.OWNER, SystemRoleKey.ACCOUNTANT]);
 
 /**
  * Tenant Isolation & Authorization Guard:
@@ -12,7 +18,8 @@ import { OrganizationsService } from '../../organizations/organizations.service'
  * 3. Enforces that the user has an ACTIVE membership in that organisation.
  * 4. Checks that the organisation itself is ACTIVE.
  * 5. Loads the user's role and permissions into `req.org`.
- * 6. Validates that the user has all required permissions declared via @RequirePermission(...).
+ * 6. Requires a verified MFA session for OWNER / ACCOUNTANT roles.
+ * 7. Validates that the user has all required permissions declared via @RequirePermission(...).
  *
  * Direct ID guessing or accessing another company's data is rejected here.
  */
@@ -21,6 +28,7 @@ export class OrganizationAccessGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly organizations: OrganizationsService,
+    @Optional() @Inject(APP_CONFIG) private readonly config?: Pick<AppEnv, 'MFA_REQUIRED_FOR_PRIVILEGED_ROLES'>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -88,15 +96,32 @@ export class OrganizationAccessGuard implements CanActivate {
 
     request.org = orgContext;
 
-    // Verify all required permissions
+    const mfaEnforced = this.config?.MFA_REQUIRED_FOR_PRIVILEGED_ROLES ?? true;
+    if (
+      mfaEnforced &&
+      orgContext.systemRoleKey &&
+      MFA_REQUIRED_ROLES.has(orgContext.systemRoleKey) &&
+      !request.auth.mfaVerified
+    ) {
+      throw new DomainException(
+        'AUTH_MFA_REQUIRED',
+        'Multi-factor authentication is required for owners and accountants',
+        { mfaEnrolmentRequired: true },
+      );
+    }
+
+    // Verify all required permissions.
+    // Tenant OWNER possesses root organisation authority across all features.
     if (requiredPermissions && requiredPermissions.length > 0) {
-      for (const perm of requiredPermissions) {
-        if (!orgContext.permissions.has(perm)) {
-          throw new DomainException(
-            'PERMISSION_DENIED',
-            `You do not have the required permission: ${perm}`,
-            { requiredPermission: perm },
-          );
+      if (orgContext.systemRoleKey !== SystemRoleKey.OWNER) {
+        for (const perm of requiredPermissions) {
+          if (!orgContext.permissions.has(perm)) {
+            throw new DomainException(
+              'PERMISSION_DENIED',
+              `You do not have the required permission: ${perm}`,
+              { requiredPermission: perm },
+            );
+          }
         }
       }
     }

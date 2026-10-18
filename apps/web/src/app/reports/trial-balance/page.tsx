@@ -50,6 +50,7 @@ interface TrialBalanceReport {
   totalDebit: string;
   totalCredit: string;
   difference: string;
+  roundingDifference: string;
   isBalanced: boolean;
 }
 
@@ -416,6 +417,14 @@ function TrialBalanceContent() {
                     )}
                   </td>
                 </tr>
+                {report.roundingDifference !== '0.00' && (
+                  <tr style={{ color: '#64748B', fontSize: '0.85rem' }}>
+                    <td colSpan={5} className="text-right" style={{ padding: '0.5rem 1rem' }}>
+                      Totals differ by £{report.roundingDifference} because each row is rounded to the nearest penny; the
+                      ledger itself balances.
+                    </td>
+                  </tr>
+                )}
               </tfoot>
             )}
           </table>

@@ -6,9 +6,11 @@ import { PrismaService } from '../src/database/prisma.service';
 import { createValidationPipe } from '../src/common/validation/validation.pipe';
 import { RolesService } from '../src/roles/roles.service';
 import cookieParser from 'cookie-parser';
+import { loadTaxCodeIds } from './tax-codes.helper';
 
 describe('Financial Atomicity & Concurrency Controls (Phase 3 E2E)', () => {
   let app: INestApplication;
+  let tax: Record<string, string>;
   let prisma: PrismaService;
   let ownerToken: string;
   let orgId: string;
@@ -33,6 +35,7 @@ describe('Financial Atomicity & Concurrency Controls (Phase 3 E2E)', () => {
     await roles.seedGlobalPermissions();
 
     await app.init();
+    tax = await loadTaxCodeIds(app);
 
     // Sign in as owner
     const loginRes = await request(app.getHttpServer())
@@ -96,7 +99,7 @@ describe('Financial Atomicity & Concurrency Controls (Phase 3 E2E)', () => {
               description: 'Atomicity Consulting Service',
               quantity: 2,
               unitPrice: 500,
-              taxRate: 0.20,
+              taxCodeId: tax.UK_SR,
             },
           ],
         })
@@ -311,7 +314,7 @@ describe('Financial Atomicity & Concurrency Controls (Phase 3 E2E)', () => {
               description: 'Locked period service',
               quantity: 1,
               unitPrice: 200,
-              taxRate: 0,
+              taxCodeId: tax.UK_ZR,
             },
           ],
         })

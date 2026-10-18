@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { DomainException } from '../common/errors/domain.exception';
 import type { Actor } from '../common/types/request-context.types';
@@ -8,11 +8,49 @@ import { SYSTEM_PERMISSIONS, SYSTEM_ROLE_PERMISSIONS } from './roles.constants';
 import { SystemRoleKey } from '@prisma/client';
 
 @Injectable()
-export class RolesService {
+export class RolesService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.syncSystemPermissionsAndRoles();
+    } catch {
+      // Allow boot in offline or limited DB environments
+    }
+  }
+
+  async syncSystemPermissionsAndRoles(): Promise<void> {
+    await this.seedGlobalPermissions();
+    const permissions = await this.prisma.permission.findMany();
+    const permMap = new Map(permissions.map((p) => [p.code, p.id]));
+
+    const systemRoles = await this.prisma.role.findMany({
+      where: { isSystemRole: true, systemKey: { not: null } },
+      include: { permissions: { include: { permission: true } } },
+    });
+
+    for (const role of systemRoles) {
+      if (!role.systemKey) continue;
+      const targetCodes = SYSTEM_ROLE_PERMISSIONS[role.systemKey] ?? [];
+      const currentCodes = new Set(role.permissions.map((p) => p.permission.code));
+      const missing = targetCodes.filter((c) => !currentCodes.has(c));
+      if (missing.length > 0) {
+        const createData = missing
+          .map((code) => permMap.get(code))
+          .filter((id): id is string => Boolean(id))
+          .map((permissionId) => ({ roleId: role.id, permissionId }));
+        if (createData.length > 0) {
+          await this.prisma.rolePermission.createMany({
+            data: createData,
+            skipDuplicates: true,
+          });
+        }
+      }
+    }
+  }
 
   async seedGlobalPermissions(): Promise<void> {
     for (const perm of SYSTEM_PERMISSIONS) {

@@ -22,15 +22,17 @@
   * 3.1 Visual Workflow State Machine Diagram
   * 3.2 State Transition Definitions & Progression Rules
   * 3.3 The Hotfix & Emergency Incident Workflow (SEV-1 / SEV-2)
-* **4. Quality Gatekeepers: Definition of Ready & Definition of Done**
+* **4. Quality Gatekeepers: Definition of Ready, Review Protocol & Definition of Done**
   * 4.1 Definition of Ready (DoR) Gatekeeper Checklist
   * 4.2 Pull Request Quality Gate & CI Automation
   * 4.3 Definition of Done (DoD) Sign-Off Criteria
+  * 4.4 Formal Peer Review & Quality Sign-Off Governance
 * **5. Confluence Space Architecture & Page Templates**
   * 5.1 Confluence Space Structure (`ENG`, `PROD`, `QA`, `SEC`, `OPS`)
   * 5.2 Standard Product Requirement Document (PRD) Template
   * 5.3 Architectural Decision Record (ADR) Template
   * 5.4 Post-Mortem Incident Template
+  * 5.5 Standard Jira Issue Description "Review & Approval" Template
 * **6. Agile Ceremonies, Story Point Estimation & Sprint Cadence**
   * 6.1 2-Week Sprint Schedule & Cadence
   * 6.2 Story Pointing & Modified Fibonacci Sizing
@@ -232,6 +234,17 @@ Before an issue is closed as `DONE`:
 * [ ] Confluence documentation updated in Space `ENG` or `PROD`.
 * [ ] Audit log events verified for any new mutating action.
 
+## 4.4 Formal Peer Review & Quality Sign-Off Governance
+
+To uphold mathematical invariants, zero-drift floating-point calculations, and multi-tenant isolation, every Jira Story or Task must complete a mandatory four-tier Review & Approval gate before closure:
+
+| Review Tier | Gatekeeper / Approver | Mandatory Verification Focus | Sign-Off Artifact |
+| :--- | :--- | :--- | :--- |
+| **Tier 1: Peer Code Review** | 2 Senior Engineers | Strict TypeScript typing, no floating-point math on currencies, domain exception ergonomics, no unhandled async rejections. | GitHub PR Approvals |
+| **Tier 2: Invariant & Security Review** | Lead Architect / SecOps | Debit/Credit balance equality (`sum(dr) === sum(cr)`), multi-tenant `organizationId` isolation, audit logging on mutating calls. | Jira Sign-off Comment |
+| **Tier 3: QA & Automated Testing** | QA Lead / Test Engineer | 100% test pass on all 26 test suites (127 tests), edge-case validation, idempotency testing, API response status checks. | Jira Test Run Execution Record |
+| **Tier 4: Product Owner Acceptance** | Product Owner | Business acceptance against Gherkin scenarios in Confluence PRD, UX alignment with design system, user story sign-off. | Jira Status `DONE` |
+
 ---
 
 # 5. Confluence Space Architecture & Page Templates
@@ -298,6 +311,25 @@ We wrap Decimal.js inside a dedicated `MoneyService` configuring 4 decimal place
 * **Positive:** Zero financial drift; exact debit/credit equality verification.
 * **Negative:** Requires converting Prisma Decimal types into MoneyService instances before arithmetic operations.
 ```
+
+## 5.5 Standard Jira Issue Description "Review & Approval" Template
+
+Every engineering story, task, and bug in Jira must include this standardized Review & Approval matrix embedded in its description:
+
+| Review Milestone | Gatekeeper Role | Sign-Off Status | Approver Handle | Date Verified | Evidence / Link |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1. Peer Code Review** | Senior Engineer 1 | [ ] PENDING / [x] APPROVED | @dev-lead | YYYY-MM-DD | GitHub PR #___ |
+| **2. Invariant & Security Review** | Lead Architect | [ ] PENDING / [x] APPROVED | @architect | YYYY-MM-DD | Invariant Audit |
+| **3. QA & Automated Verification** | QA Lead | [ ] PENDING / [x] APPROVED | @qa-lead | YYYY-MM-DD | Test Suite Pass |
+| **4. Product Owner Acceptance** | Product Owner | [ ] PENDING / [x] APPROVED | @po-lead | YYYY-MM-DD | Confluence PRD |
+| **5. Confluence SSOT Sync** | Technical Author | [ ] PENDING / [x] APPROVED | @tech-writer | YYYY-MM-DD | Space SCRUM |
+
+### Mandatory Review Checklist:
+* [ ] **Debit / Credit Invariant:** Balanced entries verified (`sum(debits) === sum(credits)`).
+* [ ] **Zero Float Leakage:** All calculations use `MoneyService` (PostgreSQL `NUMERIC(19,4)`).
+* [ ] **Multi-Tenant Isolation:** Explicit `organizationId` scoping enforced on every query.
+* [ ] **Audit Trail:** Immutable audit event emitted for state-mutating actions.
+* [ ] **Confluence Documentation:** Linked to corresponding PRD or Technical Specification in Space `SCRUM`.
 
 ---
 

@@ -285,3 +285,78 @@ describe('JournalValidationEngine (Phases 7 & 8)', () => {
     expect(result.errors.some((e) => e.includes('journal.validate required'))).toBe(true);
   });
 });
+
+describe('JournalValidationService.checkLineTax (VAT analysis)', () => {
+  const { Prisma } = jest.requireActual('@prisma/client');
+  const D = (v: string) => new Prisma.Decimal(v);
+  const service = new JournalValidationService({} as any, new MoneyService(), {} as any);
+  const postingDate = new Date('2026-05-01');
+  const ukSr = {
+    code: 'UK_SR',
+    treatment: 'STANDARD',
+    isActive: true,
+    rates: [
+      { rate: D('0.175'), effectiveFrom: new Date('2010-01-01'), effectiveTo: new Date('2011-01-03') },
+      { rate: D('0.20'), effectiveFrom: new Date('2011-01-04'), effectiveTo: null },
+    ],
+  };
+  const sale = (over: Record<string, unknown> = {}) => ({
+    lineNumber: 2,
+    accountId: 'acc-sales',
+    debit: D('0'),
+    credit: D('100.00'),
+    taxCodeId: 'tc-sr',
+    taxDirection: 'OUTPUT',
+    taxNetAmount: D('100.00'),
+    taxAmount: D('20.00'),
+    account: { accountSubtype: 'SALES', code: '4000' },
+    taxCode: ukSr,
+    ...over,
+  });
+  const codes = (line: any, source: any = 'INVOICE', date = postingDate) =>
+    service.checkLineTax(line, source, date).map((p) => p.code);
+
+  it('accepts a correctly analysed sales line', () => {
+    expect(codes(sale())).toEqual([]);
+  });
+
+  it('accepts a credit note (debit line, negative net and VAT)', () => {
+    expect(codes(sale({ debit: D('100.00'), credit: D('0'), taxNetAmount: D('-100.00'), taxAmount: D('-20.00') }))).toEqual([]);
+  });
+
+  it('blocks a revenue line on an invoice journal with no tax code', () => {
+    expect(codes(sale({ taxCodeId: null, taxCode: null, taxDirection: null, taxNetAmount: null, taxAmount: null }))).toEqual([
+      'TAX_CODE_MISSING',
+    ]);
+  });
+
+  it('does not require tax codes on control accounts or manual journals', () => {
+    const blank = { taxCodeId: null, taxCode: null, taxDirection: null, taxNetAmount: null, taxAmount: null };
+    expect(codes(sale({ ...blank, account: { accountSubtype: 'ACCOUNTS_RECEIVABLE', code: '1100' } }))).toEqual([]);
+    expect(codes(sale({ ...blank, account: { accountSubtype: 'TAX_PAYABLE', code: '2100' } }), 'BILL')).toEqual([]);
+    expect(codes(sale(blank), 'MANUAL')).toEqual([]);
+  });
+
+  it('rejects incomplete tax fields', () => {
+    expect(codes(sale({ taxAmount: null }))).toEqual(['TAX_FIELDS_INCOMPLETE']);
+  });
+
+  it('rejects VAT that does not match the rate', () => {
+    expect(codes(sale({ taxAmount: D('17.50') }))).toEqual(['TAX_AMOUNT_MISMATCH']);
+  });
+
+  it('uses the rate in force on the posting date', () => {
+    expect(codes(sale({ taxAmount: D('17.50') }), 'INVOICE', new Date('2010-06-01'))).toEqual([]);
+    expect(codes(sale(), 'INVOICE', new Date('2009-06-01'))).toEqual(['TAX_CODE_NOT_EFFECTIVE']);
+  });
+
+  it('rejects a net amount that differs from the line amount', () => {
+    expect(codes(sale({ taxNetAmount: D('90.00'), taxAmount: D('18.00') }))).toEqual(['TAX_NET_MISMATCH']);
+  });
+
+  it('rejects purchase-only treatments on sales', () => {
+    expect(
+      codes(sale({ taxCode: { ...ukSr, code: 'UK_RC_SERV', treatment: 'REVERSE_CHARGE_SERVICES' } })),
+    ).toEqual(['TAX_DIRECTION_INVALID']);
+  });
+});

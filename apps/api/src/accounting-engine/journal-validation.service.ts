@@ -1,9 +1,42 @@
 import { Injectable } from '@nestjs/common';
-import { ContactStatus, JournalSourceType, JournalStatus } from '@prisma/client';
+import { AccountSubtype, ContactStatus, JournalSourceType, JournalStatus, Prisma, TaxDirection, TaxTreatment, VatScheme } from '@prisma/client';
 import { PrismaService, Tx } from '../database/prisma.service';
 import { MoneyService } from './money.service';
 import { FinancialYearsService } from '../financial-years/financial-years.service';
 import type { OrgContext } from '../common/types/request-context.types';
+import { rateOnDate } from '../tax/tax-codes.service';
+import { INPUT_ONLY_TREATMENTS } from '../tax/vat-boxes';
+import { vatSchemeOn } from '../tax/vat-schemes';
+
+/** Journals generated from sales/purchase documents must VAT-analyse every non-control line. */
+const TAX_ANALYSED_SOURCES: ReadonlySet<JournalSourceType> = new Set([JournalSourceType.INVOICE, JournalSourceType.BILL]);
+/** Control and settlement accounts never carry a tax code. */
+const NON_TAXABLE_SUBTYPES: ReadonlySet<AccountSubtype> = new Set([
+  AccountSubtype.ACCOUNTS_RECEIVABLE,
+  AccountSubtype.ACCOUNTS_PAYABLE,
+  AccountSubtype.TAX_PAYABLE,
+  AccountSubtype.BANK,
+  AccountSubtype.CASH,
+]);
+const PENNY = new Prisma.Decimal('0.01');
+
+type TaxLine = {
+  lineNumber: number;
+  accountId: string;
+  debit: Prisma.Decimal;
+  credit: Prisma.Decimal;
+  taxCodeId: string | null;
+  taxDirection: TaxDirection | null;
+  taxNetAmount: Prisma.Decimal | null;
+  taxAmount: Prisma.Decimal | null;
+  account: { accountSubtype: AccountSubtype | null; code: string } | null;
+  taxCode: {
+    code: string;
+    treatment: TaxTreatment;
+    isActive: boolean;
+    rates: Array<{ rate: Prisma.Decimal; effectiveFrom: Date; effectiveTo: Date | null }>;
+  } | null;
+};
 
 export interface ValidationIssue {
   field?: string;
@@ -54,6 +87,7 @@ export class JournalValidationService {
           include: {
             account: true,
             contact: true,
+            taxCode: { include: { rates: true } },
           },
           orderBy: { lineNumber: 'asc' },
         },
@@ -180,6 +214,28 @@ export class JournalValidationService {
       }
     });
 
+    // Rule 15: VAT analysis (Stage 2)
+    journal.lines.forEach((line, index) => {
+      for (const problem of this.checkLineTax(line, journal.sourceType, journal.postingDate)) {
+        errors.push(`Line ${line.lineNumber}: ${problem.message}`);
+        issues.push({ lineIndex: index, accountId: line.accountId, ...problem });
+      }
+    });
+
+    // Rule 16: an organisation that is not VAT-registered on the posting date can neither charge
+    // nor reclaim VAT; only outside-the-scope codes may be used.
+    if (journal.lines.some((l) => l.taxCode && l.taxCode.treatment !== TaxTreatment.OUTSIDE_SCOPE)) {
+      const scheme = await vatSchemeOn(client, orgContext.organizationId, journal.postingDate);
+      if (scheme.scheme === VatScheme.NOT_REGISTERED) {
+        journal.lines.forEach((line, index) => {
+          if (!line.taxCode || line.taxCode.treatment === TaxTreatment.OUTSIDE_SCOPE) return;
+          const message = `Tax code ${line.taxCode.code} cannot be used: the organisation is not VAT-registered on ${journal.postingDate.toISOString().slice(0, 10)} (use Outside the scope of VAT)`;
+          errors.push(`Line ${line.lineNumber}: ${message}`);
+          issues.push({ lineIndex: index, accountId: line.accountId, message, code: 'VAT_NOT_REGISTERED' });
+        });
+      }
+    }
+
     // Rule 7: Double Entry Balance
     const diff = sumDebit.sub(sumCredit);
     if (!diff.isZero()) {
@@ -226,5 +282,58 @@ export class JournalValidationService {
       periodId,
       periodName,
     };
+  }
+
+  /**
+   * Tax fields must be complete, use a code in force on the posting date, agree with the line
+   * amount and the rate, and be present on every taxable line of an invoice or bill journal.
+   */
+  checkLineTax(line: TaxLine, sourceType: JournalSourceType | null, postingDate: Date): Array<{ message: string; code: string }> {
+    const problems: Array<{ message: string; code: string }> = [];
+
+    if (!line.taxCodeId) {
+      const needsCode =
+        sourceType !== null &&
+        TAX_ANALYSED_SOURCES.has(sourceType) &&
+        !(line.account?.accountSubtype && NON_TAXABLE_SUBTYPES.has(line.account.accountSubtype));
+      if (needsCode) {
+        problems.push({ message: `Account ${line.account?.code ?? line.accountId} requires a tax code`, code: 'TAX_CODE_MISSING' });
+      }
+      return problems;
+    }
+
+    if (!line.taxCode || !line.taxDirection || line.taxNetAmount === null || line.taxAmount === null) {
+      problems.push({ message: 'Tax code, direction, net and VAT must all be set', code: 'TAX_FIELDS_INCOMPLETE' });
+      return problems;
+    }
+
+    const rate = line.taxCode.isActive ? rateOnDate(line.taxCode.rates, postingDate) : null;
+    if (rate === null) {
+      problems.push({ message: `Tax code ${line.taxCode.code} is not in force on the posting date`, code: 'TAX_CODE_NOT_EFFECTIVE' });
+      return problems;
+    }
+
+    if (line.taxDirection === TaxDirection.OUTPUT && INPUT_ONLY_TREATMENTS.has(line.taxCode.treatment)) {
+      problems.push({ message: `Tax code ${line.taxCode.code} can only be used on purchases`, code: 'TAX_DIRECTION_INVALID' });
+    }
+
+    // The net amount is this line's own value, signed so a credit note / reversal is negative.
+    const debit = this.money.toDecimal(line.debit);
+    const credit = this.money.toDecimal(line.credit);
+    const expectedNet = line.taxDirection === TaxDirection.OUTPUT ? credit.minus(debit) : debit.minus(credit);
+    const net = this.money.toDecimal(line.taxNetAmount);
+    if (!net.equals(expectedNet)) {
+      problems.push({ message: `Tax net ${net.toFixed(2)} does not match the line amount ${expectedNet.toFixed(2)}`, code: 'TAX_NET_MISMATCH' });
+    }
+
+    // VAT must match the rate within rounding (line or invoice-level rounding both stay inside 1p).
+    const vat = this.money.toDecimal(line.taxAmount);
+    if (vat.minus(net.mul(rate)).abs().greaterThanOrEqualTo(PENNY)) {
+      problems.push({
+        message: `VAT ${vat.toFixed(2)} does not match ${rate.mul(100).toFixed(2)}% of ${net.toFixed(2)}`,
+        code: 'TAX_AMOUNT_MISMATCH',
+      });
+    }
+    return problems;
   }
 }

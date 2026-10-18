@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { Sparkles } from 'lucide-react';
+import { AiJournalDraftModal } from '@/components/accounting/ai-journal-draft-modal';
 
 interface JournalEntry {
   id: string;
@@ -73,19 +75,46 @@ export default function JournalsPage() {
     return true;
   });
 
+  const [showAiModal, setShowAiModal] = useState(false);
+
   return (
     <AppShell>
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h1 className="page-title">Manual Journals</h1>
           <p className="page-subtitle">Strict double-entry manual journal entries with multi-tier validation</p>
         </div>
-        {canCreateJournal && (
-          <Link href="/accounting/journals/new" className="btn btn-primary">
-            + New Manual Journal
-          </Link>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          {canCreateJournal && (
+            <button
+              onClick={() => setShowAiModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                backgroundColor: '#F0FDFA',
+                border: '1px solid #99F6E4',
+                color: '#0F766E',
+                padding: '0.55rem 1rem',
+                borderRadius: '0.375rem',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+              }}
+            >
+              <Sparkles size={16} color="#0D9488" />
+              <span>✨ AI Draft Journal</span>
+            </button>
+          )}
+          {canCreateJournal && (
+            <Link href="/accounting/journals/new" className="btn btn-primary">
+              + New Manual Journal
+            </Link>
+          )}
+        </div>
       </div>
+
+      <AiJournalDraftModal isOpen={showAiModal} onClose={() => setShowAiModal(false)} />
 
       {error && <div className="alert alert-danger">{error}</div>}
 

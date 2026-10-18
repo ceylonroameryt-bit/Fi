@@ -6,6 +6,8 @@ export interface AuthContext {
   userId: string;
   sessionId: string;
   email: string;
+  /** True once this session has passed an MFA challenge. */
+  mfaVerified: boolean;
 }
 
 /** Organisation access context attached by the organisation access guard. */

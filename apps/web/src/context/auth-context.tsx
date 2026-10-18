@@ -62,21 +62,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = await apiRequest<User>('/auth/me');
       setUser(currentUser);
 
-      const orgs = await apiRequest<UserOrgMembership[]>('/organizations');
-      setUserOrgs(orgs);
+      try {
+        const orgs = await apiRequest<UserOrgMembership[]>('/organizations');
+        setUserOrgs(orgs);
 
-      const savedOrgId = typeof window !== 'undefined' ? localStorage.getItem('active_org_id') : null;
-      const matchingMembership = orgs.find((m) => m.organization.id === savedOrgId) || orgs[0];
+        const savedOrgId = typeof window !== 'undefined' ? localStorage.getItem('active_org_id') : null;
+        const matchingMembership = orgs.find((m) => m.organization.id === savedOrgId) || orgs[0];
 
-      if (matchingMembership) {
-        setActiveOrg(matchingMembership.organization);
-        setActiveRole(matchingMembership.role);
-        localStorage.setItem('active_org_id', matchingMembership.organization.id);
+        if (matchingMembership) {
+          setActiveOrg(matchingMembership.organization);
+          setActiveRole(matchingMembership.role);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('active_org_id', matchingMembership.organization.id);
+          }
+        } else if (typeof window !== 'undefined') {
+          localStorage.removeItem('active_org_id');
+        }
+      } catch (orgErr) {
+        console.warn('Failed to fetch organisations for user:', orgErr);
       }
     } catch {
       setUser(null);
       setActiveOrg(null);
       setActiveRole(null);
+      setUserOrgs([]);
     } finally {
       setIsLoading(false);
     }

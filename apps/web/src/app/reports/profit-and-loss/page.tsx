@@ -14,7 +14,9 @@ import {
   Layers,
   ArrowRight,
   Filter,
+  Sparkles,
 } from 'lucide-react';
+import { AiReportInsightsModal } from '@/components/reports/ai-report-insights-modal';
 
 interface FinancialYear {
   id: string;
@@ -83,6 +85,7 @@ function ProfitAndLossContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
 
   // Load FYs & Periods
   useEffect(() => {
@@ -208,16 +211,46 @@ function ProfitAndLossContent() {
           </p>
         </div>
 
-        <button
-          onClick={handleExportCsv}
-          disabled={exporting || loading}
-          className="btn btn-secondary"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-        >
-          <Download size={14} />
-          {exporting ? 'Exporting...' : 'Export CSV'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <button
+            onClick={() => setShowAiModal(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              backgroundColor: '#ECFDF5',
+              border: '1px solid #A7F3D0',
+              color: '#065F46',
+              padding: '0.5rem 0.95rem',
+              borderRadius: '0.375rem',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(6, 95, 70, 0.08)',
+            }}
+          >
+            <Sparkles size={15} color="#059669" />
+            <span>✨ AI Commentary & Insights</span>
+          </button>
+
+          <button
+            onClick={handleExportCsv}
+            disabled={exporting || loading}
+            className="btn btn-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <Download size={14} />
+            {exporting ? 'Exporting...' : 'Export CSV'}
+          </button>
+        </div>
       </div>
+
+      <AiReportInsightsModal
+        isOpen={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        reportType="P_AND_L"
+        reportData={report}
+      />
 
       {/* Filter Toolbar */}
       <div

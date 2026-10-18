@@ -6,9 +6,12 @@ import { PrismaService } from '../src/database/prisma.service';
 import { createValidationPipe } from '../src/common/validation/validation.pipe';
 import { RolesService } from '../src/roles/roles.service';
 import cookieParser from 'cookie-parser';
+import { loadTaxCodeIds } from './tax-codes.helper';
+import { Prisma } from '@prisma/client';
 
 describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
   let app: INestApplication;
+  let tax: Record<string, string>;
   let prisma: PrismaService;
   let ownerToken: string;
   let orgId: string;
@@ -31,6 +34,7 @@ describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
     await roles.seedGlobalPermissions();
 
     await app.init();
+    tax = await loadTaxCodeIds(app);
 
     // Sign in as owner
     const loginRes = await request(app.getHttpServer())
@@ -96,7 +100,7 @@ describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
             description: 'FX Consultation',
             quantity: '1',
             unitPrice: '100.00',
-            taxRate: '0',
+            taxCodeId: tax.UK_ZR,
           },
         ],
       });
@@ -125,9 +129,9 @@ describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
     expect(res.body.error.code).toBe('UNSUPPORTED_CURRENCY');
   });
 
-  it('specifically tests two zero-tax lines with quantity 0.0001 and unit price 0.5', async () => {
-    // 0.0001 * 0.5 = 0.00005 -> rounds Half-Up to 0.0001 per line
-    // Two lines: 0.0001 + 0.0001 = 0.0002 subtotal and total
+  it('rounds half-penny zero-tax lines up to the penny and posts them balanced', async () => {
+    // 0.01 * 0.5 = 0.005 -> rounds half-up to 0.01 per line (VAT amounts are pennies)
+    // Two lines: 0.01 + 0.01 = 0.02 subtotal and total
     const createRes = await request(app.getHttpServer())
       .post(`/api/v1/organizations/${orgId}/invoices`)
       .set('Authorization', `Bearer ${ownerToken}`)
@@ -141,26 +145,26 @@ describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
           {
             accountId: salesAccountId,
             description: 'Micro Line A',
-            quantity: '0.0001',
+            quantity: '0.01',
             unitPrice: '0.5',
-            taxRate: '0',
+            taxCodeId: tax.UK_ZR,
           },
           {
             accountId: salesAccountId,
             description: 'Micro Line B',
-            quantity: '0.0001',
+            quantity: '0.01',
             unitPrice: '0.5',
-            taxRate: '0',
+            taxCodeId: tax.UK_ZR,
           },
         ],
       })
       .expect(201);
 
     const invoice = createRes.body;
-    expect(parseFloat(invoice.lines[0].lineTotal)).toBe(0.0001);
-    expect(parseFloat(invoice.lines[1].lineTotal)).toBe(0.0001);
-    expect(parseFloat(invoice.subtotal)).toBe(0.0002);
-    expect(parseFloat(invoice.totalAmount)).toBe(0.0002);
+    expect(new Prisma.Decimal(invoice.lines[0].lineTotal).toFixed(2)).toBe('0.01');
+    expect(new Prisma.Decimal(invoice.lines[1].lineTotal).toFixed(2)).toBe('0.01');
+    expect(new Prisma.Decimal(invoice.subtotal).toFixed(2)).toBe('0.02');
+    expect(new Prisma.Decimal(invoice.totalAmount).toFixed(2)).toBe('0.02');
 
     // Post the invoice: journal must be created atomically and balance exactly
     const postRes = await request(app.getHttpServer())
@@ -184,16 +188,16 @@ describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
     const arLine = journal?.lines.find((l) => Number(l.debit) > 0);
     const revLines = journal?.lines.filter((l) => Number(l.credit) > 0);
 
-    expect(Number(arLine?.debit)).toBe(0.0002);
+    expect(arLine?.debit.toFixed(2)).toBe('0.02');
     expect(revLines).toHaveLength(2);
-    expect(Number(revLines![0].credit)).toBe(0.0001);
-    expect(Number(revLines![1].credit)).toBe(0.0001);
+    expect(revLines![0].credit.toFixed(2)).toBe('0.01');
+    expect(revLines![1].credit.toFixed(2)).toBe('0.01');
 
-    // Ensure total debit === total credit down to the 4th decimal place
-    const totalDebit = journal!.lines.reduce((s, l) => s + Number(l.debit), 0);
-    const totalCredit = journal!.lines.reduce((s, l) => s + Number(l.credit), 0);
-    expect(totalDebit).toBeCloseTo(0.0002, 4);
-    expect(totalCredit).toBeCloseTo(0.0002, 4);
+    // Exact Decimal balance check
+    const totalDebit = journal!.lines.reduce((s, l) => s.plus(l.debit), new Prisma.Decimal(0));
+    const totalCredit = journal!.lines.reduce((s, l) => s.plus(l.credit), new Prisma.Decimal(0));
+    expect(totalDebit.equals(totalCredit)).toBe(true);
+    expect(totalDebit.toFixed(2)).toBe('0.02');
     expect(totalDebit).toEqual(totalCredit);
   });
 
@@ -213,30 +217,28 @@ describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
             description: 'Item 1 - Standard Rate',
             quantity: '3.5',
             unitPrice: '12.3456',
-            taxRate: '0.2',
+            taxCodeId: tax.UK_SR,
           },
           {
             accountId: salesAccountId,
             description: 'Item 2 - Fractional',
             quantity: '1.25',
             unitPrice: '99.99',
-            taxRate: '0.2',
+            taxCodeId: tax.UK_SR,
           },
         ],
       })
       .expect(201);
 
     const inv = createRes.body;
-    // Line 1: Net = 3.5 * 12.3456 = 43.2096. Tax = 43.2096 * 0.2 = 8.64192 -> 8.6419. Total = 51.8515
-    // Line 2: Net = 1.25 * 99.99 = 124.9875. Tax = 124.9875 * 0.2 = 24.9975. Total = 149.9850
-    // Subtotal = 43.2096 + 124.9875 = 168.1971
-    // Tax Total = 8.6419 + 24.9975 = 33.6394
-    // Total Amount = 51.8515 + 149.9850 = 201.8365
-    expect(parseFloat(inv.subtotal)).toBeCloseTo(168.1971, 4);
-    expect(parseFloat(inv.taxTotal)).toBeCloseTo(33.6394, 4);
-    expect(parseFloat(inv.totalAmount)).toBeCloseTo(201.8365, 4);
+    // Net and VAT are rounded to the penny per line (calculateVat, half-up):
+    // Line 1: Net = 3.5 * 12.3456 = 43.2096 -> 43.21. VAT = 8.642 -> 8.64. Gross = 51.85
+    // Line 2: Net = 1.25 * 99.99 = 124.9875 -> 124.99. VAT = 24.998 -> 25.00. Gross = 149.99
+    expect(new Prisma.Decimal(inv.subtotal).toFixed(4)).toBe('168.2000');
+    expect(new Prisma.Decimal(inv.taxTotal).toFixed(4)).toBe('33.6400');
+    expect(new Prisma.Decimal(inv.totalAmount).toFixed(4)).toBe('201.8400');
 
-    // Posting must balance exactly: AR Debit = 201.8365, Revenue Credits = 168.1971, Tax Credit = 33.6394
+    // Posting must balance exactly: AR Debit = 201.84, Revenue Credits = 168.20, VAT Credit = 33.64
     const postRes = await request(app.getHttpServer())
       .post(`/api/v1/organizations/${orgId}/invoices/${inv.id}/post`)
       .set('Authorization', `Bearer ${ownerToken}`)
@@ -293,17 +295,20 @@ describe('Monetary Precision & Reporting Correctness (Phase 4 E2E)', () => {
     expect(tb.isBalanced).toBe(true);
 
     // Sum of displayed account row debit balances
+    // Decimal, not float: at ledger scale float sums drift by pennies.
     const sumRowDebits = tb.accounts.reduce(
-      (acc: number, r: { debitBalance: string }) => acc + parseFloat(r.debitBalance),
-      0,
+      (acc: Prisma.Decimal, r: { debitBalance: string }) => acc.plus(r.debitBalance),
+      new Prisma.Decimal(0),
     );
     const sumRowCredits = tb.accounts.reduce(
-      (acc: number, r: { creditBalance: string }) => acc + parseFloat(r.creditBalance),
-      0,
+      (acc: Prisma.Decimal, r: { creditBalance: string }) => acc.plus(r.creditBalance),
+      new Prisma.Decimal(0),
     );
 
-    expect(sumRowDebits).toBeCloseTo(parseFloat(tb.totalDebit), 2);
-    expect(sumRowCredits).toBeCloseTo(parseFloat(tb.totalCredit), 2);
-    expect(parseFloat(tb.difference)).toBe(0);
+    expect(sumRowDebits.toFixed(2)).toBe(tb.totalDebit);
+    expect(sumRowCredits.toFixed(2)).toBe(tb.totalCredit);
+    expect(tb.difference).toBe('0.00');
+    // Any display gap is fully explained by row rounding.
+    expect(new Prisma.Decimal(tb.totalDebit).minus(tb.totalCredit).toFixed(2)).toBe(tb.roundingDifference);
   });
 });

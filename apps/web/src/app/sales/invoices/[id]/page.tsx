@@ -50,6 +50,7 @@ interface InvoiceDetail {
     unitPrice: string | number;
     taxRate: string | number;
     taxAmount: string | number;
+    taxCode?: { id: string; code: string; name: string } | null;
     lineTotal: string | number;
     account: {
       id: string;
@@ -395,7 +396,13 @@ export default function InvoiceDetailPage() {
                       £{Number(line.unitPrice).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style={{ textAlign: 'right', fontSize: '0.85rem' }}>
-                      {Number(line.taxRate) > 0 ? `${(Number(line.taxRate) * 100).toFixed(0)}%` : '0%'}
+                      {line.taxCode ? (
+                        <span title={line.taxCode.code}>
+                          {line.taxCode.name} ({(Number(line.taxRate) * 100).toFixed(Number(line.taxRate) * 100 % 1 ? 1 : 0)}%)
+                        </span>
+                      ) : (
+                        <span style={{ color: '#B91C1C' }}>No VAT code – cannot post</span>
+                      )}
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>
                       £{Number(line.lineTotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

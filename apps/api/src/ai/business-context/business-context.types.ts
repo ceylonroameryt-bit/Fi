@@ -1,45 +1,17 @@
 export interface BusinessContextProfile {
-  industry: string;
+  /** null = not stated by a person; never guessed. */
+  industry: string | null;
   inventoryEnabled: boolean;
   inventoryCategories: string[];
   salesChannels: string[];
   accountingMethod: string;
 }
 
-export const DEFAULT_BUSINESS_PROFILES: Record<string, BusinessContextProfile> = {
-  PETROL_STATION: {
-    industry: 'PETROL_STATION',
-    inventoryEnabled: true,
-    inventoryCategories: ['PETROL', 'DIESEL', 'LUBRICANTS', 'SHOP_GOODS'],
-    salesChannels: ['POS', 'B2B_INVOICE'],
-    accountingMethod: 'INVENTORY_BASED',
-  },
-  CONSTRUCTION: {
-    industry: 'CONSTRUCTION',
-    inventoryEnabled: true,
-    inventoryCategories: ['BUILDING_MATERIALS', 'TOOLS', 'SAFETY_GEAR'],
-    salesChannels: ['B2B_INVOICE', 'CONTRACT_PROGRESS_BILLING'],
-    accountingMethod: 'INVENTORY_BASED',
-  },
-  CONSULTING: {
-    industry: 'CONSULTING',
-    inventoryEnabled: false,
-    inventoryCategories: [],
-    salesChannels: ['B2B_INVOICE', 'RETAINER'],
-    accountingMethod: 'SERVICE_BASED',
-  },
-  RETAIL: {
-    industry: 'RETAIL',
-    inventoryEnabled: true,
-    inventoryCategories: ['APPAREL', 'MERCHANDISE', 'ACCESSORIES'],
-    salesChannels: ['POS', 'ECOMMERCE', 'B2B_INVOICE'],
-    accountingMethod: 'INVENTORY_BASED',
-  },
-  GENERAL: {
-    industry: 'GENERAL',
-    inventoryEnabled: false,
-    inventoryCategories: [],
-    salesChannels: ['B2B_INVOICE'],
-    accountingMethod: 'STANDARD_ACCRUAL',
-  },
+/** Used when an organisation has not described itself: no industry, no inventory assumptions. */
+export const NEUTRAL_BUSINESS_PROFILE: BusinessContextProfile = {
+  industry: null,
+  inventoryEnabled: false,
+  inventoryCategories: [],
+  salesChannels: [],
+  accountingMethod: 'STANDARD_ACCRUAL',
 };

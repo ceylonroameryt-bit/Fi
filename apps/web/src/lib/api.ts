@@ -61,7 +61,21 @@ export function resolveEndpoint(endpoint: string, activeOrgId?: string | null): 
       clean = `/organizations/${activeOrgId}${clean}`;
     } else if (clean.startsWith('/invoices')) {
       clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/bills')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/vat-return')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
     } else if (clean.startsWith('/ai')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/payments')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/credit-notes')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/bank-accounts')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/bank-statements')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/bank-rules')) {
       clean = `/organizations/${activeOrgId}${clean}`;
     }
   }
@@ -109,7 +123,13 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
     ...(options.headers as Record<string, string>),
   };
 
-  if (activeOrgId) {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const isOrgAgnostic =
+    cleanEndpoint.startsWith('/auth') ||
+    cleanEndpoint.startsWith('/health') ||
+    cleanEndpoint === '/organizations';
+
+  if (activeOrgId && !isOrgAgnostic) {
     headers['x-organization-id'] = activeOrgId;
   }
 
@@ -213,4 +233,19 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
   }
 
   return data as T;
+}
+
+/**
+ * Fetches a binary resource (e.g. an uploaded document) with the same auth, organisation and
+ * refresh handling as apiRequest, and returns it as a Blob for object URLs.
+ */
+export async function apiFetchBlob(endpoint: string, retry = true): Promise<Blob> {
+  const activeOrgId = typeof window !== 'undefined' ? localStorage.getItem('active_org_id') : null;
+  const res = await fetch(`${getApiBaseUrl()}${resolveEndpoint(endpoint, activeOrgId)}`, {
+    credentials: 'include',
+    headers: activeOrgId ? { 'x-organization-id': activeOrgId } : {},
+  });
+  if (res.status === 401 && retry && (await refreshAccessToken())) return apiFetchBlob(endpoint, false);
+  if (!res.ok) throw new ApiError('FILE_UNAVAILABLE', `Could not load the document (HTTP ${res.status})`, res.status);
+  return res.blob();
 }

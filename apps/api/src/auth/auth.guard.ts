@@ -47,6 +47,7 @@ export class AuthGuard implements CanActivate {
           userId: true,
           expiresAt: true,
           revokedAt: true,
+          mfaVerifiedAt: true,
           user: {
             select: {
               id: true,
@@ -81,6 +82,7 @@ export class AuthGuard implements CanActivate {
         userId: session.user.id,
         sessionId: session.id,
         email: session.user.email,
+        mfaVerified: Boolean(session.mfaVerifiedAt),
       };
 
       request.auth = authContext;

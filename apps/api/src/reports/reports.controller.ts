@@ -5,6 +5,7 @@ import type { OrgContext } from '../common/types/request-context.types';
 import { TrialBalanceService } from './trial-balance.service';
 import { ProfitAndLossService } from './profit-and-loss.service';
 import { BalanceSheetService } from './balance-sheet.service';
+import { ArApAgeingService } from './ar-ap-ageing.service';
 
 @Controller('organizations/:orgId/reports')
 export class ReportsController {
@@ -12,6 +13,7 @@ export class ReportsController {
     private readonly trialBalanceService: TrialBalanceService,
     private readonly pnlService: ProfitAndLossService,
     private readonly balanceSheetService: BalanceSheetService,
+    private readonly ageingService: ArApAgeingService,
   ) {}
 
   @Get('trial-balance')
@@ -121,6 +123,70 @@ export class ReportsController {
     });
 
     const filename = `balance-sheet-${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
+
+  @Get('ar-ageing')
+  @RequirePermission('trial_balance.view')
+  getArAgeing(
+    @CurrentOrg() org: OrgContext,
+    @Query('asOfDate') asOfDate?: string,
+    @Query('contactId') contactId?: string,
+  ) {
+    return this.ageingService.generateArAgeing(org.organizationId, {
+      asOfDate,
+      contactId,
+    });
+  }
+
+  @Get('ar-ageing/export')
+  @RequirePermission('trial_balance.export')
+  async exportArAgeing(
+    @CurrentOrg() org: OrgContext,
+    @Res() res: Response,
+    @Query('asOfDate') asOfDate?: string,
+    @Query('contactId') contactId?: string,
+  ) {
+    const csv = await this.ageingService.exportArAgeingCsv(org.organizationId, {
+      asOfDate,
+      contactId,
+    });
+
+    const filename = `ar-ageing-${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
+
+  @Get('ap-ageing')
+  @RequirePermission('trial_balance.view')
+  getApAgeing(
+    @CurrentOrg() org: OrgContext,
+    @Query('asOfDate') asOfDate?: string,
+    @Query('contactId') contactId?: string,
+  ) {
+    return this.ageingService.generateApAgeing(org.organizationId, {
+      asOfDate,
+      contactId,
+    });
+  }
+
+  @Get('ap-ageing/export')
+  @RequirePermission('trial_balance.export')
+  async exportApAgeing(
+    @CurrentOrg() org: OrgContext,
+    @Res() res: Response,
+    @Query('asOfDate') asOfDate?: string,
+    @Query('contactId') contactId?: string,
+  ) {
+    const csv = await this.ageingService.exportApAgeingCsv(org.organizationId, {
+      asOfDate,
+      contactId,
+    });
+
+    const filename = `ap-ageing-${new Date().toISOString().slice(0, 10)}.csv`;
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csv);
