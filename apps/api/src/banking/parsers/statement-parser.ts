@@ -294,7 +294,7 @@ function parseAnyDate(val: string): Date {
   }
 
   // DD/MM/YYYY or DD-MM-YYYY
-  const ukMatch = val.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/);
+  const ukMatch = val.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
   if (ukMatch) {
     const day = parseInt(ukMatch[1], 10);
     const month = parseInt(ukMatch[2], 10) - 1;

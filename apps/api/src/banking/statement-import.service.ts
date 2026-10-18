@@ -88,7 +88,7 @@ export class StatementImportService {
           openingBalance: parsed.openingBalance ? new Prisma.Decimal(parsed.openingBalance.toString()) : null,
           closingBalance: parsed.closingBalance ? new Prisma.Decimal(parsed.closingBalance.toString()) : null,
           status: StatementImportStatus.IMPORTED,
-          columnMapping: dto.columnMapping ? (dto.columnMapping as any) : {},
+          columnMapping: (dto.columnMapping ?? {}) as Prisma.InputJsonValue,
           importedById: actor.userId!,
         },
       });
@@ -129,7 +129,7 @@ export class StatementImportService {
             balance: parsedLine.balance ? new Prisma.Decimal(parsedLine.balance.toFixed(4)) : null,
             currency: bankAccount.currency,
             externalId: parsedLine.externalId ?? null,
-            rawData: parsedLine.rawData ? (parsedLine.rawData as any) : {},
+            rawData: (parsedLine.rawData ?? {}) as Prisma.InputJsonValue,
             status: matchResult.autoCategorise
               ? BankTransactionStatus.CATEGORISED
               : BankTransactionStatus.UNMATCHED,

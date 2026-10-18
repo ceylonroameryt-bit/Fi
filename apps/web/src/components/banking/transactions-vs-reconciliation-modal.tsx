@@ -323,8 +323,8 @@ export function TransactionsVsReconciliationModal({
               <div style={{ fontWeight: 700, color: '#0D9488' }}>Reconciliation</div>
 
               <div style={{ color: '#475569', fontWeight: 600 }}>Primary Question</div>
-              <div style={{ color: '#334155' }}>"What was this £50 spent on?"</div>
-              <div style={{ color: '#334155' }}>"Does this £50 match an invoice or journal in our books?"</div>
+              <div style={{ color: '#334155' }}>&ldquo;What was this £50 spent on?&rdquo;</div>
+              <div style={{ color: '#334155' }}>&ldquo;Does this £50 match an invoice or journal in our books?&rdquo;</div>
 
               <div style={{ color: '#475569', fontWeight: 600 }}>Accounting Result</div>
               <div style={{ color: '#334155' }}>Categorised Bank Statement Line</div>

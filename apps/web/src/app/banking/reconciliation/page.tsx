@@ -466,7 +466,7 @@ function BankReconciliationContent() {
       }
       return true;
     });
-  }, [lines, filterTab, searchQuery]);
+  }, [lines, filterTab, searchQuery, aiPrefs.confidenceThreshold]);
 
   return (
     <AppShell>

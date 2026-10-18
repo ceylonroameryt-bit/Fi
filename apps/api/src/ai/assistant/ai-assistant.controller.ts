@@ -22,7 +22,7 @@ export class ReportInsightsDto {
   reportType!: string;
 
   @IsOptional()
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 @Controller('organizations/:orgId/ai')

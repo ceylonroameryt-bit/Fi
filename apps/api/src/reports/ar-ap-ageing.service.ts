@@ -28,6 +28,12 @@ export interface AgeingItem {
   bucket: AgeingBucket;
 }
 
+export interface ContactRef {
+  id: string;
+  name: string;
+  companyName: string | null;
+}
+
 export interface ContactAgeingGroup {
   contactId: string;
   contactName: string;
@@ -103,7 +109,7 @@ export class ArApAgeingService {
       orderBy: [{ contact: { name: 'asc' } }, { dueDate: 'asc' }],
     });
 
-    const contactGroupsMap = new Map<string, { contact: any; items: AgeingItem[] }>();
+    const contactGroupsMap = new Map<string, { contact: ContactRef; items: AgeingItem[] }>();
 
     let totalCurrent = new Prisma.Decimal('0');
     let total1To30 = new Prisma.Decimal('0');
@@ -239,7 +245,7 @@ export class ArApAgeingService {
       orderBy: [{ contact: { name: 'asc' } }, { dueDate: 'asc' }],
     });
 
-    const contactGroupsMap = new Map<string, { contact: any; items: AgeingItem[] }>();
+    const contactGroupsMap = new Map<string, { contact: ContactRef; items: AgeingItem[] }>();
 
     let totalCurrent = new Prisma.Decimal('0');
     let total1To30 = new Prisma.Decimal('0');

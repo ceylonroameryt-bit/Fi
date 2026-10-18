@@ -83,7 +83,7 @@ export class AiAssistantService {
     const lower = prompt.toLowerCase();
 
     // 1. Contact Detection
-    let matchedContact = contacts.find((c) => lower.includes(c.name.toLowerCase()));
+    const matchedContact = contacts.find((c) => lower.includes(c.name.toLowerCase()));
     let contactName = matchedContact?.name || '';
     if (!matchedContact) {
       const extracted = extractVendorOrCustomerName(prompt, undefined, true);
@@ -236,7 +236,7 @@ export class AiAssistantService {
    * Input: Report metrics and type
    * Output: Plain-English commentary, driver analysis, recommendations, and risk flags.
    */
-  async generateReportInsights(organizationId: string, reportType: string, data?: any): Promise<ReportInsightResponse> {
+  async generateReportInsights(organizationId: string, reportType: string, data?: Record<string, unknown>): Promise<ReportInsightResponse> {
     const org = await this.prisma.organization.findUnique({
       where: { id: organizationId },
       select: { name: true, baseCurrency: true },
