@@ -124,7 +124,7 @@ interface LineState {
 }
 
 function BankReconciliationContent() {
-  const { activeOrg, hasPermission, userOrgs, switchOrg } = useAuth();
+  const { activeOrg, hasPermission } = useAuth();
   const searchParams = useSearchParams();
   const paramAccountId = searchParams.get('bankAccountId') || '';
 
@@ -143,7 +143,7 @@ function BankReconciliationContent() {
   const [filterTab, setFilterTab] = useState<'TO_RECONCILE' | 'HIGH_CONFIDENCE' | 'RECONCILED' | 'ALL'>('TO_RECONCILE');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
 
@@ -167,44 +167,68 @@ function BankReconciliationContent() {
 
   const canManage = hasPermission('bank_reconciliation.manage');
 
-  // Load statement lines for the chosen bank account
-  const loadLines = useCallback(async (targetAccountId?: string, nominals?: NominalAccount[], ctcts?: Contact[]) => {
-    const accId = targetAccountId || selectedAccountId;
-    if (!activeOrg || !accId) {
-      setLoading(false);
-      return;
-    }
+  // 1. Load accounts & contacts
+  useEffect(() => {
+    if (!activeOrg) return;
+    Promise.all([
+      apiRequest<BankAccount[]>('/bank-accounts'),
+      apiRequest<any>('/accounts'),
+      apiRequest<any>('/contacts'),
+    ])
+      .then(([bData, aData, cData]) => {
+        const bList = bData || [];
+        setBankAccounts(bList);
+        if (!selectedAccountId && bList.length > 0) {
+          setSelectedAccountId(bList[0].id);
+        } else if (bList.length === 0) {
+          setLoading(false);
+        }
+        const aList = Array.isArray(aData) ? aData : Array.isArray(aData?.items) ? aData.items : [];
+        setNominalAccounts(aList);
+        const cList = Array.isArray(cData) ? cData : Array.isArray(cData?.items) ? cData.items : [];
+        setContacts(cList);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [activeOrg, selectedAccountId]);
+
+  // 2. Load statement lines for the chosen bank account
+  const loadLines = useCallback(async () => {
+    if (!activeOrg || !selectedAccountId) return;
     setLoading(true);
     setError(null);
     try {
       const data = await apiRequest<{ items: StatementLine[] }>(
-        `/bank-statements/lines?bankAccountId=${accId}&limit=100`
+        `/bank-statements/lines?bankAccountId=${selectedAccountId}&limit=100`
       );
       const items = data.items || [];
       setLines(items);
 
-      const activeNominals = nominals || nominalAccounts;
-      const activeContacts = ctcts || contacts;
-
       // Auto-fill state for every line
       const initialStates: Record<string, LineState> = {};
       items.forEach((line) => {
+        // Find best nominal account fallback if not suggested
         let fallbackAccountId = line.suggestedAccountId || '';
-        if (!fallbackAccountId && activeNominals.length > 0) {
+        if (!fallbackAccountId && nominalAccounts.length > 0) {
           const num = Number(line.amount);
           if (num > 0) {
-            const rev = activeNominals.find((a) => a.accountType === 'REVENUE' || a.code.startsWith('4'));
-            fallbackAccountId = rev?.id || activeNominals[0].id;
+            // Revenue fallback
+            const rev = nominalAccounts.find((a) => a.accountType === 'REVENUE' || a.code.startsWith('4'));
+            fallbackAccountId = rev?.id || nominalAccounts[0].id;
           } else {
-            const exp = activeNominals.find((a) => a.accountType === 'EXPENSE' || a.code.startsWith('6') || a.code.startsWith('7'));
-            fallbackAccountId = exp?.id || activeNominals[0].id;
+            // Expense fallback
+            const exp = nominalAccounts.find((a) => a.accountType === 'EXPENSE' || a.code.startsWith('6') || a.code.startsWith('7'));
+            fallbackAccountId = exp?.id || nominalAccounts[0].id;
           }
         }
 
+        // Find contact fallback matching payee
         let fallbackContactId = line.suggestedContactId || '';
-        if (!fallbackContactId && line.payee && activeContacts.length > 0) {
+        if (!fallbackContactId && line.payee && contacts.length > 0) {
           const pLower = line.payee.toLowerCase();
-          const found = activeContacts.find((c) => c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()));
+          const found = contacts.find((c) => c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()));
           if (found) fallbackContactId = found.id;
         }
 
@@ -220,7 +244,7 @@ function BankReconciliationContent() {
       });
       setLineStates(initialStates);
 
-      // Fetch match suggestions for candidate ledger payments/invoices asynchronously
+      // Fetch match suggestions for candidate ledger payments/invoices
       items.forEach((line) => {
         apiRequest<any>(`/bank-statements/lines/${line.id}/suggestions`)
           .then((sRes) => {
@@ -265,41 +289,11 @@ function BankReconciliationContent() {
     }
   }, [activeOrg, selectedAccountId, nominalAccounts, contacts]);
 
-  // Load accounts & contacts upon organization change
   useEffect(() => {
-    if (!activeOrg) {
-      setLoading(false);
-      return;
+    if (selectedAccountId) {
+      loadLines();
     }
-    setLoading(true);
-    Promise.all([
-      apiRequest<BankAccount[]>('/bank-accounts'),
-      apiRequest<any>('/accounts'),
-      apiRequest<any>('/contacts'),
-    ])
-      .then(([bData, aData, cData]) => {
-        const bList = bData || [];
-        setBankAccounts(bList);
-        const aList = Array.isArray(aData) ? aData : Array.isArray(aData?.items) ? aData.items : [];
-        setNominalAccounts(aList);
-        const cList = Array.isArray(cData) ? cData : Array.isArray(cData?.items) ? cData.items : [];
-        setContacts(cList);
-
-        if (bList.length > 0) {
-          const accToSelect = (paramAccountId && bList.some((b) => b.id === paramAccountId))
-            ? paramAccountId
-            : bList[0].id;
-          setSelectedAccountId(accToSelect);
-          loadLines(accToSelect, aList, cList);
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, [activeOrg, paramAccountId, loadLines]);
+  }, [selectedAccountId, loadLines]);
 
   const updateLineState = (lineId: string, partial: Partial<LineState>) => {
     setLineStates((prev) => ({

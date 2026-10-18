@@ -66,7 +66,7 @@ interface LinesResponse {
 }
 
 function BankTransactionsContent() {
-  const { activeOrg, hasPermission, userOrgs, switchOrg } = useAuth();
+  const { activeOrg, hasPermission } = useAuth();
   const searchParams = useSearchParams();
   const initialAccountId = searchParams.get('bankAccountId') || '';
 
@@ -123,11 +123,7 @@ function BankTransactionsContent() {
 
   // Load supporting options (accounts, contacts, bank accounts)
   useEffect(() => {
-    if (!activeOrg) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+    if (!activeOrg) return;
     Promise.all([
       apiRequest<BankAccount[]>('/bank-accounts'),
       apiRequest<any>('/accounts'),
@@ -146,10 +142,7 @@ function BankTransactionsContent() {
 
   // Load statement lines
   const loadLines = useCallback(async () => {
-    if (!activeOrg) {
-      setLoading(false);
-      return;
-    }
+    if (!activeOrg) return;
     setLoading(true);
     setError(null);
     try {
