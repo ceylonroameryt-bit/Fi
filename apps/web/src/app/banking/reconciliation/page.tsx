@@ -143,7 +143,7 @@ function BankReconciliationContent() {
   const [filterTab, setFilterTab] = useState<'TO_RECONCILE' | 'HIGH_CONFIDENCE' | 'RECONCILED' | 'ALL'>('TO_RECONCILE');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
 
@@ -169,7 +169,11 @@ function BankReconciliationContent() {
 
   // 1. Load accounts & contacts
   useEffect(() => {
-    if (!activeOrg) return;
+    if (!activeOrg) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     Promise.all([
       apiRequest<BankAccount[]>('/bank-accounts'),
       apiRequest<any>('/accounts'),
@@ -196,7 +200,10 @@ function BankReconciliationContent() {
 
   // 2. Load statement lines for the chosen bank account
   const loadLines = useCallback(async () => {
-    if (!activeOrg || !selectedAccountId) return;
+    if (!activeOrg || !selectedAccountId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
