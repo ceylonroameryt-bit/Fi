@@ -104,6 +104,32 @@ export class OrganizationsService {
   }
 
   async listUserOrganizations(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isSuperAdmin: true },
+    });
+
+    if (user?.isSuperAdmin) {
+      const allOrgs = await this.prisma.organization.findMany({
+        where: { status: { not: OrganizationStatus.ARCHIVED } },
+        orderBy: { name: 'asc' },
+      });
+      const allPerms = await this.prisma.permission.findMany({ select: { code: true } });
+      const permCodes = allPerms.map((p) => p.code);
+
+      return allOrgs.map((org) => ({
+        organization: org,
+        memberId: `superadmin-${org.id}`,
+        role: {
+          id: 'super-admin-role',
+          name: 'Super Admin',
+          systemKey: 'OWNER',
+          isSystemRole: true,
+          permissions: permCodes,
+        },
+      }));
+    }
+
     const memberships = await this.prisma.organizationMember.findMany({
       where: {
         userId,

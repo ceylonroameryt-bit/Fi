@@ -147,6 +147,12 @@ export class AuthService {
       },
     });
 
+    // Auto-activate any invited memberships for this user upon login
+    await this.prisma.organizationMember.updateMany({
+      where: { userId: user.id, status: MemberStatus.INVITED },
+      data: { status: MemberStatus.ACTIVE, joinedAt: new Date() },
+    });
+
     const session = await this.createSession(user.id, actor);
 
     await this.audit.record(null, {

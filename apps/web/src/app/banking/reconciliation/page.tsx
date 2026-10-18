@@ -17,6 +17,8 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Building,
+  Building2,
+  Plus,
   Check,
   ArrowRight,
   TrendingUp,
@@ -124,7 +126,7 @@ interface LineState {
 }
 
 function BankReconciliationContent() {
-  const { activeOrg, hasPermission } = useAuth();
+  const { activeOrg, hasPermission, userOrgs, switchOrg } = useAuth();
   const searchParams = useSearchParams();
   const paramAccountId = searchParams.get('bankAccountId') || '';
 
@@ -167,68 +169,44 @@ function BankReconciliationContent() {
 
   const canManage = hasPermission('bank_reconciliation.manage');
 
-  // 1. Load accounts & contacts
-  useEffect(() => {
-    if (!activeOrg) return;
-    Promise.all([
-      apiRequest<BankAccount[]>('/bank-accounts'),
-      apiRequest<any>('/accounts'),
-      apiRequest<any>('/contacts'),
-    ])
-      .then(([bData, aData, cData]) => {
-        const bList = bData || [];
-        setBankAccounts(bList);
-        if (!selectedAccountId && bList.length > 0) {
-          setSelectedAccountId(bList[0].id);
-        } else if (bList.length === 0) {
-          setLoading(false);
-        }
-        const aList = Array.isArray(aData) ? aData : Array.isArray(aData?.items) ? aData.items : [];
-        setNominalAccounts(aList);
-        const cList = Array.isArray(cData) ? cData : Array.isArray(cData?.items) ? cData.items : [];
-        setContacts(cList);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, [activeOrg, selectedAccountId]);
-
-  // 2. Load statement lines for the chosen bank account
-  const loadLines = useCallback(async () => {
-    if (!activeOrg || !selectedAccountId) return;
+  // Load statement lines for the chosen bank account
+  const loadLines = useCallback(async (targetAccountId?: string, nominals?: NominalAccount[], ctcts?: Contact[]) => {
+    const accId = targetAccountId || selectedAccountId;
+    if (!activeOrg || !accId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const data = await apiRequest<{ items: StatementLine[] }>(
-        `/bank-statements/lines?bankAccountId=${selectedAccountId}&limit=100`
+        `/bank-statements/lines?bankAccountId=${accId}&limit=100`
       );
       const items = data.items || [];
       setLines(items);
 
+      const activeNominals = nominals || nominalAccounts;
+      const activeContacts = ctcts || contacts;
+
       // Auto-fill state for every line
       const initialStates: Record<string, LineState> = {};
       items.forEach((line) => {
-        // Find best nominal account fallback if not suggested
         let fallbackAccountId = line.suggestedAccountId || '';
-        if (!fallbackAccountId && nominalAccounts.length > 0) {
+        if (!fallbackAccountId && activeNominals.length > 0) {
           const num = Number(line.amount);
           if (num > 0) {
-            // Revenue fallback
-            const rev = nominalAccounts.find((a) => a.accountType === 'REVENUE' || a.code.startsWith('4'));
-            fallbackAccountId = rev?.id || nominalAccounts[0].id;
+            const rev = activeNominals.find((a) => a.accountType === 'REVENUE' || a.code.startsWith('4'));
+            fallbackAccountId = rev?.id || activeNominals[0].id;
           } else {
-            // Expense fallback
-            const exp = nominalAccounts.find((a) => a.accountType === 'EXPENSE' || a.code.startsWith('6') || a.code.startsWith('7'));
-            fallbackAccountId = exp?.id || nominalAccounts[0].id;
+            const exp = activeNominals.find((a) => a.accountType === 'EXPENSE' || a.code.startsWith('6') || a.code.startsWith('7'));
+            fallbackAccountId = exp?.id || activeNominals[0].id;
           }
         }
 
-        // Find contact fallback matching payee
         let fallbackContactId = line.suggestedContactId || '';
-        if (!fallbackContactId && line.payee && contacts.length > 0) {
+        if (!fallbackContactId && line.payee && activeContacts.length > 0) {
           const pLower = line.payee.toLowerCase();
-          const found = contacts.find((c) => c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()));
+          const found = activeContacts.find((c) => c.name.toLowerCase().includes(pLower) || pLower.includes(c.name.toLowerCase()));
           if (found) fallbackContactId = found.id;
         }
 
@@ -244,7 +222,7 @@ function BankReconciliationContent() {
       });
       setLineStates(initialStates);
 
-      // Fetch match suggestions for candidate ledger payments/invoices
+      // Fetch match suggestions for candidate ledger payments/invoices asynchronously
       items.forEach((line) => {
         apiRequest<any>(`/bank-statements/lines/${line.id}/suggestions`)
           .then((sRes) => {
@@ -289,11 +267,41 @@ function BankReconciliationContent() {
     }
   }, [activeOrg, selectedAccountId, nominalAccounts, contacts]);
 
+  // Load accounts & contacts upon organization change
   useEffect(() => {
-    if (selectedAccountId) {
-      loadLines();
+    if (!activeOrg) {
+      setLoading(false);
+      return;
     }
-  }, [selectedAccountId, loadLines]);
+    setLoading(true);
+    Promise.all([
+      apiRequest<BankAccount[]>('/bank-accounts'),
+      apiRequest<any>('/accounts'),
+      apiRequest<any>('/contacts'),
+    ])
+      .then(([bData, aData, cData]) => {
+        const bList = bData || [];
+        setBankAccounts(bList);
+        const aList = Array.isArray(aData) ? aData : Array.isArray(aData?.items) ? aData.items : [];
+        setNominalAccounts(aList);
+        const cList = Array.isArray(cData) ? cData : Array.isArray(cData?.items) ? cData.items : [];
+        setContacts(cList);
+
+        if (bList.length > 0) {
+          const accToSelect = (paramAccountId && bList.some((b) => b.id === paramAccountId))
+            ? paramAccountId
+            : bList[0].id;
+          setSelectedAccountId(accToSelect);
+          loadLines(accToSelect, aList, cList);
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [activeOrg, paramAccountId, loadLines]);
 
   const updateLineState = (lineId: string, partial: Partial<LineState>) => {
     setLineStates((prev) => ({
@@ -914,7 +922,85 @@ function BankReconciliationContent() {
         {/* =========================================================
             5. RECONCILIATION CARDS FEED (PUZZLE.IO STYLE)
            ========================================================= */}
-        {loading ? (
+        {!activeOrg ? (
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '0.85rem',
+              border: '1px solid #E2E8F0',
+              padding: '4rem 2rem',
+              textAlign: 'center',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: '#EFF6FF',
+                color: '#2563EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1rem',
+              }}
+            >
+              <Building2 size={28} />
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem' }}>
+              No Company Selected
+            </h3>
+            <p style={{ color: '#64748B', maxWidth: '440px', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+              Please select a company from the top navigation bar or create a new company to view bank accounts and reconcile statement feeds.
+            </p>
+            {userOrgs.length > 0 ? (
+              <button
+                onClick={() => switchOrg(userOrgs[0].organization.id)}
+                style={{
+                  padding: '0.65rem 1.25rem',
+                  backgroundColor: '#2563EB',
+                  color: '#FFFFFF',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <span>Switch to {userOrgs[0].organization.name}</span>
+                <ArrowRight size={16} />
+              </button>
+            ) : (
+              <Link
+                href="/organizations/new"
+                style={{
+                  padding: '0.65rem 1.25rem',
+                  backgroundColor: '#2563EB',
+                  color: '#FFFFFF',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  textDecoration: 'none',
+                }}
+              >
+                <Plus size={16} />
+                <span>Create Company</span>
+              </Link>
+            )}
+          </div>
+        ) : loading ? (
           <div
             style={{
               backgroundColor: '#FFFFFF',

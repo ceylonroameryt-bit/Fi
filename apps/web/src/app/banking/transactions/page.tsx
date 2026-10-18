@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
-import { SlidersHorizontal, HelpCircle, CheckCheck, Zap, Sparkles, ShieldCheck } from 'lucide-react';
+import { SlidersHorizontal, HelpCircle, CheckCheck, Zap, Sparkles, ShieldCheck, Building2, Plus, ArrowRight } from 'lucide-react';
 import {
   AiCustomizationModal,
   AiPreferences,
@@ -66,7 +66,7 @@ interface LinesResponse {
 }
 
 function BankTransactionsContent() {
-  const { activeOrg, hasPermission } = useAuth();
+  const { activeOrg, hasPermission, userOrgs, switchOrg } = useAuth();
   const searchParams = useSearchParams();
   const initialAccountId = searchParams.get('bankAccountId') || '';
 
@@ -123,7 +123,11 @@ function BankTransactionsContent() {
 
   // Load supporting options (accounts, contacts, bank accounts)
   useEffect(() => {
-    if (!activeOrg) return;
+    if (!activeOrg) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     Promise.all([
       apiRequest<BankAccount[]>('/bank-accounts'),
       apiRequest<any>('/accounts'),
@@ -142,7 +146,10 @@ function BankTransactionsContent() {
 
   // Load statement lines
   const loadLines = useCallback(async () => {
-    if (!activeOrg) return;
+    if (!activeOrg) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

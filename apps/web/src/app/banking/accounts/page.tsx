@@ -100,7 +100,10 @@ export default function BankAccountsPage() {
   const canManage = hasPermission('bank_account.manage');
 
   const loadData = useCallback(async () => {
-    if (!activeOrg) return;
+    if (!activeOrg) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
