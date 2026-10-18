@@ -144,8 +144,82 @@ enum JournalSourceType {
   INVOICE
   BILL
   BANK_TRANSACTION
+  PAYMENT
+  CREDIT_NOTE
   PAYROLL
   SYSTEM
+}
+
+enum PaymentKind {
+  CUSTOMER_RECEIPT
+  SUPPLIER_PAYMENT
+  CUSTOMER_REFUND
+  SUPPLIER_REFUND
+}
+
+enum PaymentStatus {
+  POSTED
+  VOIDED
+}
+
+enum AllocationSourceType {
+  PAYMENT
+  CREDIT_NOTE
+}
+
+enum AllocationTargetType {
+  INVOICE
+  BILL
+}
+
+enum CreditNoteKind {
+  SALES_CREDIT_NOTE
+  SUPPLIER_CREDIT_NOTE
+}
+
+enum CreditNoteStatus {
+  DRAFT
+  POSTED
+  VOIDED
+}
+
+enum BankAccountStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum StatementImportStatus {
+  PENDING
+  IMPORTED
+  FAILED
+}
+
+enum StatementFileFormat {
+  CSV
+  OFX
+  QIF
+}
+
+enum BankTransactionStatus {
+  UNMATCHED
+  MATCHED
+  CATEGORISED
+  EXCLUDED
+}
+
+enum BankRuleMatchField {
+  DESCRIPTION
+  PAYEE
+  REFERENCE
+  AMOUNT_EXACT
+  AMOUNT_RANGE
+}
+
+enum BankRuleMatchType {
+  CONTAINS
+  EQUALS
+  STARTS_WITH
+  REGEX
 }
 
 // ─────────────────────────── Identity & auth ──────────────────────────
@@ -293,6 +367,12 @@ model Organization {
   jobs            Job[]
   bills           Bill[]
   vatSchemes      OrganizationVatScheme[]
+  payments        Payment[]
+  creditNotes     CreditNote[]
+  bankAccounts    BankAccount[]
+  bankImports     BankStatementImport[]
+  bankLines       BankStatementLine[]
+  bankRules       BankRule[]
 
   @@index([status])
   @@map("organizations")
@@ -403,6 +483,8 @@ model Account {
   payableContacts       Contact[]              @relation("ContactPayableAccount")
   aiLineClassifications AiLineClassification[] @relation("AiLineResolvedAccount")
   billLines             BillLine[]             @relation("BillLineAccount")
+  creditNoteLines       CreditNoteLine[]       @relation("CreditNoteLineAccount")
+  bankAccount           BankAccount?           @relation("BankAccountNominal")
 
   @@unique([organizationId, code])
   @@unique([organizationId, id])
@@ -504,6 +586,8 @@ model JournalEntry {
   lines             JournalLine[]
   invoice           Invoice?          @relation("InvoiceJournal")
   bill              Bill?             @relation("BillJournal")
+  payment           Payment?          @relation("PaymentJournal")
+  creditNote        CreditNote?       @relation("CreditNoteJournal")
 
   @@unique([organizationId, journalNumber])
   @@unique([organizationId, idempotencyKey])
@@ -590,6 +674,7 @@ model TaxCode {
   invoiceLines      InvoiceLine[]
   aiLineSuggestions AiLineClassification[] @relation("AiLineSuggestedTaxCode")
   billLines         BillLine[]             @relation("BillLineTaxCode")
+  creditNoteLines   CreditNoteLine[]       @relation("CreditNoteLineTaxCode")
 
   @@map("tax_codes")
 }
@@ -693,6 +778,8 @@ model Contact {
   journalLines      JournalLine[]
   aiClassifications AiClassification[] @relation("AiClassificationContact")
   bills             Bill[]             @relation("BillContact")
+  payments          Payment[]          @relation("PaymentContact")
+  creditNotes       CreditNote[]       @relation("CreditNoteContact")
 
   @@unique([organizationId, id])
   @@index([organizationId, type])
@@ -1313,4 +1400,278 @@ model AiReviewDecision {
   @@index([organizationId, documentId])
   @@index([organizationId, createdAt])
   @@map("ai_review_decisions")
+}
+
+// ─────────────────────────── Payments (Phase 13) ───────────────────────────
+
+/// Customer receipts, supplier payments, and refunds.
+/// Posting: CUSTOMER_RECEIPT → Dr Bank / Cr AR; SUPPLIER_PAYMENT → Dr AP / Cr Bank.
+model Payment {
+  id                    String        @id @default(uuid()) @db.Uuid
+  organizationId        String        @map("organization_id") @db.Uuid
+  kind                  PaymentKind
+  contactId             String        @map("contact_id") @db.Uuid
+  /// Nominal account of BANK or CASH subtype used for this payment.
+  bankAccountNominalId  String?       @map("bank_account_nominal_id") @db.Uuid
+  paymentDate           DateTime      @map("payment_date") @db.Date
+  amount                Decimal       @db.Decimal(19, 4)
+  currency              String        @default("GBP") @db.Char(3)
+  reference             String?       @db.VarChar(100)
+  notes                 String?       @db.VarChar(500)
+  status                PaymentStatus @default(POSTED)
+  journalEntryId        String?       @unique @map("journal_entry_id") @db.Uuid
+  /// Sum of active allocations; updated atomically when allocations change.
+  amountAllocated       Decimal       @default(0) @map("amount_allocated") @db.Decimal(19, 4)
+  createdById           String        @map("created_by") @db.Uuid
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedById           String?       @map("updated_by") @db.Uuid
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+  voidedById            String?       @map("voided_by") @db.Uuid
+  voidedAt              DateTime?     @map("voided_at")
+  voidReason            String?       @map("void_reason") @db.VarChar(255)
+
+  organization  Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contact       Contact            @relation("PaymentContact", fields: [organizationId, contactId], references: [organizationId, id], onDelete: Restrict)
+  journalEntry  JournalEntry?      @relation("PaymentJournal", fields: [organizationId, journalEntryId], references: [organizationId, id], onDelete: Restrict)
+  allocations   PaymentAllocation[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, journalEntryId])
+  @@index([organizationId, kind])
+  @@index([organizationId, contactId])
+  @@index([organizationId, paymentDate])
+  @@index([organizationId, status])
+  @@map("payments")
+}
+
+/// Allocates a payment or credit note to an invoice or bill.
+/// Prevents over-allocation via FK locks in service layer.
+model PaymentAllocation {
+  id              String               @id @default(uuid()) @db.Uuid
+  organizationId  String               @map("organization_id") @db.Uuid
+  sourceType      AllocationSourceType @map("source_type")
+  paymentId       String?              @map("payment_id") @db.Uuid
+  creditNoteId    String?              @map("credit_note_id") @db.Uuid
+  targetType      AllocationTargetType @map("target_type")
+  invoiceId       String?              @map("invoice_id") @db.Uuid
+  billId          String?              @map("bill_id") @db.Uuid
+  amount          Decimal              @db.Decimal(19, 4)
+  allocationDate  DateTime             @map("allocation_date") @db.Date
+  isReversed      Boolean              @default(false) @map("is_reversed")
+  createdAt       DateTime             @default(now()) @map("created_at")
+
+  payment     Payment?    @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  creditNote  CreditNote? @relation("CreditNoteAllocations", fields: [creditNoteId], references: [id], onDelete: Restrict)
+
+  @@index([paymentId])
+  @@index([creditNoteId])
+  @@index([invoiceId])
+  @@index([billId])
+  @@index([organizationId])
+  @@map("payment_allocations")
+}
+
+// ─────────────────────────── Credit Notes (Phase 13/14) ───────────────────────────
+
+model CreditNote {
+  id                 String           @id @default(uuid()) @db.Uuid
+  organizationId     String           @map("organization_id") @db.Uuid
+  kind               CreditNoteKind
+  contactId          String           @map("contact_id") @db.Uuid
+  creditNoteNumber   String           @map("credit_note_number") @db.VarChar(30)
+  reference          String?          @db.VarChar(100)
+  issueDate          DateTime         @map("issue_date") @db.Date
+  currency           String           @default("GBP") @db.Char(3)
+  subtotal           Decimal          @default(0) @db.Decimal(19, 4)
+  taxTotal           Decimal          @default(0) @map("tax_total") @db.Decimal(19, 4)
+  totalAmount        Decimal          @default(0) @map("total_amount") @db.Decimal(19, 4)
+  amountAllocated    Decimal          @default(0) @map("amount_allocated") @db.Decimal(19, 4)
+  status             CreditNoteStatus @default(DRAFT)
+  relatedInvoiceId   String?          @map("related_invoice_id") @db.Uuid
+  relatedBillId      String?          @map("related_bill_id") @db.Uuid
+  journalEntryId     String?          @unique @map("journal_entry_id") @db.Uuid
+  notes              String?          @db.VarChar(1000)
+  createdById        String           @map("created_by") @db.Uuid
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedById        String?          @map("updated_by") @db.Uuid
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  postedById         String?          @map("posted_by") @db.Uuid
+  postedAt           DateTime?        @map("posted_at")
+  voidedById         String?          @map("voided_by") @db.Uuid
+  voidedAt           DateTime?        @map("voided_at")
+  voidReason         String?          @map("void_reason") @db.VarChar(255)
+
+  organization  Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contact       Contact             @relation("CreditNoteContact", fields: [organizationId, contactId], references: [organizationId, id], onDelete: Restrict)
+  journalEntry  JournalEntry?       @relation("CreditNoteJournal", fields: [organizationId, journalEntryId], references: [organizationId, id], onDelete: Restrict)
+  lines         CreditNoteLine[]
+  allocations   PaymentAllocation[] @relation("CreditNoteAllocations")
+
+  @@unique([organizationId, creditNoteNumber])
+  @@unique([organizationId, id])
+  @@unique([organizationId, journalEntryId])
+  @@index([organizationId, kind])
+  @@index([organizationId, contactId])
+  @@index([organizationId, status])
+  @@map("credit_notes")
+}
+
+model CreditNoteLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  creditNoteId   String   @map("credit_note_id") @db.Uuid
+  lineNumber     Int      @map("line_number") @db.SmallInt
+  accountId      String   @map("account_id") @db.Uuid
+  description    String   @db.VarChar(255)
+  quantity       Decimal? @db.Decimal(19, 4)
+  unitPrice      Decimal? @map("unit_price") @db.Decimal(19, 4)
+  netAmount      Decimal  @map("net_amount") @db.Decimal(19, 4)
+  taxCodeId      String?  @map("tax_code_id") @db.Uuid
+  taxRate        Decimal  @default(0) @map("tax_rate") @db.Decimal(7, 4)
+  taxAmount      Decimal  @default(0) @map("tax_amount") @db.Decimal(19, 4)
+  lineTotal      Decimal  @map("line_total") @db.Decimal(19, 4)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  creditNote CreditNote @relation(fields: [organizationId, creditNoteId], references: [organizationId, id], onDelete: Cascade)
+  account    Account    @relation("CreditNoteLineAccount", fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
+  taxCode    TaxCode?   @relation("CreditNoteLineTaxCode", fields: [taxCodeId], references: [id], onDelete: Restrict)
+
+  @@unique([creditNoteId, lineNumber])
+  @@index([organizationId, creditNoteId])
+  @@map("credit_note_lines")
+}
+
+// ─────────────────────────── Banking (Phase 14) ───────────────────────────
+
+/// Logical bank account linked to a nominal account of BANK or CASH subtype.
+model BankAccount {
+  id                String            @id @default(uuid()) @db.Uuid
+  organizationId    String            @map("organization_id") @db.Uuid
+  name              String            @db.VarChar(100)
+  /// Nominal account (must be BANK or CASH subtype).
+  nominalAccountId  String            @map("nominal_account_id") @db.Uuid
+  currency          String            @default("GBP") @db.Char(3)
+  sortCode          String?           @map("sort_code") @db.VarChar(10)
+  accountNumber     String?           @map("account_number") @db.VarChar(20)
+  iban              String?           @db.VarChar(34)
+  bankName          String?           @map("bank_name") @db.VarChar(100)
+  status            BankAccountStatus @default(ACTIVE)
+  createdById       String?           @map("created_by") @db.Uuid
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  nominalAccount Account              @relation("BankAccountNominal", fields: [organizationId, nominalAccountId], references: [organizationId, id], onDelete: Restrict)
+  imports        BankStatementImport[]
+  lines          BankStatementLine[]
+  rules          BankRule[]
+
+  @@unique([organizationId, nominalAccountId])
+  @@unique([organizationId, id])
+  @@index([organizationId, status])
+  @@map("bank_accounts")
+}
+
+/// Records a bank statement file upload; fingerprinted to prevent re-import.
+model BankStatementImport {
+  id              String                @id @default(uuid()) @db.Uuid
+  organizationId  String                @map("organization_id") @db.Uuid
+  bankAccountId   String                @map("bank_account_id") @db.Uuid
+  fileName        String                @map("file_name") @db.VarChar(255)
+  fileFormat      StatementFileFormat   @map("file_format")
+  /// SHA-256 of the original file bytes; unique per org for dedup.
+  fileSha256      String                @map("file_sha256") @db.Char(64)
+  lineCount       Int                   @default(0) @map("line_count")
+  fromDate        DateTime?             @map("from_date") @db.Date
+  toDate          DateTime?             @map("to_date") @db.Date
+  openingBalance  Decimal?              @map("opening_balance") @db.Decimal(19, 4)
+  closingBalance  Decimal?              @map("closing_balance") @db.Decimal(19, 4)
+  status          StatementImportStatus @default(PENDING)
+  errorMessage    String?               @map("error_message") @db.VarChar(500)
+  /// Saved column mapping for CSV re-use.
+  columnMapping   Json                  @default("{}") @map("column_mapping")
+  importedById    String                @map("imported_by") @db.Uuid
+  importedAt      DateTime              @default(now()) @map("imported_at")
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  bankAccount  BankAccount        @relation(fields: [organizationId, bankAccountId], references: [organizationId, id], onDelete: Restrict)
+  lines        BankStatementLine[]
+
+  @@unique([organizationId, fileSha256])
+  @@index([organizationId, bankAccountId])
+  @@map("bank_statement_imports")
+}
+
+/// An individual transaction line from an imported bank statement.
+model BankStatementLine {
+  id                    String               @id @default(uuid()) @db.Uuid
+  organizationId        String               @map("organization_id") @db.Uuid
+  bankAccountId         String               @map("bank_account_id") @db.Uuid
+  importId              String               @map("import_id") @db.Uuid
+  transactionDate       DateTime             @map("transaction_date") @db.Date
+  description           String               @db.VarChar(500)
+  payee                 String?              @db.VarChar(200)
+  reference             String?              @db.VarChar(200)
+  /// Positive = money in (credit to bank); negative = money out (debit from bank).
+  amount                Decimal              @db.Decimal(19, 4)
+  balance               Decimal?             @db.Decimal(19, 4)
+  currency              String               @default("GBP") @db.Char(3)
+  /// Unique transaction ID from the bank file (FITID in OFX).
+  externalId            String?              @map("external_id") @db.VarChar(100)
+  rawData               Json                 @default("{}") @map("raw_data")
+  status                BankTransactionStatus @default(UNMATCHED)
+  matchedJournalLineId  String?              @map("matched_journal_line_id") @db.Uuid
+  matchedPaymentId      String?              @map("matched_payment_id") @db.Uuid
+  suggestedAccountId    String?              @map("suggested_account_id") @db.Uuid
+  suggestedTaxCodeId    String?              @map("suggested_tax_code_id") @db.Uuid
+  suggestedContactId    String?              @map("suggested_contact_id") @db.Uuid
+  matchConfidence       Decimal?             @map("match_confidence") @db.Decimal(5, 4)
+  matchExplanation      String?              @map("match_explanation") @db.VarChar(500)
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  bankAccount  BankAccount         @relation(fields: [organizationId, bankAccountId], references: [organizationId, id], onDelete: Restrict)
+  import       BankStatementImport @relation(fields: [importId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, bankAccountId, transactionDate, amount, externalId])
+  @@index([organizationId, bankAccountId, transactionDate])
+  @@index([organizationId, status])
+  @@index([importId])
+  @@map("bank_statement_lines")
+}
+
+/// Auto-categorisation rules applied to incoming statement lines before AI.
+model BankRule {
+  id                    String            @id @default(uuid()) @db.Uuid
+  organizationId        String            @map("organization_id") @db.Uuid
+  name                  String            @db.VarChar(100)
+  /// Null = applies to all bank accounts in the org.
+  bankAccountId         String?           @map("bank_account_id") @db.Uuid
+  isEnabled             Boolean           @default(true) @map("is_enabled")
+  matchField            BankRuleMatchField @map("match_field")
+  matchType             BankRuleMatchType  @default(CONTAINS) @map("match_type")
+  matchValue            String            @map("match_value") @db.VarChar(200)
+  amountMin             Decimal?          @map("amount_min") @db.Decimal(19, 4)
+  amountMax             Decimal?          @map("amount_max") @db.Decimal(19, 4)
+  /// 'IN' = credits, 'OUT' = debits, null = both.
+  transactionDirection  String?           @map("transaction_direction") @db.VarChar(10)
+  suggestedAccountId    String?           @map("suggested_account_id") @db.Uuid
+  suggestedTaxCodeId    String?           @map("suggested_tax_code_id") @db.Uuid
+  suggestedContactId    String?           @map("suggested_contact_id") @db.Uuid
+  /// When true, apply without manual confirmation (only for rules with explicit account).
+  autoCategorise        Boolean           @default(false) @map("auto_categorise")
+  priority              Int               @default(100)
+  timesApplied          Int               @default(0) @map("times_applied")
+  createdById           String?           @map("created_by") @db.Uuid
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  bankAccount   BankAccount? @relation(fields: [organizationId, bankAccountId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, isEnabled, priority])
+  @@index([organizationId, bankAccountId])
+  @@map("bank_rules")
 }

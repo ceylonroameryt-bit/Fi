@@ -24,6 +24,9 @@ import { JobsModule } from './jobs/jobs.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { BillsModule } from './bills/bills.module';
+import { PaymentsModule } from './payments/payments.module';
+import { CreditNotesModule } from './credit-notes/credit-notes.module';
+import { BankingModule } from './banking/banking.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
 import { StorageModule } from './common/storage/storage.module';
@@ -61,6 +64,9 @@ import { AllExceptionsFilter } from './common/errors/all-exceptions.filter';
     ContactsModule,
     InvoicesModule,
     BillsModule,
+    PaymentsModule,
+    CreditNotesModule,
+    BankingModule,
     AdminModule,
     HealthModule,
     StorageModule,

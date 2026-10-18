@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../context/auth-context';
 import { BlyntLogo } from './blynt-logo';
+import { CompanySwitcherDropdown } from './organization/company-switcher-dropdown';
+import { GlobalAiAssistantModal } from './ai/global-ai-assistant-modal';
 import {
   LayoutDashboard,
   Users,
@@ -61,15 +63,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [showOrgDropdown, setShowOrgDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
 
   const searchRef = useRef<HTMLDivElement>(null);
-  const orgDropdownRef = useRef<HTMLDivElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
   const currencyDropdownRef = useRef<HTMLDivElement>(null);
@@ -79,9 +80,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     function handleClickOutside(event: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setSearchFocused(false);
-      }
-      if (orgDropdownRef.current && !orgDropdownRef.current.contains(event.target as Node)) {
-        setShowOrgDropdown(false);
       }
       if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
         setShowUserDropdown(false);
@@ -403,71 +401,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             )}
 
-            {/* Organisation Selector Pill */}
-            <div style={{ position: 'relative' }} ref={orgDropdownRef}>
-              <button
-                className="topbar-org-pill"
-                onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-                aria-label="Select organization"
-              >
-                <Landmark size={15} style={{ color: '#1E293B' }} />
-                <span>{activeOrg?.name ?? 'Console Dot Dream'}</span>
-                <ChevronDown size={14} style={{ color: '#94A3B8' }} />
-              </button>
+            {/* AI Assistant Button */}
+            <button
+              onClick={() => setShowAiAssistant(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                backgroundColor: '#F0FDFA',
+                border: '1px solid #99F6E4',
+                color: '#0F766E',
+                height: '36px',
+                padding: '0 0.85rem',
+                borderRadius: '9999px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 1px 2px rgba(15, 118, 110, 0.05)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#CCFBF1';
+                e.currentTarget.style.borderColor = '#5EEAD4';
+                e.currentTarget.style.boxShadow = '0 2px 6px rgba(15, 118, 110, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#F0FDFA';
+                e.currentTarget.style.borderColor = '#99F6E4';
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(15, 118, 110, 0.05)';
+              }}
+              title="Blynt AI Assistant - Natural Language Drafting across all categories"
+            >
+              <Sparkles size={14} color="#0D9488" />
+              <span>AI Assistant</span>
+            </button>
 
-              {showOrgDropdown && (
-                <div
-                  className="org-dropdown-menu"
-                  style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '240px' }}
-                >
-                  <div className="org-dropdown-header">Your Organisations</div>
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {userOrgs.map((m) => (
-                      <div
-                        key={m.organization.id}
-                        onClick={() => {
-                          switchOrg(m.organization.id);
-                          setShowOrgDropdown(false);
-                        }}
-                        className={`org-dropdown-item ${m.organization.id === activeOrg?.id ? 'active' : ''}`}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-                          <span className="org-item-avatar">
-                            {m.organization.name.slice(0, 2).toUpperCase()}
-                          </span>
-                          <div style={{ minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontSize: '0.8rem',
-                                fontWeight: 600,
-                                color: '#172033',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                              }}
-                            >
-                              {m.organization.name}
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>
-                              {m.role?.name ?? 'Member'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="org-dropdown-footer">
-                    <Link
-                      href="/organizations/new"
-                      className="org-create-link"
-                      onClick={() => setShowOrgDropdown(false)}
-                    >
-                      + Create New Organisation
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Multi-Company Switcher Dropdown */}
+            <CompanySwitcherDropdown />
 
             {/* Currency Selector Pill */}
             <div style={{ position: 'relative' }} ref={currencyDropdownRef}>
@@ -619,6 +589,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Page Content Body */}
         {children}
+
+        {/* Global AI Assistant Modal */}
+        <GlobalAiAssistantModal isOpen={showAiAssistant} onClose={() => setShowAiAssistant(false)} />
       </div>
     </div>
   );

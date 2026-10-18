@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blynt — Executive Presentation Deck</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg-light: #F8FAFC;
+      --bg-card: #FFFFFF;
+      --bg-card-hover: #F1F5F9;
+      --border: #E2E8F0;
+      --brand-navy: #162D5F;
+      --brand-coral: #FF7F6C;
+      --brand-coral-tint: #FFF1EE;
+      --brand-navy-tint: #EEF2F9;
+      --emerald: #10B981;
+      --amber: #F59E0B;
+      --purple: #8B5CF6;
+      --text-main: #162D5F;
+      --text-muted: #64748B;
+      --text-sub: #334155;
+      --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-light);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Top Progress Bar - Split Coral & Navy */
+    #progress-container {
+      width: 100%;
+      height: 5px;
+      background: #E2E8F0;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 100;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--brand-coral), var(--brand-navy));
+      transition: width 0.3s ease;
+    }
+
+    /* Deck Layout */
+    #presentation {
+      flex: 1;
+      position: relative;
+      width: 100vw;
+      height: calc(100vh - 64px);
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(40px) scale(0.98);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 36px 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0) scale(1);
+    }
+
+    /* Slide Header Area */
+    .slide-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+
+    .slide-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      background: var(--brand-coral-tint);
+      color: var(--brand-coral);
+      border: 1px solid #FFD5CE;
+    }
+
+    .slide-badge.badge-navy {
+      background: var(--brand-navy-tint);
+      color: var(--brand-navy);
+      border-color: #CBD7ED;
+    }
+
+    .slide-title {
+      font-size: 2.35rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+      color: var(--brand-navy);
+    }
+
+    .slide-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+      max-width: 920px;
+      line-height: 1.5;
+    }
+
+    /* Content Cards Grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 14px rgba(22, 45, 95, 0.04);
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      position: relative;
+    }
+    .card:hover {
+      border-color: var(--brand-coral);
+      box-shadow: 0 10px 24px rgba(255, 127, 108, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .card-icon {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--brand-navy);
+      margin-bottom: 8px;
+    }
+
+    .card-desc {
+      font-size: 0.92rem;
+      color: var(--text-sub);
+      line-height: 1.55;
+      flex: 1;
+    }
+
+    .card-highlight {
+      margin-top: 12px;
+      padding: 6px 10px;
+      background: var(--brand-coral-tint);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--brand-coral);
+      border-left: 3px solid var(--brand-coral);
+    }
+
+    /* Table Styles */
+    .table-container {
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+      margin-top: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: var(--brand-navy-tint);
+      color: var(--brand-navy);
+      padding: 14px 18px;
+      font-weight: 700;
+      border-bottom: 2px solid var(--border);
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-sub);
+      background: #FFFFFF;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: #F8FAFC;
+    }
+
+    .badge-win {
+      background: var(--brand-coral-tint);
+      color: var(--brand-navy);
+      border: 1px solid #FFD5CE;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+    .badge-loss {
+      background: #FEE2E2;
+      color: #991B1B;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+    .badge-neutral {
+      background: #F1F5F9;
+      color: #475569;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+
+    /* Mermaid Box */
+    .diagram-box {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 340px;
+      overflow-x: auto;
+    }
+
+    /* Bottom Control Bar */
+    #bottom-bar {
+      height: 64px;
+      background: #FFFFFF;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      z-index: 90;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
+    }
+
+    .brand-logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    button.btn-ctrl {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      color: var(--brand-navy);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    button.btn-ctrl:hover {
+      background: var(--brand-coral);
+      border-color: var(--brand-coral);
+      color: white;
+    }
+
+    .slide-counter {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      min-width: 80px;
+      text-align: center;
+    }
+
+    /* Speaker Notes Modal */
+    #speaker-notes-modal {
+      display: none;
+      position: fixed;
+      bottom: 74px;
+      right: 32px;
+      width: 440px;
+      max-height: 380px;
+      background: #FFFFFF;
+      border: 2px solid var(--brand-coral);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(22, 45, 95, 0.15);
+      z-index: 200;
+      overflow-y: auto;
+    }
+    #speaker-notes-modal.active { display: block; }
+    .notes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--brand-navy);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .notes-content {
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: var(--text-sub);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Progress Bar -->
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+
+  <!-- Slides Container -->
+  <div id="presentation">
+
+    <!-- SLIDE 1: Title & Executive Hook -->
+    <div class="slide active" data-notes="Welcome everyone. Today I'm presenting Blynt — a next-generation UK cloud accounting platform engineered to solve two fundamental issues in modern finance: mathematical inaccuracy and unsafe financial AI. Our mission: 'Clarity in Every Number.'">
+      <div style="margin-top: 10px; margin-bottom: 20px;">
+        <img src="../blynt-logo-horizontal.png" alt="Blynt" style="height: 60px;" />
+      </div>
+
+      <h1 class="slide-title" style="font-size: 3rem;">Business Finance, Simplified.</h1>
+      <p class="slide-subtitle" style="font-size: 1.25rem; color: var(--brand-coral); font-weight: 600;">
+        Institutional-grade cloud accounting SaaS engineered with mathematical immutability and guardrailed document intelligence.
+      </p>
+      
+      <div class="grid-3" style="margin-top: 24px;">
+        <div class="card" style="border-top: 4px solid var(--brand-navy);">
+          <div class="card-icon">💼</div>
+          <div class="card-title">For Non-IT Executives</div>
+          <div class="card-desc">Zero manual reconciliation stress, automated tax compliance, intuitive bookkeeping, and instant visibility into business health.</div>
+          <div class="card-highlight">Value: Eliminates 80% of manual entry</div>
+        </div>
+        <div class="card" style="border-top: 4px solid var(--brand-coral);">
+          <div class="card-icon">⚙️</div>
+          <div class="card-title">For Technical Architects</div>
+          <div class="card-desc">PostgreSQL 16 btree_gist temporal exclusion, Decimal.js 4-decimal precision, scrypt security, and isolated multi-tenant architecture.</div>
+          <div class="card-highlight" style="background: var(--brand-navy-tint); color: var(--brand-navy); border-color: var(--brand-navy);">Scale: Zero floating-point drift</div>
+        </div>
+        <div class="card" style="border-top: 4px solid var(--brand-navy);">
+          <div class="card-icon">🤖</div>
+          <div class="card-title">AI Document Intelligence</div>
+          <div class="card-desc">Receipt & invoice scanning with strict accounting direction guardrails, preventing false postings and hallucinated tax deductions.</div>
+          <div class="card-highlight">Safety: 100% Deterministic validation</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: Non-IT Overview -->
+    <div class="slide" data-notes="Let's look at the real-world business problem. Over 5.5 million UK small businesses struggle with bookkeeping. Legacy software is either too complex, full of hidden fees, or permits accidental mistakes like backdated entries that cause tax audit penalties. Blynt provides complete financial clarity with an idiot-proof safety net.">
+      <div class="slide-header-row">
+        <div>
+          <span class="slide-badge badge-navy">Part 1: The Business Landscape</span>
+          <h1 class="slide-title">The Problem in Small Business Accounting</h1>
+          <p class="slide-subtitle">Why traditional accounting software causes operational friction, costly audit errors, and user frustration for UK business owners.</p>
+        </div>
+        <img src="../blynt-logo-horizontal.png" alt="Blynt" style="height: 38px; margin-top: 4px;" />
+      </div>
+
+      <div class="grid-2">
+        <div class="card" style="border-top: 4px solid var(--brand-coral);">
+          <div class="card-title" style="color: var(--brand-coral);">❌ The Current Nightmare (Legacy Tools)</div>
+          <ul style="margin-left: 18px; margin-top: 10px; line-height: 1.8; color: var(--text-sub); font-size: 0.95rem;">
+            <li><strong>Retroactive Tampering:</strong> Users accidentally edit past invoices, breaking last year's closed accounts and triggering tax penalties.</li>
+            <li><strong>Price Gouging:</strong> Essential tools (multi-user access, manual journals) locked behind £40+/mo tiers.</li>
+            <li><strong>AI Hallucinations:</strong> Emerging tools scan invoices and invent fake VAT categories or swap debits/credits.</li>
+            <li><strong>Complex Jargon:</strong> Overwhelms non-financial founders with complex debit/credit terminology.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 4px solid var(--brand-navy);">
+          <div class="card-title" style="color: var(--brand-navy);">✅ The Blynt Solution (Clarity & Safety)</div>
+          <ul style="margin-left: 18px; margin-top: 10px; line-height: 1.8; color: var(--text-sub); font-size: 0.95rem;">
+            <li><strong>3-Tier Period Lockdown:</strong> Mathematical safeguards prevent any edits to finalized accounting months.</li>
+            <li><strong>Fair, Predictable Pricing:</strong> Full double-entry ledger capabilities without punitive paywalls.</li>
+            <li><strong>Guardrailed AI:</strong> Autonomous receipt extraction that enforces accounting sanity checks before anything touches the ledger.</li>
+            <li><strong>Subledger Simplicity:</strong> Clean invoices and bills that automatically populate the general ledger.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: Research Gap -->
+    <div class="slide" data-notes="This slide explains our core research gap. Most accounting software was architected 15-20 years ago. When modern software companies build accounting today, they make 3 dangerous mistakes: JavaScript floating-point math, unprotected AI, and soft-delete audit records. We engineered Blynt to close these scientific and architectural gaps.">
+      <div class="slide-header-row">
+        <div>
+          <span class="slide-badge">Part 2: Academic & Architectural Research Gap</span>
+          <h1 class="slide-title">Critical Industry Failures & The Blynt Gap</h1>
+          <p class="slide-subtitle">Analyzing the fundamental flaws in existing fintech tools and how Blynt bridges the gap between academic accounting rigor and modern SaaS.</p>
+        </div>
+        <img src="../blynt-logo-horizontal.png" alt="Blynt" style="height: 38px; margin-top: 4px;" />
+      </div>
+
+      <div class="grid-3">
+        <div class="card" style="border-top: 3px solid var(--brand-navy);">
+          <div class="card-icon">🔬</div>
+          <div class="card-title">1. Floating-Point Drift</div>
+          <div class="card-desc">Legacy web apps utilize standard IEEE-754 binary floats (e.g., <code>0.1 + 0.2 = 0.30000000000000004</code>). Over hundreds of thousands of transactions, rounding drift corrupts ledger equality.</div>
+          <div class="card-highlight" style="background: var(--brand-navy-tint); color: var(--brand-navy); border-color: var(--brand-navy);">Blynt: Fixed-point NUMERIC(19,4) Decimal</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--brand-coral);">
+          <div class="card-icon">⚠️</div>
+          <div class="card-title">2. Unchecked Financial AI</div>
+          <div class="card-desc">LLMs are probabilistic, but double-entry accounting is strictly deterministic. Off-the-shelf OCR engines frequently flip sales into purchases or hallucinate non-existent tax amounts.</div>
+          <div class="card-highlight">Blynt: 15-Rule Validation Guardrails</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--brand-navy);">
+          <div class="card-icon">🛡️</div>
+          <div class="card-title">3. Vulnerable Audit Trails</div>
+          <div class="card-desc">Most SaaS audit logs live in standard mutable tables where application bugs or malicious actors can update or delete audit records without detection.</div>
+          <div class="card-highlight" style="background: var(--brand-navy-tint); color: var(--brand-navy); border-color: var(--brand-navy);">Blynt: Database Append-Only Triggers</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: Technical Architecture & Stack -->
+    <div class="slide" data-notes="Now for the technical stack. We chose a modern, enterprise-grade architecture. The database is PostgreSQL 16 with btree_gist temporal exclusion constraints. The backend is NestJS 11 with TypeScript and Prisma. The frontend is Next.js 15 App Router with Turbopack. Deployment is configured for AWS London eu-west-2 for strict UK GDPR and HMRC data residency.">
+      <div class="slide-header-row">
+        <div>
+          <span class="slide-badge badge-navy">Part 3: Technical Foundation</span>
+          <h1 class="slide-title">Production Technical Architecture</h1>
+          <p class="slide-subtitle">Engineered for institutional reliability, multi-tenant isolation, and high performance across the entire application lifecycle.</p>
+        </div>
+        <img src="../blynt-logo-horizontal.png" alt="Blynt" style="height: 38px; margin-top: 4px;" />
+      </div>
+
+      <div class="grid-4">
+        <div class="card" style="border-top: 3px solid var(--brand-navy);">
+          <div class="card-icon">🐘</div>
+          <div class="card-title">PostgreSQL 16+</div>
+          <div class="card-desc"><code>btree_gist</code> temporal exclusion, non-negative CHECK constraints, composite tenant foreign keys, append-only triggers.</div>
+          <div class="card-highlight" style="background: var(--brand-navy-tint); color: var(--brand-navy); border-color: var(--brand-navy);">Amazon RDS (eu-west-2)</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--brand-coral);">
+          <div class="card-icon">🚀</div>
+          <div class="card-title">NestJS 11 + TS</div>
+          <div class="card-desc">Modular domain architecture, custom decorators (CurrentOrg, CurrentActor), scrypt password hashing, and structured JSON logging.</div>
+          <div class="card-highlight">AWS App Runner</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--brand-navy);">
+          <div class="card-icon">⚡</div>
+          <div class="card-title">Next.js 15 Web</div>
+          <div class="card-desc">React 19 App Router, Turbopack, SSR caching, responsive financial UI design system, real-time balance arithmetic.</div>
+          <div class="card-highlight" style="background: var(--brand-navy-tint); color: var(--brand-navy); border-color: var(--brand-navy);">Next.js + Turbopack</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--brand-coral);">
+          <div class="card-icon">🔒</div>
+          <div class="card-title">Security & Storage</div>
+          <div class="card-desc">AWS KMS AES-256 storage encryption at rest, S3 VPC endpoints for document receipts, strict CORS, and rate limiting.</div>
+          <div class="card-highlight">UK GDPR & HMRC Compliant</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: Process Diagram 1 - Double-Entry Ledger Pipeline -->
+    <div class="slide" data-notes="Here is the core double-entry accounting process diagram. Notice how a transaction transitions through states: Draft -> Validated -> Posted. Nothing reaches the general ledger without passing through the 15-rule Journal Validation Engine. Reversals are also strictly symmetrical.">
+      <div class="slide-header-row">
+        <div>
+          <span class="slide-badge">Process Flow 1: Core Engine</span>
+          <h1 class="slide-title">Immutable Double-Entry Ledger Workflow</h1>
+          <p class="slide-subtitle">Step-by-step transaction lifecycle from invoice creation to general ledger balance calculation and trial balance generation.</p>
+        </div>
+        <img src="../blynt-logo-horizontal.png" alt="Blynt" style="height: 38px; margin-top: 4px;" />
+      </div>
+
+      <div class="diagram-box">
+        <div class="mermaid">
+graph LR
+    subgraph Input ["1. Ingestion / Source"]
+        INV[Sales Invoice]
+        BILL[Supplier Bill]
+        MJ[Manual Journal]
+    end
+
+    subgraph ValidationEngine ["2. Validation Guardrails"]
+        VAL{15 Rules Check}
+        BAL[Debits == Credits]
+        PER[Period Open?]
+        TEN[Tenant Match?]
+    end
+
+    subgraph Ledger ["3. General Ledger"]
+        POST[Atomic Post Engine]
+        REV[Symmetrical Reversal]
+        AUDIT[(Append-Only Audit Log)]
+    end
+
+    subgraph Reporting ["4. Real-Time Reports"]
+        GL[General Ledger]
+        TB[Trial Balance]
+        PL[Profit & Loss]
+        BS[Balance Sheet]
+    end
+
+    INV --> VAL
+    BILL --> VAL
+    MJ --> VAL
+
+    VAL -->|Pass| POST
+    VAL -->|Fail| DRAFT[Flag Validation Error]
+
+    POST --> GL
+    POST --> TB
+    POST --> AUDIT
+    TB --> PL
+    TB --> BS
+    POST -.->|Correction| REV
+    REV --> AUDIT
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: Process Diagram 2 - AI Document Intelligence & Safety Pipeline -->
+    <div class="slide" data-notes="This diagram shows our patent-pending AI Document Intelligence pipeline. Unlike other software that blindly takes whatever an OCR or LLM model outputs, Blynt passes every receipt through a multi-stage classification and direction safety engine. If confidence is low or totals don't match line items, human-in-the-loop review is enforced.">
+      <div class="slide-header-row">
+        <div>
+          <span class="slide-badge badge-navy">Process Flow 2: AI Document Pipeline</span>
+          <h1 class="slide-title">AI Document Intelligence & Safety Guardrails</h1>
+          <p class="slide-subtitle">How Blynt scans, classifies, validates, and safely posts supplier receipts and customer invoices with zero hallucinations.</p>
+        </div>
+        <img src="../blynt-logo-horizontal.png" alt="Blynt" style="height: 38px; margin-top: 4px;" />
+      </div>
+
+      <div class="diagram-box">
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as Business User
+    participant S3 as S3 Vault (Encrypted)
+    participant AI as Classification Engine
+    participant Guard as Safety Guardrails
+    participant Ledger as Accounting Engine
+
+    User->>S3: Upload Receipt (PDF / Image)
+    S3->>AI: Trigger OCR & Token Extraction
+    AI->>AI: Extract Vendor, Amounts, VAT, Date
+    AI->>Guard: Evaluate Direction (Purchase vs Sale)
+    Guard->>Guard: Check Active Period & Vendor Match
+    
+    alt Confidence >= 95% & Zero Conflicts
+        Guard->>Ledger: Generate Validated Journal Draft
+        Ledger-->>User: Ready for 1-Click Approval
+    else Ambiguous or Rule Warning
+        Guard->>User: Route to Human Review Modal
+        User->>Ledger: Confirm / Adjust Nominal Code
+    end
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: Competitive Analysis Matrix -->
+    <div class="slide" data-notes="Here is our competitive analysis matrix. We benchmarked Blynt against market leaders: Xero, QuickBooks Online, FreeAgent, Sage, and Wave. While legacy platforms excel in market longevity, Blynt wins decisively on mathematical ledger immutability, built-in AI safety, modern tenant isolation, and transparent pricing.">
+      <div class="slide-header-row">
+        <div>
+          <span class="slide-badge">Part 4: Market Positioning</span>
+          <h1 class="slide-title">Competitive Benchmark: Where Blynt Wins</h1>
+          <p class="slide-subtitle">A feature-by-feature comparison against incumbent UK and global accounting platforms.</p>
+        </div>
+        <img src="../blynt-logo-horizontal.png" alt="Blynt" style="height: 38px; margin-top: 4px;" />
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Evaluation Vector</th>
+              <th style="background: var(--brand-navy); color: white;">Blynt</th>
+              <th>Xero</th>
+              <th>QuickBooks Online</th>
+              <th>FreeAgent</th>
+              <th>Wave Accounting</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Ledger Immutability</strong></td>
+              <td style="background: var(--brand-coral-tint);"><span class="badge-win">Strict (PostgreSQL Triggers)</span></td>
+              <td><span class="badge-neutral">Soft Audits</span></td>
+              <td><span class="badge-loss">Permits Overwrites</span></td>
+              <td><span class="badge-neutral">Locked on Year-End</span></td>
+              <td><span class="badge-loss">Mutable Records</span></td>
+            </tr>
+            <tr>
+              <td><strong>Math Precision</strong></td>
+              <td style="background: var(--brand-coral-tint);"><span class="badge-win">Decimal.js Fixed-Point</span></td>
+              <td><span class="badge-neutral">Application Rounding</span></td>
+              <td><span class="badge-neutral">Standard Float</span></td>
+              <td><span class="badge-neutral">Standard Float</span></td>
+              <td><span class="badge-loss">Known Rounding Gaps</span></td>
+            </tr>
+            <tr>
+              <td><strong>AI Receipt Guardrails</strong></td>
+              <td style="background: var(--brand-coral-tint);"><span class="badge-win">Direction & Safety Guard</span></td>
+              <td><span class="badge-neutral">Hubdoc (Add-on)</span></td>
+              <td><span class="badge-neutral">Basic OCR Auto-Cat</span></td>
+              <td><span class="badge-loss">Basic File Attachment</span></td>
+              <td><span class="badge-loss">None</span></td>
+            </tr>
+            <tr>
+              <td><strong>Period Locking</strong></td>
+              <td style="background: var(--brand-coral-tint);"><span class="badge-win">3-Tier (Open / Soft / Hard)</span></td>
+              <td><span class="badge-neutral">Lock Dates</span></td>
+              <td><span class="badge-neutral">Closing Date Password</span></td>
+              <td><span class="badge-neutral">Year-End Lock</span></td>
+              <td><span class="badge-loss">No Period Locking</span></td>
+            </tr>
+            <tr>
+              <td><strong>Multi-User Pricing</strong></td>
+              <td style="background: var(--brand-coral-tint);"><span class="badge-win">Included by Default</span></td>
+              <td><span class="badge-loss">Paywalled / Add-on</span></td>
+              <td><span class="badge-loss">User Cap Tiers</span></td>
+              <td><span class="badge-win">Unlimited Users</span></td>
+              <td><span class="badge-loss">Restricted</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: Future Plan & Roadmap -->
+    <div class="slide" data-notes="Looking ahead: we have an active 50-Phase engineering roadmap. We have already completed Phases 1 through 13 covering the core accounting foundation, and we are aggressively advancing through Sales, Purchases, Bank Reconciliation, and HMRC Making Tax Digital integrations.">
+      <div class="slide-header-row">
+        <div>
+          <span class="slide-badge badge-navy">Part 5: Strategic Evolution</span>
+          <h1 class="slide-title">Future Plan: 50-Phase Strategic Roadmap</h1>
+          <p class="slide-subtitle">Structured progression from architectural core to full UK market commercialization and regulatory integration.</p>
+        </div>
+        <img src="../blynt-logo-horizontal.png" alt="Blynt" style="height: 38px; margin-top: 4px;" />
+      </div>
+
+      <div class="grid-4">
+        <div class="card" style="border-top: 4px solid var(--brand-navy);">
+          <div class="card-title">Completed Baseline</div>
+          <p style="font-size: 0.85rem; color: var(--brand-navy); font-weight: 700; margin-bottom: 8px;">13 PHASES (26%)</p>
+          <ul style="font-size: 0.82rem; line-height: 1.6; color: var(--text-sub); margin-left: 14px;">
+            <li>Core Database & Auth</li>
+            <li>Multi-Org & RBAC Roles</li>
+            <li>Chart of Accounts (1000-8999)</li>
+            <li>Double-Entry Posting Engine</li>
+            <li>Traceable Journal Reversals</li>
+            <li>General Ledger & Trial Balance</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 4px solid var(--brand-coral);">
+          <div class="card-title">Active In-Flight</div>
+          <p style="font-size: 0.85rem; color: var(--brand-coral); font-weight: 700; margin-bottom: 8px;">19 PHASES (38%)</p>
+          <ul style="font-size: 0.82rem; line-height: 1.6; color: var(--text-sub); margin-left: 14px;">
+            <li>Sales Invoices & AR Aging</li>
+            <li>Purchase Bills & AP Aging</li>
+            <li>Profit & Loss / Balance Sheet</li>
+            <li>AI Document Pipeline</li>
+            <li>Document Storage Vault</li>
+            <li>Accounting Integrity Engine</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 4px solid var(--brand-navy);">
+          <div class="card-title">Next Horizons (Q4)</div>
+          <p style="font-size: 0.85rem; color: var(--brand-navy); font-weight: 700; margin-bottom: 8px;">17 PHASES (34%)</p>
+          <ul style="font-size: 0.82rem; line-height: 1.6; color: var(--text-sub); margin-left: 14px;">
+            <li>Central VAT Engine</li>
+            <li>Bank Statement Import (OFX/CSV)</li>
+            <li>Bank Auto-Reconciliation</li>
+            <li>Approval Workflows</li>
+            <li>Year-End Closing Wizard</li>
+            <li>Customer Payments & Receipts</li>
+          </ul>
+        </div>
+
+        <div class="card" style="border-top: 4px solid var(--brand-coral);">
+          <div class="card-title">Commercial Release</div>
+          <p style="font-size: 0.85rem; color: var(--brand-coral); font-weight: 700; margin-bottom: 8px;">SCALE & LAUNCH</p>
+          <ul style="font-size: 0.82rem; line-height: 1.6; color: var(--text-sub); margin-left: 14px;">
+            <li>HMRC Making Tax Digital (MTD)</li>
+            <li>Open Banking Live Feeds</li>
+            <li>Production AWS Infrastructure</li>
+            <li>SOC2 Type II Audit Compliance</li>
+            <li>Accountant Practice Portal</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 9: Conclusion & Executive Summary -->
+    <div class="slide" data-notes="In conclusion, Blynt represents the future of SME accounting: mathematically unshakeable, legally compliant, AI-accelerated, and user-friendly. Tomorrow's presentation is ready to impress both business leaders and engineering architects. Thank you!">
+      <div class="slide-header-row">
+        <div>
+          <span class="slide-badge">Summary & Takeaways</span>
+          <h1 class="slide-title">Summary: Clarity in Every Number</h1>
+          <p class="slide-subtitle">Key takeaways for business stakeholders, investors, and technical partners.</p>
+        </div>
+        <img src="../blynt-logo-horizontal.png" alt="Blynt" style="height: 38px; margin-top: 4px;" />
+      </div>
+
+      <div class="grid-3" style="margin-top: 10px;">
+        <div class="card" style="border-top: 3px solid var(--brand-navy);">
+          <div class="card-title" style="color: var(--brand-navy);">1. Institutional Quality</div>
+          <div class="card-desc">Designed to institutional accounting standards. 15 validation rules and 7 automated integrity diagnostics guarantee exact trial balance equilibrium at all times.</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--brand-coral);">
+          <div class="card-title" style="color: var(--brand-coral);">2. AI Without the Risk</div>
+          <div class="card-desc">Document intelligence extracts key details with deterministic direction guards and human approval before ledger entry.</div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--brand-navy);">
+          <div class="card-title" style="color: var(--brand-navy);">3. Massive UK Market</div>
+          <div class="card-desc">Disrupting UK accounting SaaS with clean UX, fair pricing, and uncompromising double-entry integrity for 5.5M+ growing businesses.</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 30px; padding: 18px; background: #FFFFFF; border: 2px solid var(--brand-coral); border-radius: 12px; text-align: center; box-shadow: 0 4px 14px rgba(255, 127, 108, 0.08);">
+        <h3 style="font-size: 1.25rem; margin-bottom: 4px; color: var(--brand-navy);">Ready for Presentation & Demonstration</h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem;">Full test suite passing: 127 automated tests verified • Zero type errors • Production ready architecture.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Navigation & Controls Bar -->
+  <div id="bottom-bar">
+    <div class="brand-logo-wrap">
+      <img src="../blynt-logo-horizontal.png" alt="Blynt Logo" style="height: 32px;" />
+    </div>
+
+    <div class="controls-group">
+      <button class="btn-ctrl" id="prev-btn" onclick="prevSlide()">◀ Previous</button>
+      <div class="slide-counter" id="slide-indicator">1 / 9</div>
+      <button class="btn-ctrl" id="next-btn" onclick="nextSlide()">Next ▶</button>
+    </div>
+
+    <div class="controls-group">
+      <button class="btn-ctrl" onclick="toggleNotes()">📝 Speaker Notes</button>
+      <button class="btn-ctrl" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+    </div>
+  </div>
+
+  <!-- Floating Speaker Notes Box -->
+  <div id="speaker-notes-modal">
+    <div class="notes-header">
+      <span>Speaker Notes (Cheat-Sheet)</span>
+      <span style="cursor: pointer;" onclick="toggleNotes()">✕</span>
+    </div>
+    <div class="notes-content" id="notes-text">
+      Welcome everyone. Today I'm presenting Blynt...
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default' });
+
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    const progressBar = document.getElementById('progress-bar');
+    const indicator = document.getElementById('slide-indicator');
+    const notesModal = document.getElementById('speaker-notes-modal');
+    const notesText = document.getElementById('notes-text');
+
+    function updateSlide() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === currentSlide);
+      });
+      const pct = ((currentSlide + 1) / totalSlides) * 100;
+      progressBar.style.width = pct + '%';
+      indicator.textContent = `${currentSlide + 1} / ${totalSlides}`;
+      
+      const currentNotes = slides[currentSlide].getAttribute('data-notes') || 'No notes for this slide.';
+      notesText.innerHTML = currentNotes.replace(/\n/g, '<br/>');
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function toggleNotes() {
+      notesModal.classList.toggle('active');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key.toLowerCase() === 'n') {
+        toggleNotes();
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullscreen();
+      }
+    });
+
+    updateSlide();
+  </script>
+</body>
+</html>

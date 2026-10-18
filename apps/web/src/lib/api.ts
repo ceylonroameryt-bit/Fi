@@ -67,6 +67,16 @@ export function resolveEndpoint(endpoint: string, activeOrgId?: string | null): 
       clean = `/organizations/${activeOrgId}${clean}`;
     } else if (clean.startsWith('/ai')) {
       clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/payments')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/credit-notes')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/bank-accounts')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/bank-statements')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
+    } else if (clean.startsWith('/bank-rules')) {
+      clean = `/organizations/${activeOrgId}${clean}`;
     }
   }
 
@@ -113,7 +123,13 @@ export async function apiRequest<T = any>(endpoint: string, options: RequestOpti
     ...(options.headers as Record<string, string>),
   };
 
-  if (activeOrgId) {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const isOrgAgnostic =
+    cleanEndpoint.startsWith('/auth') ||
+    cleanEndpoint.startsWith('/health') ||
+    cleanEndpoint === '/organizations';
+
+  if (activeOrgId && !isOrgAgnostic) {
     headers['x-organization-id'] = activeOrgId;
   }
 

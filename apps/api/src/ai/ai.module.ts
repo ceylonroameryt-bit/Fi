@@ -38,6 +38,9 @@ import { DirectionFallbackService } from './document-intelligence/direction-fall
 import { CodingSuggestionService } from './coding/coding-suggestion.service';
 import { AiReviewService } from './review/ai-review.service';
 
+import { AiAssistantController } from './assistant/ai-assistant.controller';
+import { AiAssistantService } from './assistant/ai-assistant.service';
+
 /** Picks the model provider from AI_PROVIDER; null means AI calls are blocked (and logged as such). */
 function createAiProvider(config: AppEnv): AiProvider | null {
   switch (config.AI_PROVIDER) {
@@ -57,7 +60,7 @@ function createAiProvider(config: AppEnv): AiProvider | null {
 
 @Module({
   imports: [DatabaseModule, StorageModule, AccountingEngineModule, InvoicesModule, DocumentsModule, ContactsModule, BillsModule],
-  controllers: [DocumentIntelligenceController, AiGatewayController],
+  controllers: [DocumentIntelligenceController, AiGatewayController, AiAssistantController],
   providers: [
     BusinessContextService,
     HeuristicLlmProvider,
@@ -84,6 +87,7 @@ function createAiProvider(config: AppEnv): AiProvider | null {
     DirectionFallbackService,
     CodingSuggestionService,
     AiReviewService,
+    AiAssistantService,
   ],
   exports: [
     DocumentIntelligenceService,
@@ -91,6 +95,7 @@ function createAiProvider(config: AppEnv): AiProvider | null {
     AccountingClassificationService,
     AiGatewayService,
     BusinessProfileService,
+    AiAssistantService,
   ],
 })
 export class AiModule {}

@@ -108,7 +108,7 @@ export class InvoicesService {
     return { items, total, page, pageSize };
   }
 
-  async getInvoice(organizationId: string, invoiceId: string): Promise<InvoiceWithRelations> {
+  async getInvoice(organizationId: string, invoiceId: string) {
     const invoice = await this.prisma.invoice.findFirst({
       where: { id: invoiceId, organizationId },
       include: invoiceInclude,
@@ -118,7 +118,39 @@ export class InvoicesService {
       throw new DomainException('INVOICE_NOT_FOUND', 'Invoice not found in this organisation');
     }
 
-    return invoice;
+    const allocations = await this.prisma.paymentAllocation.findMany({
+      where: { invoiceId, organizationId, isReversed: false },
+      include: {
+        payment: {
+          select: {
+            id: true,
+            paymentDate: true,
+            reference: true,
+            kind: true,
+            amount: true,
+          },
+        },
+        creditNote: {
+          select: {
+            id: true,
+            creditNoteNumber: true,
+            issueDate: true,
+            totalAmount: true,
+          },
+        },
+      },
+      orderBy: { allocationDate: 'desc' },
+    });
+
+    const totalDec = new Prisma.Decimal(invoice.totalAmount.toString());
+    const paidDec = new Prisma.Decimal(invoice.amountPaid.toString());
+    const amountDue = Prisma.Decimal.max(new Prisma.Decimal('0'), totalDec.sub(paidDec));
+
+    return {
+      ...invoice,
+      allocations,
+      amountDue,
+    };
   }
 
   async createInvoice(organizationId: string, dto: CreateInvoiceDto, orgContext: OrgContext, actor: Actor) {

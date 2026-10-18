@@ -110,15 +110,18 @@ export class OrganizationAccessGuard implements CanActivate {
       );
     }
 
-    // Verify all required permissions
+    // Verify all required permissions.
+    // Tenant OWNER possesses root organisation authority across all features.
     if (requiredPermissions && requiredPermissions.length > 0) {
-      for (const perm of requiredPermissions) {
-        if (!orgContext.permissions.has(perm)) {
-          throw new DomainException(
-            'PERMISSION_DENIED',
-            `You do not have the required permission: ${perm}`,
-            { requiredPermission: perm },
-          );
+      if (orgContext.systemRoleKey !== SystemRoleKey.OWNER) {
+        for (const perm of requiredPermissions) {
+          if (!orgContext.permissions.has(perm)) {
+            throw new DomainException(
+              'PERMISSION_DENIED',
+              `You do not have the required permission: ${perm}`,
+              { requiredPermission: perm },
+            );
+          }
         }
       }
     }

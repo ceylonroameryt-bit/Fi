@@ -69,7 +69,41 @@ export class BillsService {
   async get(organizationId: string, billId: string) {
     const bill = await this.prisma.bill.findFirst({ where: { id: billId, organizationId }, include: billInclude });
     if (!bill) throw new DomainException('BILL_NOT_FOUND', 'Bill not found in this organisation');
-    return { ...bill, warnings: await this.duplicateWarnings(this.prisma, bill) };
+
+    const allocations = await this.prisma.paymentAllocation.findMany({
+      where: { billId, organizationId, isReversed: false },
+      include: {
+        payment: {
+          select: {
+            id: true,
+            paymentDate: true,
+            reference: true,
+            kind: true,
+            amount: true,
+          },
+        },
+        creditNote: {
+          select: {
+            id: true,
+            creditNoteNumber: true,
+            issueDate: true,
+            totalAmount: true,
+          },
+        },
+      },
+      orderBy: { allocationDate: 'desc' },
+    });
+
+    const totalDec = new Prisma.Decimal(bill.totalAmount.toString());
+    const paidDec = new Prisma.Decimal(bill.amountPaid.toString());
+    const amountDue = Prisma.Decimal.max(new Prisma.Decimal('0'), totalDec.sub(paidDec));
+
+    return {
+      ...bill,
+      allocations,
+      amountDue,
+      warnings: await this.duplicateWarnings(this.prisma, bill),
+    };
   }
 
   async create(organizationId: string, dto: CreateBillDto, orgContext: OrgContext, actor: Actor, tx?: Tx) {
