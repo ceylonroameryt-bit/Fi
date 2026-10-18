@@ -17,8 +17,6 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Building,
-  Building2,
-  Plus,
   Check,
   ArrowRight,
   TrendingUp,
@@ -145,7 +143,7 @@ function BankReconciliationContent() {
   const [filterTab, setFilterTab] = useState<'TO_RECONCILE' | 'HIGH_CONFIDENCE' | 'RECONCILED' | 'ALL'>('TO_RECONCILE');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
 
@@ -922,85 +920,7 @@ function BankReconciliationContent() {
         {/* =========================================================
             5. RECONCILIATION CARDS FEED (PUZZLE.IO STYLE)
            ========================================================= */}
-        {!activeOrg ? (
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '0.85rem',
-              border: '1px solid #E2E8F0',
-              padding: '4rem 2rem',
-              textAlign: 'center',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: '#EFF6FF',
-                color: '#2563EB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1rem',
-              }}
-            >
-              <Building2 size={28} />
-            </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem' }}>
-              No Company Selected
-            </h3>
-            <p style={{ color: '#64748B', maxWidth: '440px', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-              Please select a company from the top navigation bar or create a new company to view bank accounts and reconcile statement feeds.
-            </p>
-            {userOrgs.length > 0 ? (
-              <button
-                onClick={() => switchOrg(userOrgs[0].organization.id)}
-                style={{
-                  padding: '0.65rem 1.25rem',
-                  backgroundColor: '#2563EB',
-                  color: '#FFFFFF',
-                  borderRadius: '0.5rem',
-                  border: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <span>Switch to {userOrgs[0].organization.name}</span>
-                <ArrowRight size={16} />
-              </button>
-            ) : (
-              <Link
-                href="/organizations/new"
-                style={{
-                  padding: '0.65rem 1.25rem',
-                  backgroundColor: '#2563EB',
-                  color: '#FFFFFF',
-                  borderRadius: '0.5rem',
-                  border: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  textDecoration: 'none',
-                }}
-              >
-                <Plus size={16} />
-                <span>Create Company</span>
-              </Link>
-            )}
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div
             style={{
               backgroundColor: '#FFFFFF',

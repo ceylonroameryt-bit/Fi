@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
-import { SlidersHorizontal, HelpCircle, CheckCheck, Zap, Sparkles, ShieldCheck, Building2, Plus, ArrowRight } from 'lucide-react';
+import { SlidersHorizontal, HelpCircle, CheckCheck, Zap, Sparkles, ShieldCheck } from 'lucide-react';
 import {
   AiCustomizationModal,
   AiPreferences,
