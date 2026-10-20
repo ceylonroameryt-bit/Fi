@@ -104,10 +104,11 @@ export default function BillDetailPage() {
     }
   }
 
-  if (!bill) return <AppShell>{error ? <div className="alert alert-danger">{error}</div> : <p>Loading…</p>}</AppShell>;
+  if (!bill) return <AppShell><div className="bl-legacy">{error ? <div className="alert alert-danger">{error}</div> : <p>Loading…</p>}</div></AppShell>;
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <Link href="/purchases/bills" style={{ fontSize: '0.85rem' }}>
         ← Supplier bills
       </Link>
@@ -116,7 +117,7 @@ export default function BillDetailPage() {
           <h1 style={{ margin: 0 }}>
             {bill.billNumber} <span className={`badge ${STATUS_BADGE[bill.status]}`} style={{ verticalAlign: 'middle' }}>{bill.status}</span>
           </h1>
-          <p style={{ margin: '0.25rem 0 0', color: '#64748B' }}>
+          <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)' }}>
             {bill.contact.name} · invoice {bill.supplierInvoiceNumber} · dated {bill.issueDate.slice(0, 10)} · due {bill.dueDate.slice(0, 10)}
           </p>
         </div>
@@ -156,7 +157,7 @@ export default function BillDetailPage() {
                 <td>
                   {l.account.code} {l.account.name}
                 </td>
-                <td>{l.taxCode ? l.taxCode.name : <span style={{ color: '#B91C1C' }}>Missing – required to approve</span>}</td>
+                <td>{l.taxCode ? l.taxCode.name : <span style={{ color: 'var(--danger)' }}>Missing – required to approve</span>}</td>
                 <td style={{ textAlign: 'right' }}>{l.quantity ? Number(l.quantity) : '—'}</td>
                 <td style={{ textAlign: 'right' }}>{money(l.netAmount)}</td>
                 <td style={{ textAlign: 'right' }}>{money(l.taxAmount)}</td>
@@ -178,7 +179,7 @@ export default function BillDetailPage() {
       {bill.status === 'DRAFT' && (
         <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', maxWidth: 560 }}>
           <strong>Approve and post</strong>
-          <span style={{ fontSize: '0.85rem', color: '#64748B' }}>Posts Dr expense / Dr input VAT / Cr creditors to the ledger.</span>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Posts Dr expense / Dr input VAT / Cr creditors to the ledger.</span>
           {(needsDuplicateReason || bill.warnings.length > 0) && (
             <input
               className="form-input"
@@ -205,6 +206,7 @@ export default function BillDetailPage() {
         </div>
       )}
       {bill.status === 'VOIDED' && <div className="alert alert-info">Voided: {bill.voidReason}</div>}
+      </div>
     </AppShell>
   );
 }

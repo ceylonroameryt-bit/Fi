@@ -68,6 +68,7 @@ export default function NewOrganizationPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ maxWidth: '640px', margin: '0 auto' }}>
         <div className="page-header">
           <div>
@@ -169,7 +170,7 @@ export default function NewOrganizationPage() {
                 </div>
               </div>
 
-              <div style={{ padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0', margin: '1rem 0' }}>
+              <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-app)', borderRadius: '4px', border: '1px solid var(--border-subtle)', margin: '1rem 0' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
                   <input
                     type="checkbox"
@@ -178,7 +179,7 @@ export default function NewOrganizationPage() {
                   />
                   <span>
                     <strong>Populate standard Chart of Accounts template</strong>
-                    <span style={{ display: 'block', color: '#64748b', fontSize: '0.75rem' }}>
+                    <span style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                       Automatically loads standard nominal accounts (1000–8999, bank accounts, trade receivables/payables, retained earnings).
                     </span>
                   </span>
@@ -196,6 +197,7 @@ export default function NewOrganizationPage() {
             </form>
           </div>
         </div>
+      </div>
       </div>
     </AppShell>
   );

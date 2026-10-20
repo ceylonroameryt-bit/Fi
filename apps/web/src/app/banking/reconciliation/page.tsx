@@ -477,6 +477,7 @@ function BankReconciliationContent() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ maxWidth: '1240px', margin: '0 auto', paddingBottom: '4rem' }}>
         {/* =========================================================
             1. TOP HEADER & ACCOUNT SELECTOR
@@ -498,8 +499,8 @@ function BankReconciliationContent() {
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
-                  backgroundColor: '#041F46',
-                  color: '#18D3BE',
+                  backgroundColor: 'var(--nav-bg)',
+                  color: 'var(--action-text)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -507,11 +508,11 @@ function BankReconciliationContent() {
               >
                 <Sparkles size={18} />
               </div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.025em', margin: 0 }}>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.025em', margin: 0 }}>
                 Smart Reconciliation
               </h1>
             </div>
-            <p style={{ color: '#64748B', fontSize: '0.9rem', margin: 0 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
               AI-assisted continuous reconciliation with auto-filled categories and single-click ledger confirmation.
             </p>
           </div>
@@ -527,11 +528,11 @@ function BankReconciliationContent() {
                     appearance: 'none',
                     padding: '0.55rem 2.25rem 0.55rem 1rem',
                     backgroundColor: '#FFFFFF',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     fontWeight: 600,
-                    color: '#0F172A',
+                    color: 'var(--text-main)',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                     cursor: 'pointer',
                   }}
@@ -544,7 +545,7 @@ function BankReconciliationContent() {
                 </select>
                 <ChevronDown
                   size={15}
-                  style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748B' }}
+                  style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}
                 />
               </div>
             )}
@@ -557,17 +558,17 @@ function BankReconciliationContent() {
                 gap: '0.45rem',
                 padding: '0.55rem 1rem',
                 backgroundColor: '#FFFFFF',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.5rem',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                color: '#0F172A',
+                color: 'var(--text-main)',
                 cursor: 'pointer',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
               }}
               title="Customize AI Confidence Sensitivity, Autopilot Mode, and Company Rules"
             >
-              <SlidersHorizontal size={14} style={{ color: '#0EA5E9' }} />
+              <SlidersHorizontal size={14} style={{ color: 'var(--primary)' }} />
               <span>AI Settings</span>
             </button>
 
@@ -578,17 +579,17 @@ function BankReconciliationContent() {
                 alignItems: 'center',
                 gap: '0.45rem',
                 padding: '0.55rem 0.9rem',
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '0.5rem',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                color: '#475569',
+                color: 'var(--ink-2)',
                 cursor: 'pointer',
               }}
               title="Learn the difference between Transactions Feed and Reconciliation"
             >
-              <HelpCircle size={14} style={{ color: '#64748B' }} />
+              <HelpCircle size={14} style={{ color: 'var(--text-muted)' }} />
               <span>Guide</span>
             </button>
 
@@ -601,15 +602,15 @@ function BankReconciliationContent() {
                 gap: '0.5rem',
                 padding: '0.55rem 1rem',
                 backgroundColor: '#FFFFFF',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '0.5rem',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                color: '#334155',
+                color: 'var(--ink-2)',
                 cursor: 'pointer',
               }}
             >
-              <RefreshCw size={14} className={aiReanalysing ? 'animate-spin' : ''} style={{ color: '#0EA5E9' }} />
+              <RefreshCw size={14} className={aiReanalysing ? 'animate-spin' : ''} style={{ color: 'var(--primary)' }} />
               <span>{aiReanalysing ? 'Analysing...' : 'Re-run AI'}</span>
             </button>
           </div>
@@ -621,7 +622,7 @@ function BankReconciliationContent() {
         {activeAccount && (
           <div
             style={{
-              background: 'linear-gradient(135deg, #041F46 0%, #082E64 100%)',
+              background: 'linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg) 100%)',
               borderRadius: '0.85rem',
               padding: '1.5rem 1.75rem',
               color: '#FFFFFF',
@@ -651,7 +652,7 @@ function BankReconciliationContent() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', zIndex: 1 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', backgroundColor: 'rgba(24, 211, 190, 0.15)', border: '1px solid rgba(24, 211, 190, 0.3)', borderRadius: '999px', padding: '0.25rem 0.75rem', fontSize: '0.725rem', fontWeight: 700, color: '#18D3BE', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', backgroundColor: 'rgba(24, 211, 190, 0.15)', border: '1px solid rgba(24, 211, 190, 0.3)', borderRadius: '999px', padding: '0.25rem 0.75rem', fontSize: '0.725rem', fontWeight: 700, color: 'var(--action-text)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                     <Sparkles size={13} />
                     AI Auto-Reconciliation Engine
                   </div>
@@ -667,7 +668,7 @@ function BankReconciliationContent() {
                       border: '1px solid rgba(255, 255, 255, 0.2)',
                       borderRadius: '999px',
                       padding: '0.2rem 0.65rem',
-                      color: '#E2E8F0',
+                      color: 'var(--border-subtle)',
                       fontSize: '0.725rem',
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -675,15 +676,15 @@ function BankReconciliationContent() {
                     }}
                     title="Click to adjust AI Sensitivity & Business Rules"
                   >
-                    <SlidersHorizontal size={11} color="#18D3BE" />
-                    <span>Sensitivity: <strong style={{ color: '#18D3BE' }}>{Math.round(aiPrefs.confidenceThreshold * 100)}%</strong> ({aiPrefs.mode === 'AUTOPILOT' ? 'Autopilot' : aiPrefs.mode === 'COPILOT' ? 'Co-pilot' : 'Review'})</span>
+                    <SlidersHorizontal size={11} color="#B8432F" />
+                    <span>Sensitivity: <strong style={{ color: 'var(--action-text)' }}>{Math.round(aiPrefs.confidenceThreshold * 100)}%</strong> ({aiPrefs.mode === 'AUTOPILOT' ? 'Autopilot' : aiPrefs.mode === 'COPILOT' ? 'Co-pilot' : 'Review'})</span>
                   </button>
                 </div>
 
                 <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#FFFFFF', margin: '0 0 0.35rem 0' }}>
                   {unmatchedCount > 0 ? `${unmatchedCount} statement items ready for review` : 'All statement items reconciled!'}
                 </h2>
-                <p style={{ color: '#94A3B8', fontSize: '0.85rem', margin: 0, maxWidth: '640px' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0, maxWidth: '640px' }}>
                   Blynt AI has pre-filled nominal accounts, vendors, and VAT rates based on HMRC rules and your custom business instructions.
                 </p>
               </div>
@@ -697,11 +698,11 @@ function BankReconciliationContent() {
                     alignItems: 'center',
                     gap: '0.65rem',
                     padding: '0.75rem 1.4rem',
-                    backgroundColor: '#10B8A7',
-                    backgroundImage: 'linear-gradient(135deg, #10B8A7 0%, #18D3BE 100%)',
+                    backgroundColor: 'var(--action)',
+                    backgroundImage: 'linear-gradient(135deg, var(--action) 0%, var(--action) 100%)',
                     border: 'none',
                     borderRadius: '0.5rem',
-                    color: '#041F46',
+                    color: 'var(--text-main)',
                     fontSize: '0.9rem',
                     fontWeight: 700,
                     boxShadow: '0 4px 12px rgba(16, 184, 167, 0.35)',
@@ -709,7 +710,7 @@ function BankReconciliationContent() {
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <Zap size={16} fill="#041F46" />
+                  <Zap size={16} fill="#102654" />
                   <span>{batchRunning ? 'Reconciling...' : `1-Click Auto-Reconcile (${highConfidenceCount})`}</span>
                 </button>
               )}
@@ -729,25 +730,25 @@ function BankReconciliationContent() {
               }}
             >
               <div>
-                <div style={{ fontSize: '0.725rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: 600 }}>Statement Balance</div>
+                <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Statement Balance</div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF' }}>
                   £19,970.00
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: '0.725rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: 600 }}>Balance in Blynt (GL)</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18D3BE' }}>
+                <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Balance in Blynt (GL)</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--action-text)' }}>
                   £{Number(activeAccount.ledgerBalance || 19970).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <span style={{ fontSize: '0.725rem', color: '#94A3B8', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Reconciled Progress
                   </span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: percentReconciled === 100 ? '#18D3BE' : '#FBBF24' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: percentReconciled === 100 ? 'var(--action-text)' : 'var(--warning-text)' }}>
                     {percentReconciled}% ({matchedCount}/{totalCount})
                   </span>
                 </div>
@@ -756,7 +757,7 @@ function BankReconciliationContent() {
                     style={{
                       width: `${percentReconciled}%`,
                       height: '100%',
-                      backgroundColor: percentReconciled === 100 ? '#18D3BE' : '#10B8A7',
+                      backgroundColor: percentReconciled === 100 ? 'var(--action)' : 'var(--action)',
                       transition: 'width 0.4s ease',
                     }}
                   />
@@ -773,9 +774,9 @@ function BankReconciliationContent() {
           <div
             style={{
               padding: '0.75rem 1.25rem',
-              backgroundColor: '#ECFDF5',
-              border: '1px solid #A7F3D0',
-              color: '#065F46',
+              backgroundColor: 'var(--success-bg)',
+              border: '1px solid var(--success-border)',
+              color: 'var(--success-text)',
               borderRadius: '0.5rem',
               marginBottom: '1.25rem',
               fontSize: '0.875rem',
@@ -786,7 +787,7 @@ function BankReconciliationContent() {
             }}
           >
             <span>{bannerMessage}</span>
-            <button onClick={() => setBannerMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#065F46', fontWeight: 700 }}>
+            <button onClick={() => setBannerMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success-text)', fontWeight: 700 }}>
               ✕
             </button>
           </div>
@@ -796,9 +797,9 @@ function BankReconciliationContent() {
           <div
             style={{
               padding: '0.75rem 1.25rem',
-              backgroundColor: '#FEF2F2',
-              border: '1px solid #F87171',
-              color: '#B91C1C',
+              backgroundColor: 'var(--danger-bg)',
+              border: '1px solid var(--danger-border)',
+              color: 'var(--danger)',
               borderRadius: '0.5rem',
               marginBottom: '1.25rem',
               fontSize: '0.875rem',
@@ -809,7 +810,7 @@ function BankReconciliationContent() {
             }}
           >
             <span>{error}</span>
-            <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B91C1C', fontWeight: 700 }}>
+            <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 700 }}>
               ✕
             </button>
           </div>
@@ -829,7 +830,7 @@ function BankReconciliationContent() {
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ display: 'flex', gap: '0.4rem', backgroundColor: '#F1F5F9', padding: '0.25rem', borderRadius: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem', backgroundColor: 'var(--bg-soft)', padding: '0.25rem', borderRadius: '0.5rem' }}>
               <button
                 onClick={() => setFilterTab('TO_RECONCILE')}
                 style={{
@@ -839,7 +840,7 @@ function BankReconciliationContent() {
                   borderRadius: '0.375rem',
                   border: 'none',
                   backgroundColor: filterTab === 'TO_RECONCILE' ? '#FFFFFF' : 'transparent',
-                  color: filterTab === 'TO_RECONCILE' ? '#0F172A' : '#64748B',
+                  color: filterTab === 'TO_RECONCILE' ? 'var(--text-main)' : 'var(--text-muted)',
                   boxShadow: filterTab === 'TO_RECONCILE' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                   cursor: 'pointer',
                 }}
@@ -855,7 +856,7 @@ function BankReconciliationContent() {
                   borderRadius: '0.375rem',
                   border: 'none',
                   backgroundColor: filterTab === 'HIGH_CONFIDENCE' ? '#FFFFFF' : 'transparent',
-                  color: filterTab === 'HIGH_CONFIDENCE' ? '#0F172A' : '#64748B',
+                  color: filterTab === 'HIGH_CONFIDENCE' ? 'var(--text-main)' : 'var(--text-muted)',
                   boxShadow: filterTab === 'HIGH_CONFIDENCE' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                   cursor: 'pointer',
                 }}
@@ -871,7 +872,7 @@ function BankReconciliationContent() {
                   borderRadius: '0.375rem',
                   border: 'none',
                   backgroundColor: filterTab === 'RECONCILED' ? '#FFFFFF' : 'transparent',
-                  color: filterTab === 'RECONCILED' ? '#0F172A' : '#64748B',
+                  color: filterTab === 'RECONCILED' ? 'var(--text-main)' : 'var(--text-muted)',
                   boxShadow: filterTab === 'RECONCILED' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                   cursor: 'pointer',
                 }}
@@ -887,7 +888,7 @@ function BankReconciliationContent() {
                   borderRadius: '0.375rem',
                   border: 'none',
                   backgroundColor: filterTab === 'ALL' ? '#FFFFFF' : 'transparent',
-                  color: filterTab === 'ALL' ? '#0F172A' : '#64748B',
+                  color: filterTab === 'ALL' ? 'var(--text-main)' : 'var(--text-muted)',
                   boxShadow: filterTab === 'ALL' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                   cursor: 'pointer',
                 }}
@@ -898,7 +899,7 @@ function BankReconciliationContent() {
 
             {/* Quick Search */}
             <div style={{ position: 'relative', width: '280px' }}>
-              <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+              <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="text"
                 placeholder="Search transactions, payee..."
@@ -907,11 +908,11 @@ function BankReconciliationContent() {
                 style={{
                   width: '100%',
                   padding: '0.45rem 0.75rem 0.45rem 2.25rem',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '0.5rem',
                   fontSize: '0.825rem',
                   backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
+                  color: 'var(--text-main)',
                 }}
               />
             </div>
@@ -926,21 +927,21 @@ function BankReconciliationContent() {
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: '0.75rem',
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--border-subtle)',
               padding: '4rem 2rem',
               textAlign: 'center',
-              color: '#64748B',
+              color: 'var(--text-muted)',
             }}
           >
-            <div style={{ display: 'inline-block', width: '32px', height: '32px', borderRadius: '50%', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
-            <div style={{ fontWeight: 600, color: '#0F172A' }}>Loading statement feed...</div>
+            <div style={{ display: 'inline-block', width: '32px', height: '32px', borderRadius: '50%', border: '3px solid var(--border-subtle)', borderTopColor: 'var(--primary)', animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
+            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Loading statement feed...</div>
           </div>
         ) : bankAccounts.length === 0 ? (
           <div
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: '0.75rem',
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--border-subtle)',
               padding: '4rem 2rem',
               textAlign: 'center',
               display: 'flex',
@@ -953,8 +954,8 @@ function BankReconciliationContent() {
                 width: '54px',
                 height: '54px',
                 borderRadius: '50%',
-                backgroundColor: '#EFF6FF',
-                color: '#2563EB',
+                backgroundColor: 'var(--info-bg)',
+                color: 'var(--primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -963,10 +964,10 @@ function BankReconciliationContent() {
             >
               <Landmark size={28} />
             </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
               No Bank Account Connected
             </h3>
-            <p style={{ color: '#64748B', maxWidth: '420px', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+            <p style={{ color: 'var(--text-muted)', maxWidth: '420px', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
               Connect a bank account in your Chart of Accounts to import statements and enable AI reconciliation.
             </p>
             <Link
@@ -976,7 +977,7 @@ function BankReconciliationContent() {
                 alignItems: 'center',
                 gap: '0.5rem',
                 padding: '0.65rem 1.25rem',
-                backgroundColor: '#2563EB',
+                backgroundColor: 'var(--primary)',
                 color: '#FFFFFF',
                 borderRadius: '0.5rem',
                 fontWeight: 600,
@@ -993,7 +994,7 @@ function BankReconciliationContent() {
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: '0.75rem',
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--border-subtle)',
               padding: '4rem 2rem',
               textAlign: 'center',
             }}
@@ -1003,8 +1004,8 @@ function BankReconciliationContent() {
                 width: '48px',
                 height: '48px',
                 borderRadius: '50%',
-                backgroundColor: '#ECFDF5',
-                color: '#10B981',
+                backgroundColor: 'var(--success-bg)',
+                color: 'var(--success-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1013,10 +1014,10 @@ function BankReconciliationContent() {
             >
               <CheckCircle2 size={24} />
             </div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
               {filterTab === 'RECONCILED' ? 'No reconciled items yet' : 'Everything is clear!'}
             </h3>
-            <p style={{ color: '#64748B', fontSize: '0.9rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               {filterTab === 'RECONCILED'
                 ? 'Reconcile statement lines from the "To Reconcile" tab.'
                 : 'All statement transactions matching this view have been processed.'}
@@ -1059,7 +1060,7 @@ function BankReconciliationContent() {
                   style={{
                     backgroundColor: '#FFFFFF',
                     borderRadius: '0.75rem',
-                    border: isConfirmed ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
+                    border: isConfirmed ? '1px solid var(--success-border)' : '1px solid var(--border-subtle)',
                     boxShadow: isConfirmed ? '0 1px 3px rgba(16, 185, 129, 0.08)' : '0 2px 6px rgba(0,0,0,0.03)',
                     padding: '1.25rem 1.5rem',
                     display: 'flex',
@@ -1077,9 +1078,9 @@ function BankReconciliationContent() {
                           width: '42px',
                           height: '42px',
                           borderRadius: '10px',
-                          backgroundColor: isIncome ? '#ECFDF5' : '#F8FAFC',
-                          border: isIncome ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
-                          color: isIncome ? '#059669' : '#0F172A',
+                          backgroundColor: isIncome ? 'var(--success-bg)' : 'var(--bg-app)',
+                          border: isIncome ? '1px solid var(--success-border)' : '1px solid var(--border-subtle)',
+                          color: isIncome ? 'var(--success-text)' : 'var(--text-main)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1088,12 +1089,12 @@ function BankReconciliationContent() {
                           fontSize: '0.9rem',
                         }}
                       >
-                        {isIncome ? <TrendingUp size={20} /> : <Building size={20} style={{ color: '#475569' }} />}
+                        {isIncome ? <TrendingUp size={20} /> : <Building size={20} style={{ color: 'var(--ink-2)' }} />}
                       </div>
 
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
-                          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748B' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
                             {new Date(line.transactionDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </span>
 
@@ -1102,8 +1103,8 @@ function BankReconciliationContent() {
                               style={{
                                 fontSize: '0.725rem',
                                 padding: '0.15rem 0.5rem',
-                                backgroundColor: '#F1F5F9',
-                                color: '#475569',
+                                backgroundColor: 'var(--bg-soft)',
+                                color: 'var(--ink-2)',
                                 borderRadius: '4px',
                                 fontFamily: 'monospace',
                               }}
@@ -1122,9 +1123,9 @@ function BankReconciliationContent() {
                               borderRadius: '999px',
                               fontSize: '0.725rem',
                               fontWeight: 700,
-                              backgroundColor: isConfirmed ? '#ECFDF5' : confidencePercent >= 90 ? '#F0FDF4' : '#EFF6FF',
-                              color: isConfirmed ? '#059669' : confidencePercent >= 90 ? '#15803D' : '#2563EB',
-                              border: isConfirmed ? '1px solid #A7F3D0' : confidencePercent >= 90 ? '1px solid #BBF7D0' : '1px solid #BFDBFE',
+                              backgroundColor: isConfirmed ? 'var(--success-bg)' : confidencePercent >= 90 ? 'var(--success-bg)' : 'var(--info-bg)',
+                              color: isConfirmed ? 'var(--success-text)' : confidencePercent >= 90 ? 'var(--success-text)' : 'var(--primary)',
+                              border: isConfirmed ? '1px solid var(--success-border)' : confidencePercent >= 90 ? '1px solid var(--success-border)' : '1px solid var(--info-border)',
                             }}
                             title={`Accuracy: ${confidencePercent}%\nValidated against double-entry balance and UK GAAP rules`}
                           >
@@ -1139,11 +1140,11 @@ function BankReconciliationContent() {
                           </div>
                         </div>
 
-                        <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0F172A' }}>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
                           {line.description}
                         </div>
                         {line.payee && line.payee !== line.description && (
-                          <div style={{ fontSize: '0.825rem', color: '#64748B', marginTop: '0.15rem' }}>
+                          <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                             Payee: {line.payee}
                           </div>
                         )}
@@ -1157,12 +1158,12 @@ function BankReconciliationContent() {
                           fontSize: '1.35rem',
                           fontWeight: 800,
                           letterSpacing: '-0.02em',
-                          color: isIncome ? '#059669' : '#0F172A',
+                          color: isIncome ? 'var(--success-text)' : 'var(--text-main)',
                         }}
                       >
                         {formattedAmount}
                       </div>
-                      <div style={{ fontSize: '0.725rem', color: '#64748B', fontWeight: 500 }}>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                         {isIncome ? 'Money In' : 'Money Out'}
                       </div>
                     </div>
@@ -1171,8 +1172,8 @@ function BankReconciliationContent() {
                   {/* MIDDLE ROW: AI Verified Reasoning Box */}
                   <div
                     style={{
-                      backgroundColor: isConfirmed ? '#F0FDF4' : '#F8FAFC',
-                      border: isConfirmed ? '1px solid #DCFCE7' : '1px solid #E2E8F0',
+                      backgroundColor: isConfirmed ? 'var(--success-bg)' : 'var(--bg-app)',
+                      border: isConfirmed ? '1px solid var(--success-bg)' : '1px solid var(--border-subtle)',
                       borderRadius: '0.5rem',
                       padding: '0.75rem 1rem',
                       display: 'flex',
@@ -1180,8 +1181,8 @@ function BankReconciliationContent() {
                       gap: '0.65rem',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', color: isConfirmed ? '#166534' : '#334155' }}>
-                      <ShieldCheck size={15} style={{ color: isConfirmed ? '#16A34A' : '#0284C7', flexShrink: 0 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', color: isConfirmed ? 'var(--success-text)' : 'var(--ink-2)' }}>
+                      <ShieldCheck size={15} style={{ color: isConfirmed ? 'var(--success-text)' : 'var(--primary)', flexShrink: 0 }} />
                       <span>
                         <strong>{confidencePercent >= 90 ? '⚡ Prediction Model + LLM Verified:' : '🤖 LLM Accounting Reasoner:'}</strong>{' '}
                         {line.aiReasoning || line.matchExplanation || (isIncome ? 'Matched to revenue nominal code based on client settlement pattern.' : 'Matched to operating expense category according to UK Chart of Accounts.')}
@@ -1192,12 +1193,12 @@ function BankReconciliationContent() {
                     {candidatePayment && (
                       <div
                         style={{
-                          backgroundColor: '#EFF6FF',
-                          border: '1px solid #BFDBFE',
+                          backgroundColor: 'var(--info-bg)',
+                          border: '1px solid var(--info-border)',
                           borderRadius: '0.375rem',
                           padding: '0.5rem 0.75rem',
                           fontSize: '0.8rem',
-                          color: '#1E40AF',
+                          color: 'var(--info-text)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
@@ -1205,13 +1206,13 @@ function BankReconciliationContent() {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                          <CheckCircle2 size={14} style={{ color: '#2563EB' }} />
+                          <CheckCircle2 size={14} style={{ color: 'var(--primary)' }} />
                           <span>
                             Exact ledger payment found: <strong>{candidatePayment.paymentNumber}</strong> ({candidatePayment.contact?.name || 'Contact'}) on{' '}
                             {new Date(candidatePayment.paymentDate).toLocaleDateString('en-GB')}.
                           </span>
                         </div>
-                        <span style={{ fontWeight: 700, fontSize: '0.75rem', color: '#1D4ED8' }}>100% PREDICTION MATCH</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--primary)' }}>100% PREDICTION MATCH</span>
                       </div>
                     )}
 
@@ -1226,8 +1227,8 @@ function BankReconciliationContent() {
                     >
                       {/* What / Nominal Category */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                          Category (What) <span style={{ color: '#10B8A7', fontWeight: 600 }}>• AI Auto-filled</span>
+                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                          Category (What) <span style={{ color: 'var(--action-text)', fontWeight: 600 }}>• AI Auto-filled</span>
                         </label>
                         <select
                           disabled={isConfirmed}
@@ -1237,11 +1238,11 @@ function BankReconciliationContent() {
                             width: '100%',
                             padding: '0.45rem 0.75rem',
                             borderRadius: '0.375rem',
-                            border: '1px solid #CBD5E1',
+                            border: '1px solid var(--border-strong)',
                             fontSize: '0.825rem',
                             fontWeight: 600,
-                            backgroundColor: isConfirmed ? '#F1F5F9' : '#FFFFFF',
-                            color: '#0F172A',
+                            backgroundColor: isConfirmed ? 'var(--bg-soft)' : '#FFFFFF',
+                            color: 'var(--text-main)',
                             cursor: isConfirmed ? 'not-allowed' : 'pointer',
                           }}
                         >
@@ -1256,8 +1257,8 @@ function BankReconciliationContent() {
 
                       {/* Who / Contact Vendor */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                          Contact / Payee (Who) <span style={{ color: '#10B8A7', fontWeight: 600 }}>• Auto-linked</span>
+                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                          Contact / Payee (Who) <span style={{ color: 'var(--action-text)', fontWeight: 600 }}>• Auto-linked</span>
                         </label>
                         <select
                           disabled={isConfirmed}
@@ -1267,11 +1268,11 @@ function BankReconciliationContent() {
                             width: '100%',
                             padding: '0.45rem 0.75rem',
                             borderRadius: '0.375rem',
-                            border: '1px solid #CBD5E1',
+                            border: '1px solid var(--border-strong)',
                             fontSize: '0.825rem',
                             fontWeight: 600,
-                            backgroundColor: isConfirmed ? '#F1F5F9' : '#FFFFFF',
-                            color: '#0F172A',
+                            backgroundColor: isConfirmed ? 'var(--bg-soft)' : '#FFFFFF',
+                            color: 'var(--text-main)',
                             cursor: isConfirmed ? 'not-allowed' : 'pointer',
                           }}
                         >
@@ -1286,7 +1287,7 @@ function BankReconciliationContent() {
 
                       {/* Tax Rate */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                           VAT / Tax Rate
                         </label>
                         <select
@@ -1297,10 +1298,10 @@ function BankReconciliationContent() {
                             width: '100%',
                             padding: '0.45rem 0.75rem',
                             borderRadius: '0.375rem',
-                            border: '1px solid #CBD5E1',
+                            border: '1px solid var(--border-strong)',
                             fontSize: '0.825rem',
-                            backgroundColor: isConfirmed ? '#F1F5F9' : '#FFFFFF',
-                            color: '#0F172A',
+                            backgroundColor: isConfirmed ? 'var(--bg-soft)' : '#FFFFFF',
+                            color: 'var(--text-main)',
                             cursor: isConfirmed ? 'not-allowed' : 'pointer',
                           }}
                         >
@@ -1316,7 +1317,7 @@ function BankReconciliationContent() {
                   {/* BOTTOM ROW: Action Buttons */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         Post target:{' '}
                         <strong>
                           {selectedNominal ? `${selectedNominal.code} - ${selectedNominal.name}` : 'Main Nominal'}
@@ -1332,13 +1333,13 @@ function BankReconciliationContent() {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '0.35rem',
-                              color: '#059669',
+                              color: 'var(--success-text)',
                               fontWeight: 700,
                               fontSize: '0.85rem',
-                              backgroundColor: '#ECFDF5',
+                              backgroundColor: 'var(--success-bg)',
                               padding: '0.45rem 0.85rem',
                               borderRadius: '0.375rem',
-                              border: '1px solid #A7F3D0',
+                              border: '1px solid var(--success-border)',
                             }}
                           >
                             <Check size={14} />
@@ -1353,11 +1354,11 @@ function BankReconciliationContent() {
                               gap: '0.35rem',
                               padding: '0.45rem 0.75rem',
                               backgroundColor: '#FFFFFF',
-                              border: '1px solid #E2E8F0',
+                              border: '1px solid var(--border-subtle)',
                               borderRadius: '0.375rem',
                               fontSize: '0.8rem',
                               fontWeight: 600,
-                              color: '#64748B',
+                              color: 'var(--text-muted)',
                               cursor: 'pointer',
                             }}
                           >
@@ -1374,13 +1375,13 @@ function BankReconciliationContent() {
                             alignItems: 'center',
                             gap: '0.5rem',
                             padding: '0.6rem 1.35rem',
-                            backgroundColor: hasLedgerMatch ? '#10B8A7' : '#041F46',
+                            backgroundColor: hasLedgerMatch ? 'var(--action)' : 'var(--nav-bg)',
                             backgroundImage: hasLedgerMatch
-                              ? 'linear-gradient(135deg, #10B8A7 0%, #18D3BE 100%)'
-                              : 'linear-gradient(135deg, #041F46 0%, #082E64 100%)',
+                              ? 'linear-gradient(135deg, var(--action) 0%, var(--action) 100%)'
+                              : 'linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg) 100%)',
                             border: 'none',
                             borderRadius: '0.5rem',
-                            color: hasLedgerMatch ? '#041F46' : '#FFFFFF',
+                            color: hasLedgerMatch ? 'var(--text-main)' : '#FFFFFF',
                             fontSize: '0.875rem',
                             fontWeight: 700,
                             boxShadow: '0 2px 8px rgba(4, 31, 70, 0.15)',
@@ -1422,6 +1423,7 @@ function BankReconciliationContent() {
           bankAccountId={selectedAccountId}
         />
       </div>
+      </div>
     </AppShell>
   );
 }
@@ -1431,8 +1433,10 @@ export default function BankReconciliationPage() {
     <Suspense
       fallback={
         <AppShell>
-          <div style={{ padding: '4rem', textAlign: 'center', color: '#64748B' }}>
+          <div className="bl-legacy">
+          <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             Loading Blynt Smart Reconciliation...
+          </div>
           </div>
         </AppShell>
       }

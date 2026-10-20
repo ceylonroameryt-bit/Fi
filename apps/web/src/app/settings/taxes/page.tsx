@@ -81,22 +81,23 @@ export default function TaxSettingsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header" style={{ marginBottom: '1.25rem' }}>
         <h1 style={{ margin: 0 }}>Taxes</h1>
-        <p style={{ margin: '0.25rem 0 0', color: '#64748B' }}>Your VAT scheme decides how VAT returns are worked out. Changes apply from a date and never alter earlier returns.</p>
+        <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)' }}>Your VAT scheme decides how VAT returns are worked out. Changes apply from a date and never alter earlier returns.</p>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {saved && <div className="alert alert-success">VAT scheme saved.</div>}
 
       <div className="card" style={{ padding: '1rem', marginBottom: '1rem', maxWidth: 640 }}>
-        <div style={{ fontSize: '0.8rem', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Current scheme</div>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Current scheme</div>
         {current ? (
           <div style={{ marginTop: 4 }}>
             <strong>{LABELS[current.scheme]}</strong>
             {current.flatRatePercent && ` at ${current.flatRatePercent}%${current.limitedCostTrader ? ' (limited cost trader)' : ''}`}
-            {current.startDate ? <span style={{ color: '#64748B' }}> since {current.startDate}</span> : <span style={{ color: '#64748B' }}> (default: no scheme recorded)</span>}
-            <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#64748B' }}>{HELP[current.scheme]}</p>
+            {current.startDate ? <span style={{ color: 'var(--text-muted)' }}> since {current.startDate}</span> : <span style={{ color: 'var(--text-muted)' }}> (default: no scheme recorded)</span>}
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{HELP[current.scheme]}</p>
           </div>
         ) : (
           <p>Loading…</p>
@@ -115,7 +116,7 @@ export default function TaxSettingsPage() {
             ))}
           </select>
         </label>
-        <span style={{ fontSize: '0.85rem', color: '#64748B' }}>{HELP[form.scheme]}</span>
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{HELP[form.scheme]}</span>
         <label className="form-label">
           Applies from
           <input className="form-input" type="date" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
@@ -160,7 +161,7 @@ export default function TaxSettingsPage() {
           <tbody>
             {history.length === 0 ? (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: '#64748B', padding: '1rem' }}>
+                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1rem' }}>
                   No scheme recorded: treated as standard.
                 </td>
               </tr>
@@ -175,6 +176,7 @@ export default function TaxSettingsPage() {
             )}
           </tbody>
         </table>
+      </div>
       </div>
     </AppShell>
   );

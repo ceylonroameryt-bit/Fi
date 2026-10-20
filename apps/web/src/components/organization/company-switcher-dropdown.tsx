@@ -114,12 +114,12 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
             alignItems: 'center',
             gap: '0.5rem',
             padding: '0.42rem 0.85rem',
-            backgroundColor: isOpen ? '#F1F5F9' : '#FFFFFF',
-            border: isOpen ? '1px solid #94A3B8' : '1px solid #E2E8F0',
+            backgroundColor: isOpen ? 'var(--bg-soft)' : '#FFFFFF',
+            border: isOpen ? '1px solid var(--text-muted)' : '1px solid var(--border-subtle)',
             borderRadius: '9999px',
             fontSize: '0.825rem',
             fontWeight: 600,
-            color: '#0F172A',
+            color: 'var(--text-main)',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
             boxShadow: isOpen ? '0 0 0 3px rgba(14, 165, 233, 0.15)' : '0 1px 2px rgba(0,0,0,0.04)',
@@ -131,8 +131,8 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
               width: '22px',
               height: '22px',
               borderRadius: '50%',
-              backgroundColor: '#EFF6FF',
-              color: '#2563EB',
+              backgroundColor: 'var(--info-bg)',
+              color: 'var(--primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -161,11 +161,11 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
               style={{
                 fontSize: '0.675rem',
                 fontWeight: 700,
-                color: '#2563EB',
-                backgroundColor: '#EFF6FF',
+                color: 'var(--primary)',
+                backgroundColor: 'var(--info-bg)',
                 padding: '0.1rem 0.45rem',
                 borderRadius: '9999px',
-                border: '1px solid #DBEAFE',
+                border: '1px solid var(--info-border)',
               }}
             >
               {companyCount}
@@ -175,7 +175,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
           <ChevronDown
             size={14}
             style={{
-              color: '#64748B',
+              color: 'var(--text-muted)',
               transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.2s ease',
             }}
@@ -204,7 +204,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
             <div
               style={{
                 padding: '0.85rem 1rem',
-                background: 'linear-gradient(135deg, #041F46 0%, #082E64 100%)',
+                background: 'linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg) 100%)',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
@@ -212,7 +212,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Building2 size={16} color="#FF705B" />
+                <Building2 size={16} color="#B8432F" />
                 <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#FFFFFF' }}>
                   Your Companies
                 </span>
@@ -241,7 +241,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                   gap: '0.3rem',
                   fontSize: '0.725rem',
                   fontWeight: 700,
-                  backgroundColor: '#FF705B',
+                  backgroundColor: 'var(--action)',
                   color: '#FFFFFF',
                   border: 'none',
                   padding: '0.3rem 0.65rem',
@@ -258,19 +258,19 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
 
             {/* Search Filter (shown if user has 2 or more companies) */}
             {companyCount > 1 && (
-              <div style={{ padding: '0.65rem 0.85rem', borderBottom: '1px solid #F1F5F9', backgroundColor: '#F8FAFC' }}>
+              <div style={{ padding: '0.65rem 0.85rem', borderBottom: '1px solid var(--bg-soft)', backgroundColor: 'var(--bg-app)' }}>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.45rem',
                     backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '6px',
                     padding: '0.35rem 0.65rem',
                   }}
                 >
-                  <Search size={14} style={{ color: '#94A3B8' }} />
+                  <Search size={14} style={{ color: 'var(--text-muted)' }} />
                   <input
                     ref={searchInputRef}
                     type="text"
@@ -281,7 +281,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                       border: 'none',
                       outline: 'none',
                       fontSize: '0.775rem',
-                      color: '#0F172A',
+                      color: 'var(--text-main)',
                       width: '100%',
                       backgroundColor: 'transparent',
                     }}
@@ -293,7 +293,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#94A3B8',
+                        color: 'var(--text-muted)',
                         cursor: 'pointer',
                         fontSize: '0.75rem',
                         padding: 0,
@@ -309,7 +309,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
             {/* Companies List */}
             <div style={{ maxHeight: '280px', overflowY: 'auto', padding: '0.45rem' }}>
               {filteredOrgs.length === 0 ? (
-                <div style={{ padding: '1.5rem', textAlign: 'center', color: '#64748B', fontSize: '0.8rem' }}>
+                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                   No companies found matching &ldquo;{searchQuery}&rdquo;
                 </div>
               ) : (
@@ -330,13 +330,13 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                         padding: '0.65rem 0.75rem',
                         borderRadius: '8px',
                         cursor: isSwitching ? 'wait' : 'pointer',
-                        backgroundColor: isActive ? '#F0FDF4' : 'transparent',
-                        border: isActive ? '1px solid #BBF7D0' : '1px solid transparent',
+                        backgroundColor: isActive ? 'var(--success-bg)' : 'transparent',
+                        border: isActive ? '1px solid var(--success-border)' : '1px solid transparent',
                         transition: 'all 0.15s ease',
                         marginBottom: '0.25rem',
                       }}
                       onMouseEnter={(e) => {
-                        if (!isActive) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                        if (!isActive) e.currentTarget.style.backgroundColor = 'var(--bg-app)';
                       }}
                       onMouseLeave={(e) => {
                         if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
@@ -349,15 +349,15 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                             width: '34px',
                             height: '34px',
                             borderRadius: '8px',
-                            backgroundColor: isActive ? '#DCFCE7' : '#F1F5F9',
-                            color: isActive ? '#15803D' : '#334155',
+                            backgroundColor: isActive ? 'var(--success-bg)' : 'var(--bg-soft)',
+                            color: isActive ? 'var(--success-text)' : 'var(--ink-2)',
                             fontSize: '0.75rem',
                             fontWeight: 800,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
-                            border: isActive ? '1px solid #86EFAC' : '1px solid #E2E8F0',
+                            border: isActive ? '1px solid var(--success-border)' : '1px solid var(--border-subtle)',
                           }}
                         >
                           {initials}
@@ -369,7 +369,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                             style={{
                               fontSize: '0.825rem',
                               fontWeight: 700,
-                              color: '#0F172A',
+                              color: 'var(--text-main)',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
@@ -385,14 +385,14 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                               alignItems: 'center',
                               gap: '0.35rem',
                               fontSize: '0.7rem',
-                              color: '#64748B',
+                              color: 'var(--text-muted)',
                               marginTop: '0.15rem',
                             }}
                           >
                             <span>{flag}</span>
                             <span>{m.organization.baseCurrency || 'GBP'}</span>
                             <span>•</span>
-                            <span style={{ fontWeight: 600, color: '#475569' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--ink-2)' }}>
                               {m.role?.name || 'Owner'}
                             </span>
                           </div>
@@ -409,8 +409,8 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                               gap: '0.25rem',
                               fontSize: '0.675rem',
                               fontWeight: 700,
-                              color: '#166534',
-                              backgroundColor: '#DCFCE7',
+                              color: 'var(--success-text)',
+                              backgroundColor: 'var(--success-bg)',
                               padding: '0.2rem 0.5rem',
                               borderRadius: '9999px',
                             }}
@@ -419,12 +419,12 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                             Active
                           </span>
                         ) : isSwitching ? (
-                          <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Switching...</span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Switching...</span>
                         ) : (
                           <span
                             style={{
                               fontSize: '0.7rem',
-                              color: '#94A3B8',
+                              color: 'var(--text-muted)',
                               fontWeight: 600,
                               opacity: 0.7,
                             }}
@@ -443,8 +443,8 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
             <div
               style={{
                 padding: '0.65rem 0.85rem',
-                borderTop: '1px solid #E2E8F0',
-                backgroundColor: '#F8FAFC',
+                borderTop: '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-app)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -459,7 +459,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                   gap: '0.35rem',
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  color: '#2563EB',
+                  color: 'var(--primary)',
                   textDecoration: 'none',
                 }}
               >
@@ -481,7 +481,7 @@ export function CompanySwitcherDropdown({ className }: CompanySwitcherDropdownPr
                   border: 'none',
                   fontSize: '0.75rem',
                   fontWeight: 700,
-                  color: '#FF705B',
+                  color: 'var(--action-text)',
                   cursor: 'pointer',
                 }}
               >

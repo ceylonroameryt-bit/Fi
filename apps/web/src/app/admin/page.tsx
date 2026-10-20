@@ -12,6 +12,7 @@ import { OrganisationTable, type AdminOrg } from '@/components/admin/Organisatio
 import { UserTable, type AdminUser } from '@/components/admin/UserTable';
 import { AuditTable, type AuditLogItem } from '@/components/admin/AuditTable';
 import { SystemDiagnostics } from '@/components/admin/SystemDiagnostics';
+import { confirmAction } from '@/lib/dialog-bus';
 
 export default function AdminPortalPage() {
   const { user, switchOrg, refreshOrgs } = useAuth();
@@ -206,7 +207,7 @@ export default function AdminPortalPage() {
       ? `Promote ${u.email} to Platform Super Admin? They will gain unrestricted access to all tenants and system data.`
       : `Revoke Super Admin privileges from ${u.email}?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    if (!await confirmAction(confirmMsg)) return;
 
     try {
       await apiRequest(`/admin/users/${u.id}/super-admin`, {
@@ -243,11 +244,12 @@ export default function AdminPortalPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ maxWidth: '1380px', margin: '0 auto', paddingBottom: '3rem' }}>
         {/* Top Header Banner */}
         <div
           style={{
-            backgroundColor: '#1E293B',
+            backgroundColor: 'var(--primary)',
             color: '#FFFFFF',
             borderRadius: '12px',
             padding: '1.5rem 2rem',
@@ -266,8 +268,8 @@ export default function AdminPortalPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
               <span
                 style={{
-                  backgroundColor: '#F59E0B',
-                  color: '#78350F',
+                  backgroundColor: 'var(--warning)',
+                  color: 'var(--warning-text)',
                   fontSize: '0.7rem',
                   fontWeight: 800,
                   letterSpacing: '0.08em',
@@ -282,14 +284,14 @@ export default function AdminPortalPage() {
                 <Shield size={12} />
                 Platform Control Center
               </span>
-              <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>
-                Signed in as <strong style={{ color: '#F1F5F9' }}>{user?.email}</strong> (Super Admin)
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Signed in as <strong style={{ color: 'var(--bg-soft)' }}>{user?.email}</strong> (Super Admin)
               </span>
             </div>
             <h1 style={{ fontSize: '1.65rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
               Blynt Platform Governance
             </h1>
-            <p style={{ margin: '0.35rem 0 0 0', color: '#94A3B8', fontSize: '0.875rem' }}>
+            <p style={{ margin: '0.35rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
               Multi-tenant surveillance, global identity management, and cross-organization audit trail
             </p>
           </div>
@@ -299,9 +301,9 @@ export default function AdminPortalPage() {
               onClick={handleRefresh}
               disabled={refreshing || loading}
               style={{
-                backgroundColor: '#334155',
-                color: '#F8FAFC',
-                border: '1px solid #475569',
+                backgroundColor: 'var(--ink-2)',
+                color: 'var(--bg-app)',
+                border: '1px solid var(--ink-2)',
                 borderRadius: '6px',
                 padding: '0.5rem 1rem',
                 fontSize: '0.85rem',
@@ -323,9 +325,9 @@ export default function AdminPortalPage() {
         {error && (
           <div
             style={{
-              backgroundColor: '#FEF2F2',
-              color: '#991B1B',
-              border: '1px solid #FECACA',
+              backgroundColor: 'var(--danger-bg)',
+              color: 'var(--danger-text)',
+              border: '1px solid var(--danger-border)',
               padding: '0.85rem 1.25rem',
               borderRadius: '8px',
               marginBottom: '1.25rem',
@@ -336,7 +338,7 @@ export default function AdminPortalPage() {
             }}
           >
             <span>{error}</span>
-            <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#991B1B', cursor: 'pointer', fontWeight: 700 }}>
+            <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: 'var(--danger-text)', cursor: 'pointer', fontWeight: 700 }}>
               &times;
             </button>
           </div>
@@ -345,9 +347,9 @@ export default function AdminPortalPage() {
         {success && (
           <div
             style={{
-              backgroundColor: '#ECFDF5',
-              color: '#065F46',
-              border: '1px solid #A7F3D0',
+              backgroundColor: 'var(--success-bg)',
+              color: 'var(--success-text)',
+              border: '1px solid var(--success-border)',
               padding: '0.85rem 1.25rem',
               borderRadius: '8px',
               marginBottom: '1.25rem',
@@ -363,7 +365,7 @@ export default function AdminPortalPage() {
           style={{
             display: 'flex',
             gap: '0.5rem',
-            borderBottom: '1px solid #CBD5E1',
+            borderBottom: '1px solid var(--border-strong)',
             marginBottom: '1.5rem',
             overflowX: 'auto',
           }}
@@ -381,8 +383,8 @@ export default function AdminPortalPage() {
                   padding: '0.75rem 1.25rem',
                   fontSize: '0.9rem',
                   fontWeight: isActive ? 600 : 500,
-                  color: isActive ? '#1E293B' : '#64748B',
-                  borderBottom: isActive ? '2px solid #2563EB' : '2px solid transparent',
+                  color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
+                  borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   display: 'flex',
@@ -454,6 +456,7 @@ export default function AdminPortalPage() {
         {activeTab === 'diagnostics' && (
           <SystemDiagnostics stats={stats} />
         )}
+      </div>
       </div>
     </AppShell>
   );

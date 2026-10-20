@@ -151,7 +151,7 @@ export function DashboardCustomizerModal({
           flexDirection: 'column',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           overflow: 'hidden',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -159,7 +159,7 @@ export function DashboardCustomizerModal({
         <div
           style={{
             padding: '1.25rem 1.75rem',
-            background: 'linear-gradient(135deg, #041F46 0%, #082E64 100%)',
+            background: 'linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg) 100%)',
             color: '#FFFFFF',
             display: 'flex',
             justifyContent: 'space-between',
@@ -173,7 +173,7 @@ export function DashboardCustomizerModal({
                 height: '36px',
                 borderRadius: '8px',
                 backgroundColor: 'rgba(24, 211, 190, 0.2)',
-                color: '#18D3BE',
+                color: 'var(--action-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -185,7 +185,7 @@ export function DashboardCustomizerModal({
               <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#FFFFFF' }}>
                 Customize Your Dashboard
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: '0.15rem 0 0 0' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
                 Tick or untick cards to customize what displays on your finance home screen.
               </p>
             </div>
@@ -195,7 +195,7 @@ export function DashboardCustomizerModal({
             style={{
               background: 'none',
               border: 'none',
-              color: '#94A3B8',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               padding: '0.25rem',
               display: 'flex',
@@ -212,8 +212,8 @@ export function DashboardCustomizerModal({
         <div
           style={{
             padding: '0.75rem 1.75rem',
-            backgroundColor: '#F8FAFC',
-            borderBottom: '1px solid #E2E8F0',
+            backgroundColor: 'var(--bg-app)',
+            borderBottom: '1px solid var(--border-subtle)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -221,21 +221,21 @@ export function DashboardCustomizerModal({
             gap: '0.5rem',
           }}
         >
-          <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
-            Active Widgets: <strong style={{ color: '#0F172A' }}>{activeCount}</strong> of {totalWidgets}
+          <div style={{ fontSize: '0.8rem', color: 'var(--ink-2)', fontWeight: 600 }}>
+            Active Widgets: <strong style={{ color: 'var(--text-main)' }}>{activeCount}</strong> of {totalWidgets}
           </div>
 
           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', color: '#64748B', alignSelf: 'center', marginRight: '0.25rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: '0.25rem' }}>
               Presets:
             </span>
             <button
               onClick={() => applyPreset('ALL')}
               style={{
                 padding: '0.25rem 0.65rem',
-                backgroundColor: activeCount === totalWidgets ? '#041F46' : '#FFFFFF',
-                color: activeCount === totalWidgets ? '#FFFFFF' : '#334155',
-                border: '1px solid #CBD5E1',
+                backgroundColor: activeCount === totalWidgets ? 'var(--nav-bg)' : '#FFFFFF',
+                color: activeCount === totalWidgets ? '#FFFFFF' : 'var(--ink-2)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.375rem',
                 fontSize: '0.75rem',
                 fontWeight: 600,
@@ -249,8 +249,8 @@ export function DashboardCustomizerModal({
               style={{
                 padding: '0.25rem 0.65rem',
                 backgroundColor: '#FFFFFF',
-                color: '#334155',
-                border: '1px solid #CBD5E1',
+                color: 'var(--ink-2)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.375rem',
                 fontSize: '0.75rem',
                 fontWeight: 600,
@@ -264,8 +264,8 @@ export function DashboardCustomizerModal({
               style={{
                 padding: '0.25rem 0.65rem',
                 backgroundColor: '#FFFFFF',
-                color: '#334155',
-                border: '1px solid #CBD5E1',
+                color: 'var(--ink-2)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.375rem',
                 fontSize: '0.75rem',
                 fontWeight: 600,
@@ -279,8 +279,8 @@ export function DashboardCustomizerModal({
               style={{
                 padding: '0.25rem 0.65rem',
                 backgroundColor: '#FFFFFF',
-                color: '#334155',
-                border: '1px solid #CBD5E1',
+                color: 'var(--ink-2)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.375rem',
                 fontSize: '0.75rem',
                 fontWeight: 600,
@@ -304,14 +304,14 @@ export function DashboardCustomizerModal({
         >
           {/* Section 1: Header & Quick Actions */}
           <div>
-            <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
+            <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
               Header Actions
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.65rem' }}>
               <ItemToggle
                 label="Quick Action Buttons"
                 desc="New Invoice, Record Payment, New Bill, New Expense, Add Contact, New Journal"
-                icon={<Zap size={15} color="#2563EB" />}
+                icon={<Zap size={15} color="#102654" />}
                 checked={preferences.quickActions}
                 onToggle={() => toggleKey('quickActions')}
               />
@@ -320,35 +320,35 @@ export function DashboardCustomizerModal({
 
           {/* Section 2: Six Core KPI Metric Cards */}
           <div>
-            <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
+            <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
               Financial KPI Cards
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.65rem' }}>
               <ItemToggle
                 label="Cash Balance"
                 desc="Total cash across all corporate bank accounts"
-                icon={<Landmark size={15} color="#2563EB" />}
+                icon={<Landmark size={15} color="#102654" />}
                 checked={preferences.kpiCash}
                 onToggle={() => toggleKey('kpiCash')}
               />
               <ItemToggle
                 label="Income"
                 desc="Revenue generated this month with month-over-month trend"
-                icon={<TrendingUp size={15} color="#10B981" />}
+                icon={<TrendingUp size={15} color="#0B6B52" />}
                 checked={preferences.kpiIncome}
                 onToggle={() => toggleKey('kpiIncome')}
               />
               <ItemToggle
                 label="Expenses"
                 desc="Operating expenditures and overheads with trend"
-                icon={<TrendingDown size={15} color="#EF4444" />}
+                icon={<TrendingDown size={15} color="#B42318" />}
                 checked={preferences.kpiExpenses}
                 onToggle={() => toggleKey('kpiExpenses')}
               />
               <ItemToggle
                 label="Net Profit"
                 desc="Net margin (Income minus Expenses) for the period"
-                icon={<BarChart3 size={15} color="#6366F1" />}
+                icon={<BarChart3 size={15} color="#102654" />}
                 checked={preferences.kpiProfit}
                 onToggle={() => toggleKey('kpiProfit')}
               />
@@ -362,7 +362,7 @@ export function DashboardCustomizerModal({
               <ItemToggle
                 label="Bills Due"
                 desc="Supplier liabilities due for payment"
-                icon={<Calendar size={15} color="#EF4444" />}
+                icon={<Calendar size={15} color="#B42318" />}
                 checked={preferences.kpiBills}
                 onToggle={() => toggleKey('kpiBills')}
               />
@@ -371,21 +371,21 @@ export function DashboardCustomizerModal({
 
           {/* Section 3: Dual Charts */}
           <div>
-            <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
+            <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
               Analytics & Visualizations
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.65rem' }}>
               <ItemToggle
                 label="Cash Flow (12 Months)"
                 desc="Interactive monthly bar & net cash trend spline"
-                icon={<BarChart3 size={15} color="#0EA5E9" />}
+                icon={<BarChart3 size={15} color="#102654" />}
                 checked={preferences.chartCashFlow}
                 onToggle={() => toggleKey('chartCashFlow')}
               />
               <ItemToggle
                 label="Income vs Expenses (Donut)"
                 desc="Financial year breakdown with percentage distribution"
-                icon={<PieChart size={15} color="#10B981" />}
+                icon={<PieChart size={15} color="#0B6B52" />}
                 checked={preferences.chartIncomeExpenses}
                 onToggle={() => toggleKey('chartIncomeExpenses')}
               />
@@ -394,14 +394,14 @@ export function DashboardCustomizerModal({
 
           {/* Section 4: Data Tables */}
           <div>
-            <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
+            <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
               Activity Tables & Feeds
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.65rem' }}>
               <ItemToggle
                 label="Recent Transactions"
                 desc="Latest posted general ledger bank activities"
-                icon={<ArrowRightLeft size={15} color="#3B82F6" />}
+                icon={<ArrowRightLeft size={15} color="#102654" />}
                 checked={preferences.tableTransactions}
                 onToggle={() => toggleKey('tableTransactions')}
               />
@@ -415,7 +415,7 @@ export function DashboardCustomizerModal({
               <ItemToggle
                 label="Bills Due Table"
                 desc="Supplier liabilities and impending payment due dates"
-                icon={<Calendar size={15} color="#EF4444" />}
+                icon={<Calendar size={15} color="#B42318" />}
                 checked={preferences.tableBills}
                 onToggle={() => toggleKey('tableBills')}
               />
@@ -427,8 +427,8 @@ export function DashboardCustomizerModal({
         <div
           style={{
             padding: '1rem 1.75rem',
-            backgroundColor: '#F8FAFC',
-            borderTop: '1px solid #E2E8F0',
+            backgroundColor: 'var(--bg-app)',
+            borderTop: '1px solid var(--border-subtle)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -440,7 +440,7 @@ export function DashboardCustomizerModal({
             style={{
               background: 'none',
               border: 'none',
-              color: '#64748B',
+              color: 'var(--text-muted)',
               fontSize: '0.825rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -458,7 +458,7 @@ export function DashboardCustomizerModal({
             onClick={onClose}
             style={{
               padding: '0.55rem 1.5rem',
-              backgroundColor: '#041F46',
+              backgroundColor: 'var(--nav-bg)',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '0.5rem',
@@ -498,8 +498,8 @@ function ItemToggle({
         gap: '0.75rem',
         padding: '0.85rem',
         borderRadius: '0.625rem',
-        border: checked ? '1.5px solid #0EA5E9' : '1px solid #E2E8F0',
-        backgroundColor: checked ? '#F0F9FF' : '#FFFFFF',
+        border: checked ? '1.5px solid var(--primary)' : '1px solid var(--border-subtle)',
+        backgroundColor: checked ? 'var(--info-bg)' : '#FFFFFF',
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         userSelect: 'none',
@@ -511,8 +511,8 @@ function ItemToggle({
           width: '20px',
           height: '20px',
           borderRadius: '5px',
-          border: checked ? '2px solid #0EA5E9' : '2px solid #CBD5E1',
-          backgroundColor: checked ? '#0EA5E9' : '#FFFFFF',
+          border: checked ? '2px solid var(--primary)' : '2px solid var(--border-strong)',
+          backgroundColor: checked ? 'var(--primary)' : '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -527,9 +527,9 @@ function ItemToggle({
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.15rem' }}>
           {icon}
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>{label}</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{label}</span>
         </div>
-        <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, lineHeight: 1.35 }}>{desc}</p>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.35 }}>{desc}</p>
       </div>
     </div>
   );

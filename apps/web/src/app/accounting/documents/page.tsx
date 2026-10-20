@@ -20,6 +20,7 @@ import {
   X,
   FileCheck,
 } from 'lucide-react';
+import { askReason } from '@/lib/dialog-bus';
 
 interface AiDocItem {
   id: string;
@@ -217,7 +218,7 @@ export default function DocumentIntelligencePage() {
 
   const handleReject = async () => {
     if (!selectedDoc) return;
-    const reason = prompt('Please specify rejection reason:');
+    const reason = await askReason('Please specify rejection reason:');
     if (!reason) return;
     try {
       setActionLoading(true);
@@ -244,6 +245,7 @@ export default function DocumentIntelligencePage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -255,8 +257,8 @@ export default function DocumentIntelligencePage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                backgroundColor: '#EEF2FF',
-                color: '#4F46E5',
+                backgroundColor: 'var(--info-bg)',
+                color: 'var(--primary)',
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 padding: '0.2rem 0.55rem',
@@ -269,7 +271,7 @@ export default function DocumentIntelligencePage() {
           </div>
           <p
             className="page-subtitle"
-            style={{ margin: '0.25rem 0 0 0', color: '#64748B', fontSize: '0.875rem' }}
+            style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}
           >
             Background accounting classification engine. Deterministic double-entry validation with human
             review oversight.
@@ -299,9 +301,9 @@ export default function DocumentIntelligencePage() {
         <div
           style={{
             padding: '0.85rem 1.25rem',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FCA5A5',
-            color: '#991B1B',
+            backgroundColor: 'var(--danger-bg)',
+            border: '1px solid var(--danger-border)',
+            color: 'var(--danger-text)',
             borderRadius: '8px',
             marginBottom: '1rem',
             fontSize: '0.875rem',
@@ -324,9 +326,9 @@ export default function DocumentIntelligencePage() {
         <div
           style={{
             padding: '0.85rem 1.25rem',
-            backgroundColor: '#F0FDF4',
-            border: '1px solid #86EFAC',
-            color: '#166534',
+            backgroundColor: 'var(--success-bg)',
+            border: '1px solid var(--success-border)',
+            color: 'var(--success-text)',
             borderRadius: '8px',
             marginBottom: '1rem',
             fontSize: '0.875rem',
@@ -351,7 +353,7 @@ export default function DocumentIntelligencePage() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            border: '1px solid #E2E8F0',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '10px',
             overflow: 'hidden',
             display: 'flex',
@@ -361,26 +363,26 @@ export default function DocumentIntelligencePage() {
           <div
             style={{
               padding: '0.85rem 1rem',
-              borderBottom: '1px solid #E2E8F0',
+              borderBottom: '1px solid var(--border-subtle)',
               fontWeight: 600,
               fontSize: '0.85rem',
-              color: '#334155',
-              backgroundColor: '#F8FAFC',
+              color: 'var(--ink-2)',
+              backgroundColor: 'var(--bg-app)',
               display: 'flex',
               justifyContent: 'space-between',
             }}
           >
             <span>INGESTED DOCUMENTS</span>
-            <span style={{ color: '#64748B' }}>{documents.length}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{documents.length}</span>
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {loading && documents.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 Loading documents...
               </div>
             ) : documents.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 No documents found. Upload a test invoice above to trigger the pipeline.
               </div>
             ) : (
@@ -392,10 +394,10 @@ export default function DocumentIntelligencePage() {
                     onClick={() => loadDocDetails(d.id)}
                     style={{
                       padding: '0.85rem 1rem',
-                      borderBottom: '1px solid #F1F5F9',
+                      borderBottom: '1px solid var(--bg-soft)',
                       cursor: 'pointer',
-                      backgroundColor: isSelected ? '#F4F7FC' : '#FFFFFF',
-                      borderLeft: isSelected ? '3px solid #2563EB' : '3px solid transparent',
+                      backgroundColor: isSelected ? 'var(--bg-app)' : '#FFFFFF',
+                      borderLeft: isSelected ? '3px solid var(--primary)' : '3px solid transparent',
                       transition: 'background-color 0.15s ease',
                     }}
                   >
@@ -404,7 +406,7 @@ export default function DocumentIntelligencePage() {
                         style={{
                           fontWeight: 600,
                           fontSize: '0.85rem',
-                          color: '#0F172A',
+                          color: 'var(--text-main)',
                           textOverflow: 'ellipsis',
                           overflow: 'hidden',
                           whiteSpace: 'nowrap',
@@ -421,16 +423,16 @@ export default function DocumentIntelligencePage() {
                           fontWeight: 600,
                           backgroundColor:
                             d.direction === 'PURCHASE'
-                              ? '#FEF3C7'
+                              ? 'var(--warning-bg)'
                               : d.direction === 'SALE'
-                                ? '#DCFCE7'
-                                : '#F1F5F9',
+                                ? 'var(--success-bg)'
+                                : 'var(--bg-soft)',
                           color:
                             d.direction === 'PURCHASE'
-                              ? '#92400E'
+                              ? 'var(--warning-text)'
                               : d.direction === 'SALE'
-                                ? '#166534'
-                                : '#64748B',
+                                ? 'var(--success-text)'
+                                : 'var(--text-muted)',
                         }}
                       >
                         {d.direction}
@@ -443,7 +445,7 @@ export default function DocumentIntelligencePage() {
                         justifyContent: 'space-between',
                         marginTop: '0.4rem',
                         fontSize: '0.75rem',
-                        color: '#64748B',
+                        color: 'var(--text-muted)',
                       }}
                     >
                       <span>{d.documentType.replace('_', ' ')}</span>
@@ -451,10 +453,10 @@ export default function DocumentIntelligencePage() {
                         style={{
                           color:
                             d.status === 'DRAFT_CREATED'
-                              ? '#16A34A'
+                              ? 'var(--success)'
                               : d.status === 'AWAITING_REVIEW'
-                                ? '#D97706'
-                                : '#475569',
+                                ? 'var(--warning)'
+                                : 'var(--ink-2)',
                           fontWeight: 500,
                         }}
                       >
@@ -472,7 +474,7 @@ export default function DocumentIntelligencePage() {
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            border: '1px solid #E2E8F0',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '10px',
             padding: '1.5rem',
             display: 'flex',
@@ -481,11 +483,11 @@ export default function DocumentIntelligencePage() {
           }}
         >
           {detailLoading ? (
-            <div style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>
+            <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
               Loading document inspection...
             </div>
           ) : !selectedDoc ? (
-            <div style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>
+            <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
               Select a document from the stream on the left to review intelligence suggestions.
             </div>
           ) : (
@@ -496,13 +498,13 @@ export default function DocumentIntelligencePage() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
-                  borderBottom: '1px solid #F1F5F9',
+                  borderBottom: '1px solid var(--bg-soft)',
                   paddingBottom: '1rem',
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
                       {extraction?.invoiceNumber || selectedDoc.fileName}
                     </h2>
                     <span
@@ -511,8 +513,8 @@ export default function DocumentIntelligencePage() {
                         borderRadius: '6px',
                         fontSize: '0.75rem',
                         fontWeight: 700,
-                        backgroundColor: selectedDoc.direction === 'PURCHASE' ? '#FEF3C7' : '#DCFCE7',
-                        color: selectedDoc.direction === 'PURCHASE' ? '#92400E' : '#166534',
+                        backgroundColor: selectedDoc.direction === 'PURCHASE' ? 'var(--warning-bg)' : 'var(--success-bg)',
+                        color: selectedDoc.direction === 'PURCHASE' ? 'var(--warning-text)' : 'var(--success-text)',
                       }}
                     >
                       DIRECTION: {selectedDoc.direction}
@@ -525,16 +527,16 @@ export default function DocumentIntelligencePage() {
                         fontWeight: 600,
                         backgroundColor:
                           selectedDoc.confidenceLevel === 'HIGH'
-                            ? '#DCFCE7'
+                            ? 'var(--success-bg)'
                             : selectedDoc.confidenceLevel === 'MEDIUM'
-                              ? '#FEF3C7'
-                              : '#FEE2E2',
+                              ? 'var(--warning-bg)'
+                              : 'var(--danger-bg)',
                         color:
                           selectedDoc.confidenceLevel === 'HIGH'
-                            ? '#166534'
+                            ? 'var(--success-text)'
                             : selectedDoc.confidenceLevel === 'MEDIUM'
-                              ? '#92400E'
-                              : '#991B1B',
+                              ? 'var(--warning-text)'
+                              : 'var(--danger-text)',
                       }}
                     >
                       {selectedDoc.confidenceLevel} CONFIDENCE (
@@ -542,7 +544,7 @@ export default function DocumentIntelligencePage() {
                     </span>
                   </div>
 
-                  <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#64748B' }}>
+                  <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                     {classification?.reasoning ||
                       'Direction is decided from the organisation’s own VAT number, company number and name.'}
                   </p>
@@ -556,7 +558,7 @@ export default function DocumentIntelligencePage() {
                         onClick={handleReject}
                         disabled={actionLoading}
                         className="btn btn-secondary"
-                        style={{ color: '#DC2626', borderColor: '#FECACA' }}
+                        style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)' }}
                       >
                         <X size={15} style={{ marginRight: '0.35rem' }} />
                         Reject
@@ -565,7 +567,7 @@ export default function DocumentIntelligencePage() {
                         onClick={handleApprove}
                         disabled={actionLoading}
                         className="btn btn-primary"
-                        style={{ backgroundColor: '#16A34A', borderColor: '#16A34A' }}
+                        style={{ backgroundColor: 'var(--success)', borderColor: 'var(--success)' }}
                       >
                         <Check size={15} style={{ marginRight: '0.35rem' }} />
                         Approve & Post Draft
@@ -577,7 +579,7 @@ export default function DocumentIntelligencePage() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '0.4rem',
-                        color: '#16A34A',
+                        color: 'var(--success-text)',
                         fontWeight: 600,
                         fontSize: '0.85rem',
                       }}
@@ -594,26 +596,26 @@ export default function DocumentIntelligencePage() {
                 <div
                   style={{
                     padding: '1rem',
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: 'var(--bg-app)',
                     borderRadius: '8px',
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid var(--border-subtle)',
                   }}
                 >
                   <div
                     style={{
                       fontSize: '0.75rem',
                       fontWeight: 700,
-                      color: '#64748B',
+                      color: 'var(--text-muted)',
                       textTransform: 'uppercase',
                       marginBottom: '0.5rem',
                     }}
                   >
                     {selectedDoc.direction === 'PURCHASE' ? 'Supplier (Issuer)' : 'Seller (Issuer)'}
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0F172A' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
                     {extraction?.issuerName || 'Unknown Issuer'}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--ink-2)', marginTop: '0.2rem' }}>
                     VAT: {extraction?.issuerTaxId || 'None detected'}
                   </div>
                   {classification?.entityMatchReason && (
@@ -621,7 +623,7 @@ export default function DocumentIntelligencePage() {
                       style={{
                         marginTop: '0.5rem',
                         fontSize: '0.75rem',
-                        color: '#059669',
+                        color: 'var(--success-text)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.3rem',
@@ -636,29 +638,29 @@ export default function DocumentIntelligencePage() {
                 <div
                   style={{
                     padding: '1rem',
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: 'var(--bg-app)',
                     borderRadius: '8px',
-                    border: '1px solid #E2E8F0',
+                    border: '1px solid var(--border-subtle)',
                   }}
                 >
                   <div
                     style={{
                       fontSize: '0.75rem',
                       fontWeight: 700,
-                      color: '#64748B',
+                      color: 'var(--text-muted)',
                       textTransform: 'uppercase',
                       marginBottom: '0.5rem',
                     }}
                   >
                     {selectedDoc.direction === 'PURCHASE' ? 'Buyer (Recipient)' : 'Customer (Recipient)'}
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0F172A' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
                     {extraction?.recipientName || 'Unknown Recipient'}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--ink-2)', marginTop: '0.2rem' }}>
                     VAT: {extraction?.recipientTaxId || 'None detected'}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.5rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
                     Total:{' '}
                     <strong>
                       {extraction?.currency ?? '£'} {extraction?.totalAmount ?? '0.00'}
@@ -671,19 +673,19 @@ export default function DocumentIntelligencePage() {
               {/* Line Items & Product Classification Table */}
               <div>
                 <h3
-                  style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.65rem' }}
+                  style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.65rem' }}
                 >
                   Line Items & Semantic Classification
                 </h3>
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '8px', overflow: 'hidden' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
                     <thead>
                       <tr
                         style={{
-                          backgroundColor: '#F8FAFC',
-                          borderBottom: '1px solid #E2E8F0',
+                          backgroundColor: 'var(--bg-app)',
+                          borderBottom: '1px solid var(--border-subtle)',
                           textAlign: 'left',
-                          color: '#64748B',
+                          color: 'var(--text-muted)',
                         }}
                       >
                         <th style={{ padding: '0.65rem 0.85rem' }}>#</th>
@@ -698,9 +700,9 @@ export default function DocumentIntelligencePage() {
                     </thead>
                     <tbody>
                       {lines.map((l) => (
-                        <tr key={l.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                          <td style={{ padding: '0.65rem 0.85rem', color: '#64748B' }}>{l.lineNumber}</td>
-                          <td style={{ padding: '0.65rem 0.85rem', fontWeight: 600, color: '#0F172A' }}>
+                        <tr key={l.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
+                          <td style={{ padding: '0.65rem 0.85rem', color: 'var(--text-muted)' }}>{l.lineNumber}</td>
+                          <td style={{ padding: '0.65rem 0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
                             {l.rawDescription}
                           </td>
                           <td style={{ padding: '0.65rem 0.85rem' }}>
@@ -711,17 +713,17 @@ export default function DocumentIntelligencePage() {
                                 borderRadius: '4px',
                                 fontSize: '0.725rem',
                                 fontWeight: 600,
-                                backgroundColor: l.productType === 'INVENTORY' ? '#E0F2FE' : '#F1F5F9',
-                                color: l.productType === 'INVENTORY' ? '#0369A1' : '#475569',
+                                backgroundColor: l.productType === 'INVENTORY' ? 'var(--info-bg)' : 'var(--bg-soft)',
+                                color: l.productType === 'INVENTORY' ? 'var(--info-text)' : 'var(--ink-2)',
                               }}
                             >
                               {l.productType}
                             </span>
                           </td>
-                          <td style={{ padding: '0.65rem 0.85rem', color: '#4338CA', fontWeight: 500 }}>
+                          <td style={{ padding: '0.65rem 0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
                             {l.accountingCategory}
                           </td>
-                          <td style={{ padding: '0.65rem 0.85rem', color: '#334155' }}>
+                          <td style={{ padding: '0.65rem 0.85rem', color: 'var(--ink-2)' }}>
                             {l.account ? `${l.account.code} - ${l.account.name}` : 'Needs an account'}
                           </td>
                           <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>{money(l.netAmount)}</td>
@@ -740,8 +742,8 @@ export default function DocumentIntelligencePage() {
               {accountingIntent && (
                 <div
                   style={{
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #CBD5E1',
+                    backgroundColor: 'var(--bg-app)',
+                    border: '1px solid var(--border-strong)',
                     borderRadius: '8px',
                     padding: '1.25rem',
                   }}
@@ -755,8 +757,8 @@ export default function DocumentIntelligencePage() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <ShieldCheck size={18} color="#059669" />
-                      <h3 style={{ fontSize: '0.925rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>
+                      <ShieldCheck size={18} color="#0B6B52" />
+                      <h3 style={{ fontSize: '0.925rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
                         Proposed Double-Entry Journal Lines
                       </h3>
                     </div>
@@ -766,8 +768,8 @@ export default function DocumentIntelligencePage() {
                         fontWeight: 700,
                         padding: '0.2rem 0.6rem',
                         borderRadius: '4px',
-                        backgroundColor: accountingIntent.isBalanced ? '#DCFCE7' : '#FEE2E2',
-                        color: accountingIntent.isBalanced ? '#166534' : '#991B1B',
+                        backgroundColor: accountingIntent.isBalanced ? 'var(--success-bg)' : 'var(--danger-bg)',
+                        color: accountingIntent.isBalanced ? 'var(--success-text)' : 'var(--danger-text)',
                       }}
                     >
                       {accountingIntent.isBalanced ? '✓ DOUBLE-ENTRY BALANCED' : '⚠ UNBALANCED'}
@@ -776,7 +778,7 @@ export default function DocumentIntelligencePage() {
 
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #CBD5E1', textAlign: 'left', color: '#475569' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border-strong)', textAlign: 'left', color: 'var(--ink-2)' }}>
                         <th style={{ padding: '0.5rem' }}>Account Code</th>
                         <th style={{ padding: '0.5rem' }}>Account Name</th>
                         <th style={{ padding: '0.5rem' }}>Classification / Purpose</th>
@@ -786,12 +788,12 @@ export default function DocumentIntelligencePage() {
                     </thead>
                     <tbody>
                       {accountingIntent.lines?.map((pl: any, idx: number) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                           <td style={{ padding: '0.5rem', fontFamily: 'monospace', fontWeight: 600 }}>
                             {pl.accountCode}
                           </td>
                           <td style={{ padding: '0.5rem', fontWeight: 500 }}>{pl.accountName}</td>
-                          <td style={{ padding: '0.5rem', color: '#64748B' }}>{pl.description}</td>
+                          <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>{pl.description}</td>
                           <td
                             style={{
                               padding: '0.5rem',
@@ -815,8 +817,8 @@ export default function DocumentIntelligencePage() {
                       <tr
                         style={{
                           fontWeight: 700,
-                          borderTop: '2px solid #CBD5E1',
-                          backgroundColor: '#EDF2F7',
+                          borderTop: '2px solid var(--border-strong)',
+                          backgroundColor: 'var(--bg-soft)',
                         }}
                       >
                         <td colSpan={3} style={{ padding: '0.5rem' }}>
@@ -837,11 +839,11 @@ export default function DocumentIntelligencePage() {
                       style={{
                         marginTop: '0.85rem',
                         padding: '0.65rem 0.85rem',
-                        backgroundColor: '#EFF6FF',
-                        border: '1px solid #BFDBFE',
+                        backgroundColor: 'var(--info-bg)',
+                        border: '1px solid var(--info-border)',
                         borderRadius: '6px',
                         fontSize: '0.775rem',
-                        color: '#1E40AF',
+                        color: 'var(--info-text)',
                       }}
                     >
                       <strong>Inventory Guardrail:</strong> {accountingIntent.inventoryValuationNotice}
@@ -913,7 +915,7 @@ export default function DocumentIntelligencePage() {
                     width: '100%',
                     padding: '0.5rem',
                     borderRadius: '6px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                   }}
                 />
               </div>
@@ -933,7 +935,7 @@ export default function DocumentIntelligencePage() {
                     width: '100%',
                     padding: '0.5rem',
                     borderRadius: '6px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     fontFamily: 'monospace',
                     fontSize: '0.8rem',
                   }}
@@ -952,6 +954,7 @@ export default function DocumentIntelligencePage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

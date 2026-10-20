@@ -11,6 +11,7 @@ import { CompanySwitcherDropdown } from './organization/company-switcher-dropdow
 import { GlobalAiAssistantModal } from './ai/global-ai-assistant-modal';
 import { Sidebar } from './shell/sidebar';
 import { CommandPalette } from './shell/command-palette';
+import { DialogHost } from './ui/dialog-host';
 
 const EDITOR_ROLES = new Set(['OWNER', 'ADMINISTRATOR', 'ACCOUNTANT', 'BOOKKEEPER']);
 
@@ -366,6 +367,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onAsk={role && role !== 'VIEWER' ? () => setAiOpen(true) : undefined}
       />
       <GlobalAiAssistantModal isOpen={aiOpen} onClose={() => setAiOpen(false)} />
+      <DialogHost />
     </div>
   );
 }

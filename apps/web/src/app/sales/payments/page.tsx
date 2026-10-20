@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { askReason, notify } from '@/lib/dialog-bus';
 
 interface Contact {
   id: string;
@@ -158,13 +159,13 @@ export default function SalesPaymentsPage() {
   const handleCreatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomerId || !amount) {
-      alert('Please select a customer and enter an amount');
+      notify('Please select a customer and enter an amount');
       return;
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      alert('Amount must be greater than zero');
+      notify('Amount must be greater than zero');
       return;
     }
 
@@ -175,7 +176,7 @@ export default function SalesPaymentsPage() {
 
     const totalAllocated = allocationList.reduce((acc, a) => acc + a.amount, 0);
     if (totalAllocated > numAmount + 0.001) {
-      alert(`Allocated amount (£${totalAllocated.toFixed(2)}) cannot exceed total receipt (£${numAmount.toFixed(2)})`);
+      notify(`Allocated amount (£${totalAllocated.toFixed(2)}) cannot exceed total receipt (£${numAmount.toFixed(2)})`);
       return;
     }
 
@@ -202,14 +203,14 @@ export default function SalesPaymentsPage() {
       setAllocations({});
       await loadPayments();
     } catch (err: any) {
-      alert(err.message || 'Failed to record customer receipt');
+      notify(err.message || 'Failed to record customer receipt');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleVoidPayment = async (paymentId: string) => {
-    const reason = prompt('Please enter the reason for voiding this receipt (will reverse general ledger entries and allocations):');
+    const reason = await askReason('Please enter the reason for voiding this receipt (will reverse general ledger entries and allocations):');
     if (!reason || !reason.trim()) return;
 
     try {
@@ -219,7 +220,7 @@ export default function SalesPaymentsPage() {
       });
       await loadPayments();
     } catch (err: any) {
-      alert(err.message || 'Failed to void receipt');
+      notify(err.message || 'Failed to void receipt');
     }
   };
 
@@ -236,10 +237,11 @@ export default function SalesPaymentsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Customer Receipts</h1>
-          <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Customer Receipts</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Record incoming customer payments, allocate against sales invoices, and post directly to the General Ledger.
           </p>
         </div>
@@ -251,7 +253,7 @@ export default function SalesPaymentsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              backgroundColor: '#2563EB',
+              backgroundColor: 'var(--primary)',
               color: '#FFFFFF',
               border: 'none',
               padding: '0.5rem 1rem',
@@ -267,26 +269,26 @@ export default function SalesPaymentsPage() {
 
       {/* Metrics Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Total Received</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Received</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
             £{totalReceived.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#10B981', marginTop: '0.25rem' }}>Posted to Bank Account</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--success-text)', marginTop: '0.25rem' }}>Posted to Bank Account</div>
         </div>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Allocated to Invoices</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10B981', marginTop: '0.35rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Allocated to Invoices</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success-text)', marginTop: '0.35rem' }}>
             £{totalAllocated.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Applied to Debtors Control</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Applied to Debtors Control</div>
         </div>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Unallocated Balance</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: unallocatedBalance > 0 ? '#F59E0B' : '#64748B', marginTop: '0.35rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Unallocated Balance</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: unallocatedBalance > 0 ? 'var(--warning-text)' : 'var(--text-muted)', marginTop: '0.35rem' }}>
             £{unallocatedBalance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Available for future allocation</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Available for future allocation</div>
         </div>
       </div>
 
@@ -299,9 +301,9 @@ export default function SalesPaymentsPage() {
             style={{
               padding: '0.35rem 0.75rem',
               borderRadius: '0.375rem',
-              border: statusFilter === st ? '1px solid #2563EB' : '1px solid #E2E8F0',
-              backgroundColor: statusFilter === st ? '#EFF6FF' : '#FFFFFF',
-              color: statusFilter === st ? '#2563EB' : '#475569',
+              border: statusFilter === st ? '1px solid var(--primary)' : '1px solid var(--border-subtle)',
+              backgroundColor: statusFilter === st ? 'var(--info-bg)' : '#FFFFFF',
+              color: statusFilter === st ? 'var(--primary)' : 'var(--ink-2)',
               fontSize: '0.8rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -313,16 +315,16 @@ export default function SalesPaymentsPage() {
       </div>
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FEF2F2', border: '1px solid #F87171', color: '#B91C1C', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger)', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
           {error}
         </div>
       )}
 
       {/* Receipts Table */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 600 }}>
+            <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)', fontWeight: 600 }}>
               <th style={{ padding: '0.75rem 1rem' }}>Date</th>
               <th style={{ padding: '0.75rem 1rem' }}>Reference</th>
               <th style={{ padding: '0.75rem 1rem' }}>Customer</th>
@@ -336,13 +338,13 @@ export default function SalesPaymentsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Loading customer receipts...
                 </td>
               </tr>
             ) : payments.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No customer receipts recorded yet.
                 </td>
               </tr>
@@ -350,23 +352,23 @@ export default function SalesPaymentsPage() {
               payments.map((p) => {
                 const isVoided = p.status === 'VOIDED';
                 return (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '0.75rem 1rem', color: '#0F172A' }}>
+                  <tr key={p.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-main)' }}>
                       {new Date(p.paymentDate).toLocaleDateString('en-GB')}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: '#0F172A' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: 'var(--text-main)' }}>
                       {p.reference || '—'}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#334155' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--ink-2)' }}>
                       {p.contact.name}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: '#0F172A' }}>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                       £{Number(p.amount).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#10B981' }}>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'var(--success-text)' }}>
                       £{Number(p.amountAllocated).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                       {p.journalEntry?.journalNumber || '—'}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
@@ -377,8 +379,8 @@ export default function SalesPaymentsPage() {
                           borderRadius: '9999px',
                           fontSize: '0.75rem',
                           fontWeight: 600,
-                          backgroundColor: isVoided ? '#F1F5F9' : '#ECFDF5',
-                          color: isVoided ? '#64748B' : '#059669',
+                          backgroundColor: isVoided ? 'var(--bg-soft)' : 'var(--success-bg)',
+                          color: isVoided ? 'var(--text-muted)' : 'var(--success-text)',
                         }}
                       >
                         {p.status}
@@ -390,7 +392,7 @@ export default function SalesPaymentsPage() {
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#2563EB',
+                          color: 'var(--primary)',
                           cursor: 'pointer',
                           fontWeight: 500,
                           marginRight: '0.75rem',
@@ -404,7 +406,7 @@ export default function SalesPaymentsPage() {
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: '#EF4444',
+                            color: 'var(--danger)',
                             cursor: 'pointer',
                             fontWeight: 500,
                           }}
@@ -449,10 +451,10 @@ export default function SalesPaymentsPage() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>Record Customer Receipt</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>Record Customer Receipt</h2>
               <button
                 onClick={() => setShowModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94A3B8' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ✕
               </button>
@@ -461,14 +463,14 @@ export default function SalesPaymentsPage() {
             <form onSubmit={handleCreatePayment}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Customer *
                   </label>
                   <select
                     value={selectedCustomerId}
                     onChange={(e) => setSelectedCustomerId(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   >
                     <option value="">Select customer...</option>
                     {customers.map((c) => (
@@ -479,7 +481,7 @@ export default function SalesPaymentsPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Receipt Date *
                   </label>
                   <input
@@ -487,14 +489,14 @@ export default function SalesPaymentsPage() {
                     value={paymentDate}
                     onChange={(e) => setPaymentDate(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Amount Received (£) *
                   </label>
                   <input
@@ -505,11 +507,11 @@ export default function SalesPaymentsPage() {
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
                     required
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Reference (BACS / Cheque)
                   </label>
                   <input
@@ -517,13 +519,13 @@ export default function SalesPaymentsPage() {
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
                     placeholder="e.g. BACS-98214"
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   />
                 </div>
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                   Notes
                 </label>
                 <input
@@ -531,28 +533,28 @@ export default function SalesPaymentsPage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optional internal note"
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                 />
               </div>
 
               {/* Open Invoices Allocation Section */}
               {selectedCustomerId && (
-                <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem', borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
+                <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0F172A' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)' }}>
                       Allocate to Open Invoices ({openInvoices.length})
                     </div>
                   </div>
 
                   {openInvoices.length === 0 ? (
-                    <div style={{ color: '#64748B', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                       No open invoices for this customer. Receipt will remain unallocated for future use.
                     </div>
                   ) : (
-                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '0.375rem', overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '0.375rem', overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                         <thead>
-                          <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
+                          <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)' }}>
                             <th style={{ padding: '0.5rem' }}>Invoice</th>
                             <th style={{ padding: '0.5rem' }}>Date</th>
                             <th style={{ padding: '0.5rem', textAlign: 'right' }}>Total</th>
@@ -565,13 +567,13 @@ export default function SalesPaymentsPage() {
                           {openInvoices.map((inv) => {
                             const bal = Number(inv.totalAmount) - Number(inv.amountPaid);
                             return (
-                              <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                              <tr key={inv.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
                                 <td style={{ padding: '0.5rem', fontWeight: 600 }}>{inv.invoiceNumber}</td>
-                                <td style={{ padding: '0.5rem', color: '#64748B' }}>
+                                <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>
                                   {new Date(inv.issueDate).toLocaleDateString('en-GB')}
                                 </td>
                                 <td style={{ padding: '0.5rem', textAlign: 'right' }}>£{Number(inv.totalAmount).toFixed(2)}</td>
-                                <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 600, color: '#E11D48' }}>
+                                <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 600, color: 'var(--danger)' }}>
                                   £{bal.toFixed(2)}
                                 </td>
                                 <td style={{ padding: '0.5rem', textAlign: 'right' }}>
@@ -582,14 +584,14 @@ export default function SalesPaymentsPage() {
                                     value={allocations[inv.id] ?? ''}
                                     onChange={(e) => handleAllocationChange(inv.id, e.target.value)}
                                     placeholder="0.00"
-                                    style={{ width: '100%', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', border: '1px solid #CBD5E1', fontSize: '0.8rem', textAlign: 'right' }}
+                                    style={{ width: '100%', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', border: '1px solid var(--border-strong)', fontSize: '0.8rem', textAlign: 'right' }}
                                   />
                                 </td>
                                 <td style={{ padding: '0.5rem' }}>
                                   <button
                                     type="button"
                                     onClick={() => handlePayInFull(inv)}
-                                    style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1D4ED8', fontSize: '0.7rem', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', cursor: 'pointer' }}
+                                    style={{ background: 'var(--info-bg)', border: '1px solid var(--info-border)', color: 'var(--primary)', fontSize: '0.7rem', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', cursor: 'pointer' }}
                                   >
                                     Full
                                   </button>
@@ -608,14 +610,14 @@ export default function SalesPaymentsPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', cursor: 'pointer', fontWeight: 500 }}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', backgroundColor: '#FFFFFF', color: 'var(--ink-2)', cursor: 'pointer', fontWeight: 500 }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
+                  style={{ padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'var(--primary)', color: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
                 >
                   {submitting ? 'Posting...' : 'Post Customer Receipt'}
                 </button>
@@ -651,10 +653,10 @@ export default function SalesPaymentsPage() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>Receipt Details</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>Receipt Details</h2>
               <button
                 onClick={() => setSelectedPayment(null)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94A3B8' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ✕
               </button>
@@ -671,10 +673,10 @@ export default function SalesPaymentsPage() {
               {selectedPayment.notes && <div><strong>Notes:</strong> {selectedPayment.notes}</div>}
             </div>
 
-            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1rem', marginTop: '1rem' }}>
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', marginTop: '1rem' }}>
               <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.5rem' }}>Allocations</div>
               {!selectedPayment.allocations || selectedPayment.allocations.length === 0 ? (
-                <div style={{ color: '#64748B', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                   No active invoice allocations for this receipt.
                 </div>
               ) : (
@@ -691,7 +693,7 @@ export default function SalesPaymentsPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
               <button
                 onClick={() => setSelectedPayment(null)}
-                style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', cursor: 'pointer', fontWeight: 500 }}
+                style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', backgroundColor: '#FFFFFF', color: 'var(--ink-2)', cursor: 'pointer', fontWeight: 500 }}
               >
                 Close
               </button>
@@ -699,6 +701,7 @@ export default function SalesPaymentsPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

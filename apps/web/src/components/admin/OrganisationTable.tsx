@@ -52,7 +52,7 @@ export function OrganisationTable({
       style={{
         backgroundColor: '#FFFFFF',
         borderRadius: '10px',
-        border: '1px solid #E2E8F0',
+        border: '1px solid var(--border-subtle)',
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         padding: '1.5rem',
       }}
@@ -69,10 +69,10 @@ export function OrganisationTable({
         }}
       >
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
             Organizations Directory
           </h2>
-          <p style={{ margin: '0.2rem 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>
+          <p style={{ margin: '0.2rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
             {orgTotal} total tenants registered on this Blynt deployment
           </p>
         </div>
@@ -86,7 +86,7 @@ export function OrganisationTable({
             style={{
               padding: '0.5rem 0.85rem',
               borderRadius: '6px',
-              border: '1px solid #CBD5E1',
+              border: '1px solid var(--border-strong)',
               fontSize: '0.85rem',
               minWidth: '240px',
             }}
@@ -98,7 +98,7 @@ export function OrganisationTable({
             style={{
               padding: '0.5rem 0.85rem',
               borderRadius: '6px',
-              border: '1px solid #CBD5E1',
+              border: '1px solid var(--border-strong)',
               fontSize: '0.85rem',
               backgroundColor: '#FFFFFF',
             }}
@@ -115,26 +115,26 @@ export function OrganisationTable({
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Organization</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Country & Base</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Created By</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Members</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Journals</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Status</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569', textAlign: 'right' }}>Actions</th>
+            <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Organization</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Country & Base</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Created By</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Members</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Journals</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Status</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {orgLoading ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                   Loading organizations...
                 </td>
               </tr>
             ) : orgs.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                   No organizations found matching criteria.
                 </td>
               </tr>
@@ -142,35 +142,35 @@ export function OrganisationTable({
               orgs.map((org) => {
                 const statusColor =
                   org.status === 'ACTIVE'
-                    ? { bg: '#ECFDF5', text: '#065F46', border: '#A7F3D0' }
+                    ? { bg: 'var(--success-bg)', text: 'var(--success-text)', border: 'var(--success-border)' }
                     : org.status === 'SUSPENDED'
-                    ? { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' }
-                    : { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1' };
+                    ? { bg: 'var(--danger-bg)', text: 'var(--danger-text)', border: 'var(--danger-border)' }
+                    : { bg: 'var(--bg-soft)', text: 'var(--ink-2)', border: 'var(--border-strong)' };
 
                 return (
-                  <tr key={org.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                  <tr key={org.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
                     <td style={{ padding: '0.85rem 1rem' }}>
-                      <div style={{ fontWeight: 600, color: '#0F172A' }}>{org.name}</div>
-                      {org.legalName && <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{org.legalName}</div>}
-                      <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontFamily: 'monospace' }}>ID: {org.id.slice(0, 8)}...</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{org.name}</div>
+                      {org.legalName && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{org.legalName}</div>}
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>ID: {org.id.slice(0, 8)}...</div>
                     </td>
                     <td style={{ padding: '0.85rem 1rem' }}>
-                      <span style={{ fontWeight: 500, color: '#334155' }}>{org.country}</span> • <span style={{ color: '#2563EB', fontWeight: 600 }}>{org.baseCurrency}</span>
+                      <span style={{ fontWeight: 500, color: 'var(--ink-2)' }}>{org.country}</span> • <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{org.baseCurrency}</span>
                     </td>
                     <td style={{ padding: '0.85rem 1rem' }}>
                       {org.createdBy ? (
                         <div>
-                          <div style={{ fontWeight: 500, color: '#334155' }}>{org.createdBy.firstName} {org.createdBy.lastName}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{org.createdBy.email}</div>
+                          <div style={{ fontWeight: 500, color: 'var(--ink-2)' }}>{org.createdBy.firstName} {org.createdBy.lastName}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{org.createdBy.email}</div>
                         </div>
                       ) : (
-                        <span style={{ color: '#94A3B8' }}>System</span>
+                        <span style={{ color: 'var(--text-muted)' }}>System</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#334155' }}>
+                    <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>
                       {org._count.members}
                     </td>
-                    <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: '#334155' }}>
+                    <td style={{ padding: '0.85rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>
                       {org._count.journals}
                     </td>
                     <td style={{ padding: '0.85rem 1rem' }}>
@@ -193,9 +193,9 @@ export function OrganisationTable({
                         <button
                           onClick={() => onSwitchToOrg(org.id)}
                           style={{
-                            backgroundColor: '#EFF6FF',
-                            color: '#2563EB',
-                            border: '1px solid #BFDBFE',
+                            backgroundColor: 'var(--info-bg)',
+                            color: 'var(--primary)',
+                            border: '1px solid var(--info-border)',
                             padding: '0.35rem 0.65rem',
                             borderRadius: '5px',
                             fontSize: '0.75rem',
@@ -211,9 +211,9 @@ export function OrganisationTable({
                           <button
                             onClick={() => onUpdateStatus(org.id, 'SUSPENDED')}
                             style={{
-                              backgroundColor: '#FEF2F2',
-                              color: '#DC2626',
-                              border: '1px solid #FECACA',
+                              backgroundColor: 'var(--danger-bg)',
+                              color: 'var(--danger)',
+                              border: '1px solid var(--danger-border)',
                               padding: '0.35rem 0.6rem',
                               borderRadius: '5px',
                               fontSize: '0.75rem',
@@ -228,9 +228,9 @@ export function OrganisationTable({
                           <button
                             onClick={() => onUpdateStatus(org.id, 'ACTIVE')}
                             style={{
-                              backgroundColor: '#ECFDF5',
-                              color: '#059669',
-                              border: '1px solid #A7F3D0',
+                              backgroundColor: 'var(--success-bg)',
+                              color: 'var(--success-text)',
+                              border: '1px solid var(--success-border)',
                               padding: '0.35rem 0.6rem',
                               borderRadius: '5px',
                               fontSize: '0.75rem',
@@ -254,8 +254,8 @@ export function OrganisationTable({
 
       {/* Pagination Controls */}
       {orgTotal > 15 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0' }}>
-          <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Showing {(orgPage - 1) * 15 + 1} to {Math.min(orgPage * 15, orgTotal)} of {orgTotal}
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -265,7 +265,7 @@ export function OrganisationTable({
               style={{
                 padding: '0.35rem 0.75rem',
                 borderRadius: '5px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 background: '#FFFFFF',
                 fontSize: '0.8rem',
                 cursor: orgPage <= 1 ? 'not-allowed' : 'pointer',
@@ -280,7 +280,7 @@ export function OrganisationTable({
               style={{
                 padding: '0.35rem 0.75rem',
                 borderRadius: '5px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 background: '#FFFFFF',
                 fontSize: '0.8rem',
                 cursor: orgPage * 15 >= orgTotal ? 'not-allowed' : 'pointer',

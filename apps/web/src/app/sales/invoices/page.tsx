@@ -1,12 +1,24 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Sparkles } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
-import { Sparkles } from 'lucide-react';
+import { addDecimals } from '@/lib/decimal';
+import { formatMoney } from '@/lib/money-format';
+import { amountOutstanding, daysLate, isOverdue } from '@/lib/status';
 import { AiInvoiceDraftModal } from '@/components/sales/ai-invoice-draft-modal';
+import { EmptyState, Page, PageHeader, Panel, SkeletonRows } from '@/components/ui/page';
+import {
+  ConfirmDialog,
+  Notice,
+  RecordStatus,
+  SearchField,
+  StatTile,
+  StatusTabs,
+} from '@/components/ui/controls';
 
 interface InvoiceListItem {
   id: string;
@@ -18,271 +30,338 @@ interface InvoiceListItem {
   subtotal: string;
   taxTotal: string;
   totalAmount: string;
+  amountPaid?: string | null;
   status: 'DRAFT' | 'APPROVED' | 'POSTED' | 'PAID' | 'PARTIALLY_PAID' | 'VOIDED';
-  contact: {
-    id: string;
-    name: string;
-    companyName?: string | null;
-  };
-  journalEntry?: {
-    id: string;
-    journalNumber: string;
-    status: string;
-  } | null;
+  contact: { id: string; name: string; companyName?: string | null };
+  journalEntry?: { id: string; journalNumber: string; status: string } | null;
 }
+
+type Tab = 'ALL' | 'DRAFT' | 'OPEN' | 'OVERDUE' | 'PAID' | 'VOIDED';
+const PAGE_SIZE = 200;
+
+function todayIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function shortDate(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+const isOpen = (i: InvoiceListItem) =>
+  i.status === 'POSTED' || i.status === 'PARTIALLY_PAID' || i.status === 'APPROVED';
 
 export default function InvoicesPage() {
   const { activeOrg, hasPermission } = useAuth();
-  const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'POSTED' | 'VOIDED'>('ALL');
-  const [search, setSearch] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
   const canCreate = hasPermission('invoice.create');
   const canPost = hasPermission('invoice.post');
+  const currency = activeOrg?.baseCurrency ?? 'GBP';
+  const money = (v: string | null | undefined) => formatMoney(v, { currency });
+  const today = useMemo(todayIso, []);
 
-  const loadInvoices = useCallback(async () => {
+  const [invoices, setInvoices] = useState<InvoiceListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>('ALL');
+  const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
+  const [showAi, setShowAi] = useState(false);
+  const [toPost, setToPost] = useState<InvoiceListItem | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // Search waits for typing to pause so we don't query on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const load = useCallback(async () => {
     if (!activeOrg) return;
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      const params = new URLSearchParams();
-      if (statusFilter !== 'ALL') params.append('status', statusFilter);
-      if (search) params.append('search', search);
-
-      const res = await apiRequest<{ items: InvoiceListItem[]; total: number }>(`/invoices?${params.toString()}`);
-      setInvoices(res.items || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load sales invoices');
+      const params = new URLSearchParams({ pageSize: String(PAGE_SIZE) });
+      if (query) params.set('search', query);
+      const res = await apiRequest<{ items: InvoiceListItem[]; total: number }>(`/invoices?${params}`);
+      setInvoices(res.items ?? []);
+      setTotal(res.total ?? res.items?.length ?? 0);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load invoices');
     } finally {
       setLoading(false);
     }
-  }, [activeOrg, statusFilter, search]);
+  }, [activeOrg, query]);
 
   useEffect(() => {
-    loadInvoices();
-  }, [loadInvoices]);
+    load();
+  }, [load]);
 
-  const handleQuickPost = async (id: string, invNum: string) => {
-    if (!confirm(`Post invoice ${invNum} to the General Ledger? This will generate double-entry ledger postings.`)) return;
+  const groups = useMemo(() => {
+    const drafts = invoices.filter((i) => i.status === 'DRAFT');
+    const open = invoices.filter(isOpen);
+    const overdue = open.filter((i) => isOverdue(i, today));
+    const paid = invoices.filter((i) => i.status === 'PAID');
+    const voided = invoices.filter((i) => i.status === 'VOIDED');
+    return { drafts, open, overdue, paid, voided };
+  }, [invoices, today]);
 
-    try {
-      await apiRequest(`/invoices/${id}/post`, { method: 'POST' });
-      await loadInvoices();
-    } catch (err: any) {
-      alert(err.message || 'Failed to post invoice');
+  const rows = useMemo(() => {
+    switch (tab) {
+      case 'DRAFT':
+        return groups.drafts;
+      case 'OPEN':
+        return groups.open;
+      case 'OVERDUE':
+        return [...groups.overdue].sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
+      case 'PAID':
+        return groups.paid;
+      case 'VOIDED':
+        return groups.voided;
+      default:
+        return invoices;
     }
+  }, [tab, groups, invoices]);
+
+  const sum = (list: InvoiceListItem[], f: (i: InvoiceListItem) => string) => addDecimals(...list.map(f));
+  const draftValue = sum(groups.drafts, (i) => i.totalAmount);
+  const openValue = sum(groups.open, amountOutstanding);
+  const overdueValue = sum(groups.overdue, amountOutstanding);
+  const paidValue = sum(groups.paid, (i) => i.totalAmount);
+
+  const post = async () => {
+    if (!toPost) return;
+    await apiRequest(`/invoices/${toPost.id}/post`, { method: 'POST' });
+    setNotice(`${toPost.invoiceNumber} posted. It now counts in your sales and VAT.`);
+    setToPost(null);
+    await load();
   };
-
-  // Compute metrics
-  const totalInvoiced = invoices
-    .filter((i) => i.status !== 'VOIDED')
-    .reduce((acc, curr) => acc + Number(curr.totalAmount || 0), 0);
-
-  const postedAmount = invoices
-    .filter((i) => i.status === 'POSTED')
-    .reduce((acc, curr) => acc + Number(curr.totalAmount || 0), 0);
-
-  const draftCount = invoices.filter((i) => i.status === 'DRAFT').length;
-  const [showAiModal, setShowAiModal] = useState(false);
 
   return (
     <AppShell>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Sales Invoices</h1>
-          <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Authoritative sales invoicing engine automatically integrated into the General Ledger.
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          {canCreate && (
-            <button
-              onClick={() => setShowAiModal(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                backgroundColor: '#F0FDFA',
-                border: '1px solid #99F6E4',
-                color: '#0F766E',
-                padding: '0.55rem 1rem',
-                borderRadius: '0.375rem',
-                fontWeight: 700,
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-              }}
-            >
-              <Sparkles size={16} color="#0D9488" />
-              <span>✨ AI Draft Invoice</span>
-            </button>
-          )}
-          {canCreate && (
-            <Link href="/sales/invoices/new" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>+</span> New Invoice
-            </Link>
-          )}
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title="Invoices"
+          breadcrumb={[{ label: 'Money in' }, { label: 'Invoices' }]}
+          description="Bill customers and see who has paid. Posting an invoice records the sale and VAT in your books."
+          actions={
+            canCreate && (
+              <>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAi(true)}>
+                  <Sparkles size={16} aria-hidden="true" /> Draft with AI
+                </button>
+                <Link href="/sales/invoices/new" className="btn btn-primary">
+                  New invoice
+                </Link>
+              </>
+            )
+          }
+        />
 
-      <AiInvoiceDraftModal isOpen={showAiModal} onClose={() => setShowAiModal(false)} />
+        {notice && (
+          <Notice tone="success" onDismiss={() => setNotice(null)}>
+            {notice}
+          </Notice>
+        )}
 
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '1rem 1.25rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Invoiced</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', marginTop: '0.25rem' }}>
-            £{totalInvoiced.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Across all active sales</div>
+        <div className="bl-tiles">
+          <StatTile
+            label="Drafts"
+            value={money(draftValue)}
+            sub={`${groups.drafts.length} not sent yet`}
+            onClick={() => setTab('DRAFT')}
+            active={tab === 'DRAFT'}
+          />
+          <StatTile
+            label="Awaiting payment"
+            value={money(openValue)}
+            sub={`${groups.open.length} open`}
+            onClick={() => setTab('OPEN')}
+            active={tab === 'OPEN'}
+          />
+          <StatTile
+            label="Overdue"
+            value={money(overdueValue)}
+            sub={groups.overdue.length ? `! ${groups.overdue.length} late` : 'Nothing late'}
+            tone={groups.overdue.length ? 'danger' : 'success'}
+            onClick={() => setTab('OVERDUE')}
+            active={tab === 'OVERDUE'}
+          />
+          <StatTile
+            label="Paid"
+            value={money(paidValue)}
+            sub={`${groups.paid.length} invoices`}
+            onClick={() => setTab('PAID')}
+            active={tab === 'PAID'}
+          />
         </div>
-        <div className="card" style={{ padding: '1rem 1.25rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Posted to Ledger</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2563EB', marginTop: '0.25rem' }}>
-            £{postedAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Authoritative accounts receivable</div>
-        </div>
-        <div className="card" style={{ padding: '1rem 1.25rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Draft Invoices</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#D97706', marginTop: '0.25rem' }}>
-            {draftCount}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Awaiting posting approval</div>
-        </div>
-      </div>
 
-      {/* Filter and Search Bar */}
-      <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            {(['ALL', 'DRAFT', 'POSTED', 'VOIDED'] as const).map((status) => (
-              <button
-                key={status}
-                className={`btn btn-sm ${statusFilter === status ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setStatusFilter(status)}
-              >
-                {status === 'ALL' ? 'All Statuses' : status.charAt(0) + status.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ width: '280px' }}>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Search invoice #, customer..."
+        <Panel>
+          <StatusTabs<Tab>
+            label="Filter invoices by status"
+            value={tab}
+            onChange={setTab}
+            tabs={[
+              { value: 'ALL', label: 'All', count: invoices.length },
+              { value: 'DRAFT', label: 'Draft', count: groups.drafts.length },
+              { value: 'OPEN', label: 'Awaiting payment', count: groups.open.length },
+              { value: 'OVERDUE', label: 'Overdue', count: groups.overdue.length, alert: true },
+              { value: 'PAID', label: 'Paid', count: groups.paid.length },
+              { value: 'VOIDED', label: 'Void', count: groups.voided.length },
+            ]}
+          />
+          <div className="bl-toolbar">
+            <SearchField
+              label="Search invoices"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ fontSize: '0.85rem' }}
+              onChange={setSearch}
+              placeholder="Search number, reference or customer…"
             />
           </div>
-        </div>
-      </div>
 
-      {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
-
-      {/* Invoices Table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="table-responsive">
-          <table className="table" style={{ margin: 0 }}>
-            <thead>
-              <tr>
-                <th>Invoice #</th>
-                <th>Customer</th>
-                <th>Issue Date</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th>Ledger Journal</th>
-                <th style={{ textAlign: 'right' }}>Total Amount</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#64748B' }}>
-                    Loading invoices...
-                  </td>
-                </tr>
-              ) : invoices.length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>No sales invoices found</div>
-                    <div style={{ fontSize: '0.85rem' }}>Create a sales invoice to bill customers and record sales revenue.</div>
-                  </td>
-                </tr>
+          {error ? (
+            <Notice tone="danger">
+              Couldn’t load invoices: {error}.{' '}
+              <button type="button" className="btn btn-secondary btn-sm" onClick={load}>
+                Try again
+              </button>
+            </Notice>
+          ) : loading ? (
+            <SkeletonRows rows={8} />
+          ) : invoices.length === 0 && !query ? (
+            <EmptyState
+              title="No invoices yet"
+              action={
+                canCreate ? (
+                  <Link href="/sales/invoices/new" className="btn btn-primary">
+                    Create your first invoice
+                  </Link>
+                ) : undefined
+              }
+            >
+              Your first invoice takes about a minute. Or describe it in plain English with “Draft with AI”.
+            </EmptyState>
+          ) : rows.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '28px 12px', color: 'var(--ink-2)' }}>
+              {query ? (
+                <>
+                  No invoices match “{query}”.{' '}
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>
+                    Clear search
+                  </button>
+                </>
+              ) : tab === 'OVERDUE' ? (
+                '✓ Nothing is overdue.'
               ) : (
-                invoices.map((inv) => (
-                  <tr key={inv.id}>
-                    <td>
-                      <Link href={`/sales/invoices/${inv.id}`} style={{ fontWeight: 600, color: '#2563EB', textDecoration: 'none' }}>
-                        {inv.invoiceNumber}
-                      </Link>
-                      {inv.reference && <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Ref: {inv.reference}</div>}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 500, color: '#0F172A' }}>{inv.contact.name}</div>
-                      {inv.contact.companyName && <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{inv.contact.companyName}</div>}
-                    </td>
-                    <td style={{ fontSize: '0.85rem' }}>{inv.issueDate.slice(0, 10)}</td>
-                    <td style={{ fontSize: '0.85rem' }}>{inv.dueDate.slice(0, 10)}</td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          inv.status === 'POSTED'
-                            ? 'badge-success'
-                            : inv.status === 'DRAFT'
-                            ? 'badge-warning'
-                            : inv.status === 'VOIDED'
-                            ? 'badge-danger'
-                            : 'badge-neutral'
-                        }`}
-                      >
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td>
-                      {inv.journalEntry ? (
-                        <Link
-                          href={`/accounting/journals/${inv.journalEntry.id}`}
-                          className="badge badge-primary"
-                          style={{ textDecoration: 'none' }}
-                          title="View posted double-entry journal"
-                        >
-                          📖 {inv.journalEntry.journalNumber}
-                        </Link>
-                      ) : (
-                        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Not posted</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A' }}>
-                      £{Number(inv.totalAmount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                        <Link href={`/sales/invoices/${inv.id}`} className="btn btn-secondary btn-sm">
-                          View
-                        </Link>
-                        {inv.status === 'DRAFT' && canPost && (
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            onClick={() => handleQuickPost(inv.id, inv.invoiceNumber)}
-                          >
-                            Post
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                'Nothing in this tab.'
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </div>
+          ) : (
+            <div className="bl-table-wrap">
+              <table className="bl-table">
+                <thead>
+                  <tr>
+                    <th>Number</th>
+                    <th>Customer</th>
+                    <th>Issued</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Total</th>
+                    <th style={{ textAlign: 'right' }}>Still owed</th>
+                    <th>
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((inv) => {
+                    const owed = amountOutstanding(inv);
+                    const late = isOverdue(inv, today) ? daysLate(inv.dueDate, today) : 0;
+                    return (
+                      <tr key={inv.id}>
+                        <td>
+                          <Link href={`/sales/invoices/${inv.id}`} className="bl-row-link bl-money">
+                            {inv.invoiceNumber}
+                          </Link>
+                          {inv.reference && <span className="bl-sub">Ref {inv.reference}</span>}
+                        </td>
+                        <td>
+                          {inv.contact.name}
+                          {inv.contact.companyName && inv.contact.companyName !== inv.contact.name && (
+                            <span className="bl-sub">{inv.contact.companyName}</span>
+                          )}
+                        </td>
+                        <td>{shortDate(inv.issueDate)}</td>
+                        <td>
+                          {shortDate(inv.dueDate)}
+                          {late > 0 && (
+                            <span className="bl-sub bl-late">
+                              ! {late} {late === 1 ? 'day' : 'days'} late
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <RecordStatus kind="invoice" status={inv.status} />
+                        </td>
+                        <td className="num">{money(inv.totalAmount)}</td>
+                        <td
+                          className="num"
+                          style={late > 0 ? { color: 'var(--danger)', fontWeight: 600 } : undefined}
+                        >
+                          {owed === '0.0000' ? '—' : money(owed)}
+                        </td>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          {inv.status === 'DRAFT' && canPost ? (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              onClick={() => setToPost(inv)}
+                            >
+                              Post
+                            </button>
+                          ) : (
+                            <Link href={`/sales/invoices/${inv.id}`} className="btn btn-secondary btn-sm">
+                              Open
+                            </Link>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {!loading && total > invoices.length && (
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+              Showing the latest {invoices.length} of {total}. Search to find older invoices.
+            </p>
+          )}
+        </Panel>
+      </Page>
+
+      <AiInvoiceDraftModal isOpen={showAi} onClose={() => setShowAi(false)} />
+      <ConfirmDialog
+        open={!!toPost}
+        title={`Post ${toPost?.invoiceNumber ?? 'invoice'}?`}
+        confirmLabel="Post invoice"
+        onCancel={() => setToPost(null)}
+        onConfirm={post}
+      >
+        <p style={{ margin: 0 }}>
+          This records the sale for <strong>{toPost?.contact.name}</strong> — {money(toPost?.totalAmount)}{' '}
+          including VAT — in your books.
+        </p>
+        <p style={{ margin: 0 }}>
+          Posted invoices can’t be edited. To correct one later, you’d void it or raise a credit note.
+        </p>
+      </ConfirmDialog>
     </AppShell>
   );
 }

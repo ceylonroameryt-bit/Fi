@@ -276,6 +276,7 @@ export default function BankAccountsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ maxWidth: '1240px', margin: '0 auto', paddingBottom: '3rem' }}>
         {/* =========================================================
             1. TOP HEADER & MAIN ACTION BUTTONS
@@ -288,8 +289,8 @@ export default function BankAccountsPage() {
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
-                  backgroundColor: '#041F46',
-                  color: '#18D3BE',
+                  backgroundColor: 'var(--nav-bg)',
+                  color: 'var(--action-text)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -297,11 +298,11 @@ export default function BankAccountsPage() {
               >
                 <Landmark size={18} />
               </div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.025em', margin: 0 }}>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.025em', margin: 0 }}>
                 Bank Accounts
               </h1>
             </div>
-            <p style={{ color: '#64748B', fontSize: '0.9rem', margin: 0 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
               Manage corporate bank accounts, customize Chart of Accounts mapping, and configure automated reconciliation rules.
             </p>
           </div>
@@ -314,8 +315,8 @@ export default function BankAccountsPage() {
                 alignItems: 'center',
                 gap: '0.45rem',
                 backgroundColor: '#FFFFFF',
-                color: '#334155',
-                border: '1px solid #CBD5E1',
+                color: 'var(--ink-2)',
+                border: '1px solid var(--border-strong)',
                 padding: '0.55rem 0.95rem',
                 borderRadius: '0.5rem',
                 fontSize: '0.85rem',
@@ -324,7 +325,7 @@ export default function BankAccountsPage() {
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
               }}
             >
-              <Zap size={15} style={{ color: '#F59E0B' }} />
+              <Zap size={15} style={{ color: 'var(--warning-text)' }} />
               <span>Bank Rules</span>
             </Link>
 
@@ -335,8 +336,8 @@ export default function BankAccountsPage() {
                 alignItems: 'center',
                 gap: '0.45rem',
                 backgroundColor: '#FFFFFF',
-                color: '#334155',
-                border: '1px solid #CBD5E1',
+                color: 'var(--ink-2)',
+                border: '1px solid var(--border-strong)',
                 padding: '0.55rem 0.95rem',
                 borderRadius: '0.5rem',
                 fontSize: '0.85rem',
@@ -345,7 +346,7 @@ export default function BankAccountsPage() {
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
               }}
             >
-              <FileSpreadsheet size={15} style={{ color: '#0284C7' }} />
+              <FileSpreadsheet size={15} style={{ color: 'var(--primary)' }} />
               <span>Import Statements</span>
             </Link>
 
@@ -356,8 +357,8 @@ export default function BankAccountsPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.45rem',
-                  backgroundColor: '#041F46',
-                  backgroundImage: 'linear-gradient(135deg, #041F46 0%, #082E64 100%)',
+                  backgroundColor: 'var(--nav-bg)',
+                  backgroundImage: 'linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg) 100%)',
                   color: '#FFFFFF',
                   border: 'none',
                   padding: '0.55rem 1.15rem',
@@ -380,38 +381,38 @@ export default function BankAccountsPage() {
             2. METRIC KPI CARDS
            ========================================================= */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.65rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.65rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total General Ledger Balance
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
               £{totalLedgerBalance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#10B981', marginTop: '0.25rem', fontWeight: 500 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--success-text)', marginTop: '0.25rem', fontWeight: 500 }}>
               Across all linked bank nominals
             </div>
           </div>
 
-          <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.65rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.65rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Active Bank Accounts
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2563EB', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
               {activeCount}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
               Configured and operating
             </div>
           </div>
 
-          <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.65rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <div style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.65rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Pending Reconciliation
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: totalUnmatched > 0 ? '#F59E0B' : '#10B981', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: totalUnmatched > 0 ? 'var(--warning-text)' : 'var(--success-text)', marginTop: '0.35rem', letterSpacing: '-0.02em' }}>
               {totalUnmatched} {totalUnmatched === 1 ? 'line' : 'lines'}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
               Unmatched statement items
             </div>
           </div>
@@ -419,16 +420,16 @@ export default function BankAccountsPage() {
 
         {/* Notifications */}
         {successBanner && (
-          <div style={{ padding: '0.75rem 1.25rem', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', borderRadius: '0.5rem', marginBottom: '1.25rem', fontSize: '0.875rem', fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '0.75rem 1.25rem', backgroundColor: 'var(--success-bg)', border: '1px solid var(--success-border)', color: 'var(--success-text)', borderRadius: '0.5rem', marginBottom: '1.25rem', fontSize: '0.875rem', fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>{successBanner}</span>
-            <button onClick={() => setSuccessBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#065F46', fontWeight: 700 }}>✕</button>
+            <button onClick={() => setSuccessBanner(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success-text)', fontWeight: 700 }}>✕</button>
           </div>
         )}
 
         {error && (
-          <div style={{ padding: '0.75rem 1.25rem', backgroundColor: '#FEF2F2', border: '1px solid #F87171', color: '#B91C1C', borderRadius: '0.5rem', marginBottom: '1.25rem', fontSize: '0.875rem', fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '0.75rem 1.25rem', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger)', borderRadius: '0.5rem', marginBottom: '1.25rem', fontSize: '0.875rem', fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>{error}</span>
-            <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B91C1C', fontWeight: 700 }}>✕</button>
+            <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 700 }}>✕</button>
           </div>
         )}
 
@@ -446,7 +447,7 @@ export default function BankAccountsPage() {
           }}
         >
           {/* Status Filter Tabs */}
-          <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: '#F1F5F9', padding: '0.25rem', borderRadius: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.35rem', backgroundColor: 'var(--bg-soft)', padding: '0.25rem', borderRadius: '0.5rem' }}>
             <button
               onClick={() => setStatusFilter('ACTIVE')}
               style={{
@@ -456,7 +457,7 @@ export default function BankAccountsPage() {
                 borderRadius: '0.375rem',
                 border: 'none',
                 backgroundColor: statusFilter === 'ACTIVE' ? '#FFFFFF' : 'transparent',
-                color: statusFilter === 'ACTIVE' ? '#0F172A' : '#64748B',
+                color: statusFilter === 'ACTIVE' ? 'var(--text-main)' : 'var(--text-muted)',
                 boxShadow: statusFilter === 'ACTIVE' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
               }}
@@ -472,7 +473,7 @@ export default function BankAccountsPage() {
                 borderRadius: '0.375rem',
                 border: 'none',
                 backgroundColor: statusFilter === 'ARCHIVED' ? '#FFFFFF' : 'transparent',
-                color: statusFilter === 'ARCHIVED' ? '#0F172A' : '#64748B',
+                color: statusFilter === 'ARCHIVED' ? 'var(--text-main)' : 'var(--text-muted)',
                 boxShadow: statusFilter === 'ARCHIVED' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
               }}
@@ -488,7 +489,7 @@ export default function BankAccountsPage() {
                 borderRadius: '0.375rem',
                 border: 'none',
                 backgroundColor: statusFilter === 'ALL' ? '#FFFFFF' : 'transparent',
-                color: statusFilter === 'ALL' ? '#0F172A' : '#64748B',
+                color: statusFilter === 'ALL' ? 'var(--text-main)' : 'var(--text-muted)',
                 boxShadow: statusFilter === 'ALL' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 cursor: 'pointer',
               }}
@@ -499,7 +500,7 @@ export default function BankAccountsPage() {
 
           {/* Quick Search */}
           <div style={{ position: 'relative', width: '280px' }}>
-            <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+            <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               placeholder="Search account name, bank..."
@@ -508,11 +509,11 @@ export default function BankAccountsPage() {
               style={{
                 width: '100%',
                 padding: '0.45rem 0.75rem 0.45rem 2.25rem',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.5rem',
                 fontSize: '0.825rem',
                 backgroundColor: '#FFFFFF',
-                color: '#0F172A',
+                color: 'var(--text-main)',
               }}
             />
           </div>
@@ -521,10 +522,10 @@ export default function BankAccountsPage() {
         {/* =========================================================
             4. BANK ACCOUNTS TABLE
            ========================================================= */}
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.65rem', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.65rem', border: '1px solid var(--border-subtle)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
             <thead>
-              <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 600 }}>
+              <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)', fontWeight: 600 }}>
                 <th style={{ padding: '0.85rem 1rem' }}>Account Name</th>
                 <th style={{ padding: '0.85rem 1rem' }}>Institution / Identifier</th>
                 <th style={{ padding: '0.85rem 1rem' }}>Nominal Code (GL)</th>
@@ -538,24 +539,24 @@ export default function BankAccountsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: '#64748B' }}>
+                  <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                     Loading bank accounts...
                   </td>
                 </tr>
               ) : filteredAccounts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '3.5rem', textAlign: 'center', color: '#64748B' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
+                  <td colSpan={8} style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                       {searchQuery ? 'No matching bank accounts' : 'No bank accounts connected'}
                     </div>
-                    <div style={{ fontSize: '0.875rem', marginBottom: '1.25rem', color: '#64748B' }}>
+                    <div style={{ fontSize: '0.875rem', marginBottom: '1.25rem', color: 'var(--text-muted)' }}>
                       {searchQuery ? 'Try adjusting your search query.' : 'Add a bank account linked to your Chart of Accounts to enable bank feeds.'}
                     </div>
                     {canManage && (
                       <button
                         onClick={() => setShowAddModal(true)}
                         style={{
-                          backgroundColor: '#2563EB',
+                          backgroundColor: 'var(--primary)',
                           color: '#FFFFFF',
                           border: 'none',
                           padding: '0.55rem 1.15rem',
@@ -576,17 +577,17 @@ export default function BankAccountsPage() {
                   const stmtBal = account.statementBalance ? Number(account.statementBalance) : null;
 
                   return (
-                    <tr key={account.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background-color 0.15s ease' }}>
+                    <tr key={account.id} style={{ borderBottom: '1px solid var(--bg-soft)', transition: 'background-color 0.15s ease' }}>
                       <td style={{ padding: '0.85rem 1rem' }}>
-                        <div style={{ fontWeight: 700, color: '#0F172A' }}>{account.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{account.currency || 'GBP'}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{account.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{account.currency || 'GBP'}</div>
                       </td>
-                      <td style={{ padding: '0.85rem 1rem', color: '#334155' }}>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--ink-2)' }}>
                         <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <Building size={14} style={{ color: '#64748B' }} />
+                          <Building size={14} style={{ color: 'var(--text-muted)' }} />
                           <span>{account.bankName || 'Barclays'}</span>
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                           {account.sortCode && `Sort: ${account.sortCode} `}
                           {account.accountNumber && `Acc: ••••${account.accountNumber.slice(-4)}`}
                           {account.iban && `IBAN: ${account.iban.slice(0, 4)}...${account.iban.slice(-4)}`}
@@ -596,8 +597,8 @@ export default function BankAccountsPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                           <span
                             style={{
-                              backgroundColor: '#F1F5F9',
-                              color: '#334155',
+                              backgroundColor: 'var(--bg-soft)',
+                              color: 'var(--ink-2)',
                               padding: '0.15rem 0.45rem',
                               borderRadius: '0.25rem',
                               fontFamily: 'monospace',
@@ -607,34 +608,34 @@ export default function BankAccountsPage() {
                           >
                             {account.nominalAccount.code}
                           </span>
-                          <span style={{ color: '#475569', fontSize: '0.825rem' }}>{account.nominalAccount.name}</span>
+                          <span style={{ color: 'var(--ink-2)', fontSize: '0.825rem' }}>{account.nominalAccount.name}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 700, color: glBal >= 0 ? '#0F172A' : '#EF4444' }}>
+                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', fontWeight: 700, color: glBal >= 0 ? 'var(--text-main)' : 'var(--danger)' }}>
                         £{glBal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: '#64748B' }}>
+                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: 'var(--text-muted)' }}>
                         {stmtBal !== null ? (
                           <>
-                            <div style={{ fontWeight: 700, color: '#0F172A' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
                               £{stmtBal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                             {account.lastImportedAt && (
-                              <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                                 As of {new Date(account.lastImportedAt).toLocaleDateString('en-GB')}
                               </div>
                             )}
                           </>
                         ) : (
-                          <span style={{ fontStyle: 'italic', color: '#94A3B8' }}>£19,970.00</span>
+                          <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>£19,970.00</span>
                         )}
                       </td>
                       <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
                         {account.unmatchedCount > 0 ? (
                           <span
                             style={{
-                              backgroundColor: '#FEF3C7',
-                              color: '#92400E',
+                              backgroundColor: 'var(--warning-bg)',
+                              color: 'var(--warning-text)',
                               padding: '0.2rem 0.55rem',
                               borderRadius: '9999px',
                               fontWeight: 700,
@@ -646,8 +647,8 @@ export default function BankAccountsPage() {
                         ) : (
                           <span
                             style={{
-                              backgroundColor: '#ECFDF5',
-                              color: '#065F46',
+                              backgroundColor: 'var(--success-bg)',
+                              color: 'var(--success-text)',
                               padding: '0.2rem 0.55rem',
                               borderRadius: '9999px',
                               fontWeight: 600,
@@ -661,8 +662,8 @@ export default function BankAccountsPage() {
                       <td style={{ padding: '0.85rem 1rem' }}>
                         <span
                           style={{
-                            backgroundColor: account.status === 'ACTIVE' ? '#EFF6FF' : '#F1F5F9',
-                            color: account.status === 'ACTIVE' ? '#1D4ED8' : '#64748B',
+                            backgroundColor: account.status === 'ACTIVE' ? 'var(--info-bg)' : 'var(--bg-soft)',
+                            color: account.status === 'ACTIVE' ? 'var(--primary)' : 'var(--text-muted)',
                             padding: '0.2rem 0.55rem',
                             borderRadius: '9999px',
                             fontWeight: 700,
@@ -678,12 +679,12 @@ export default function BankAccountsPage() {
                             href={`/banking/transactions?bankAccountId=${account.id}`}
                             style={{
                               padding: '0.35rem 0.65rem',
-                              backgroundColor: '#F8FAFC',
-                              border: '1px solid #CBD5E1',
+                              backgroundColor: 'var(--bg-app)',
+                              border: '1px solid var(--border-strong)',
                               borderRadius: '0.375rem',
                               fontSize: '0.775rem',
                               fontWeight: 600,
-                              color: '#334155',
+                              color: 'var(--ink-2)',
                               textDecoration: 'none',
                             }}
                           >
@@ -693,12 +694,12 @@ export default function BankAccountsPage() {
                             href={`/banking/reconciliation?bankAccountId=${account.id}`}
                             style={{
                               padding: '0.35rem 0.65rem',
-                              backgroundColor: '#EFF6FF',
-                              border: '1px solid #BFDBFE',
+                              backgroundColor: 'var(--info-bg)',
+                              border: '1px solid var(--info-border)',
                               borderRadius: '0.375rem',
                               fontSize: '0.775rem',
                               fontWeight: 600,
-                              color: '#1D4ED8',
+                              color: 'var(--primary)',
                               textDecoration: 'none',
                             }}
                           >
@@ -714,15 +715,15 @@ export default function BankAccountsPage() {
                               gap: '0.3rem',
                               padding: '0.35rem 0.65rem',
                               backgroundColor: '#FFFFFF',
-                              border: '1px solid #CBD5E1',
+                              border: '1px solid var(--border-strong)',
                               borderRadius: '0.375rem',
                               fontSize: '0.775rem',
                               fontWeight: 600,
-                              color: '#0F172A',
+                              color: 'var(--text-main)',
                               cursor: 'pointer',
                             }}
                           >
-                            <Settings size={13} style={{ color: '#475569' }} />
+                            <Settings size={13} style={{ color: 'var(--ink-2)' }} />
                             <span>Customize</span>
                           </button>
 
@@ -737,12 +738,12 @@ export default function BankAccountsPage() {
                                 alignItems: 'center',
                                 gap: '0.3rem',
                                 padding: '0.35rem 0.65rem',
-                                backgroundColor: '#FFF1F2',
-                                border: '1px solid #FECDD3',
+                                backgroundColor: 'var(--danger-bg)',
+                                border: '1px solid var(--danger-border)',
                                 borderRadius: '0.375rem',
                                 fontSize: '0.775rem',
                                 fontWeight: 600,
-                                color: '#E11D48',
+                                color: 'var(--danger)',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s ease',
                               }}
@@ -796,21 +797,21 @@ export default function BankAccountsPage() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: 'var(--info-bg)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <SlidersHorizontal size={18} />
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                       Customize Bank Account Settings
                     </h2>
-                    <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       Configure nominal mapping, banking identifiers, and automated AI reconciliation rules.
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowEditModal(false)}
-                  style={{ background: 'none', border: 'none', fontSize: '1.25rem', color: '#64748B', cursor: 'pointer', fontWeight: 700 }}
+                  style={{ background: 'none', border: 'none', fontSize: '1.25rem', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 700 }}
                 >
                   ✕
                 </button>
@@ -819,7 +820,7 @@ export default function BankAccountsPage() {
               <form onSubmit={handleSaveCustomize}>
                 {/* General Settings */}
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Account Display Name *
                   </label>
                   <input
@@ -830,17 +831,17 @@ export default function BankAccountsPage() {
                     style={{
                       width: '100%',
                       padding: '0.55rem 0.75rem',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                       borderRadius: '0.375rem',
                       fontSize: '0.875rem',
-                      color: '#0F172A',
+                      color: 'var(--text-main)',
                     }}
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                       Bank / Financial Institution
                     </label>
                     <input
@@ -851,16 +852,16 @@ export default function BankAccountsPage() {
                       style={{
                         width: '100%',
                         padding: '0.55rem 0.75rem',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
                         fontSize: '0.875rem',
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
                       }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                       Status
                     </label>
                     <select
@@ -869,12 +870,12 @@ export default function BankAccountsPage() {
                       style={{
                         width: '100%',
                         padding: '0.55rem 0.75rem',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
                         fontSize: '0.875rem',
                         fontWeight: 600,
                         backgroundColor: '#FFFFFF',
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
                       }}
                     >
                       <option value="ACTIVE">ACTIVE (Operating)</option>
@@ -884,11 +885,11 @@ export default function BankAccountsPage() {
                 </div>
 
                 {/* Nominal Chart of Accounts Link */}
-                <div style={{ marginBottom: '1.25rem', backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
+                <div style={{ marginBottom: '1.25rem', backgroundColor: 'var(--bg-app)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                     Linked Chart of Accounts Nominal Code *
                   </label>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                     Transactions from this bank account will automatically debit/credit this General Ledger nominal.
                   </div>
                   <select
@@ -897,12 +898,12 @@ export default function BankAccountsPage() {
                     style={{
                       width: '100%',
                       padding: '0.55rem 0.75rem',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                       borderRadius: '0.375rem',
                       fontSize: '0.875rem',
                       fontWeight: 600,
                       backgroundColor: '#FFFFFF',
-                      color: '#0F172A',
+                      color: 'var(--text-main)',
                     }}
                   >
                     {nominalAccounts.map((acc) => (
@@ -916,7 +917,7 @@ export default function BankAccountsPage() {
                 {/* Banking Identifiers */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                       Sort Code (UK)
                     </label>
                     <input
@@ -927,16 +928,16 @@ export default function BankAccountsPage() {
                       style={{
                         width: '100%',
                         padding: '0.55rem 0.75rem',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
                         fontSize: '0.875rem',
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
                       }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                       Account Number
                     </label>
                     <input
@@ -947,17 +948,17 @@ export default function BankAccountsPage() {
                       style={{
                         width: '100%',
                         padding: '0.55rem 0.75rem',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
                         fontSize: '0.875rem',
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
                       }}
                     />
                   </div>
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     IBAN (International)
                   </label>
                   <input
@@ -968,26 +969,26 @@ export default function BankAccountsPage() {
                     style={{
                       width: '100%',
                       padding: '0.55rem 0.75rem',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                       borderRadius: '0.375rem',
                       fontSize: '0.875rem',
-                      color: '#0F172A',
+                      color: 'var(--text-main)',
                     }}
                   />
                 </div>
 
                 {/* AI Reconciliation Preferences Box */}
-                <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: '#166534', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                    <ShieldCheck size={16} style={{ color: '#15803D' }} />
+                <div style={{ backgroundColor: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: 'var(--success-text)', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
+                    <ShieldCheck size={16} style={{ color: 'var(--success-text)' }} />
                     <span>AI Reconciliation Automation</span>
                   </div>
-                  <div style={{ fontSize: '0.775rem', color: '#15803D', marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.775rem', color: 'var(--success-text)', marginBottom: '0.75rem' }}>
                     Customize AI matching sensitivity for 1-Click Auto-Reconcile on this bank account.
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#166534' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--success-text)' }}>
                       Auto-Reconcile Confidence Threshold:
                     </span>
                     <select
@@ -996,11 +997,11 @@ export default function BankAccountsPage() {
                       style={{
                         padding: '0.35rem 0.65rem',
                         borderRadius: '0.375rem',
-                        border: '1px solid #86EFAC',
+                        border: '1px solid var(--success-border)',
                         backgroundColor: '#FFFFFF',
                         fontWeight: 700,
                         fontSize: '0.8rem',
-                        color: '#166534',
+                        color: 'var(--success-text)',
                       }}
                     >
                       <option value="0.95">Strict (95%+ Confidence)</option>
@@ -1011,12 +1012,12 @@ export default function BankAccountsPage() {
                 </div>
 
                 {/* Danger Zone: Archive / Delete */}
-                <div style={{ backgroundColor: '#FFF1F2', border: '1px solid #FECDD3', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: '#991B1B', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                    <AlertTriangle size={15} style={{ color: '#E11D48' }} />
+                <div style={{ backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: 'var(--danger-text)', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
+                    <AlertTriangle size={15} style={{ color: 'var(--danger)' }} />
                     <span>Danger Zone: Archive or Remove Account</span>
                   </div>
-                  <div style={{ fontSize: '0.775rem', color: '#9F1239', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                  <div style={{ fontSize: '0.775rem', color: 'var(--danger-text)', marginBottom: '0.75rem', lineHeight: 1.4 }}>
                     Archive to safely deactivate feeds and hide this account from reconciliation while preserving the General Ledger balance, or permanently disconnect and remove the account.
                   </div>
                   <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
@@ -1029,11 +1030,11 @@ export default function BankAccountsPage() {
                         gap: '0.35rem',
                         padding: '0.45rem 0.85rem',
                         backgroundColor: '#FFFFFF',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
                         fontSize: '0.775rem',
                         fontWeight: 600,
-                        color: '#334155',
+                        color: 'var(--ink-2)',
                         cursor: 'pointer',
                       }}
                     >
@@ -1051,7 +1052,7 @@ export default function BankAccountsPage() {
                         alignItems: 'center',
                         gap: '0.35rem',
                         padding: '0.45rem 0.85rem',
-                        backgroundColor: '#E11D48',
+                        backgroundColor: 'var(--danger)',
                         border: 'none',
                         borderRadius: '0.375rem',
                         fontSize: '0.775rem',
@@ -1074,11 +1075,11 @@ export default function BankAccountsPage() {
                     style={{
                       padding: '0.55rem 1rem',
                       backgroundColor: '#FFFFFF',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                       borderRadius: '0.375rem',
                       fontWeight: 600,
                       fontSize: '0.875rem',
-                      color: '#475569',
+                      color: 'var(--ink-2)',
                       cursor: 'pointer',
                     }}
                   >
@@ -1089,7 +1090,7 @@ export default function BankAccountsPage() {
                     disabled={savingEdit}
                     style={{
                       padding: '0.55rem 1.25rem',
-                      backgroundColor: '#2563EB',
+                      backgroundColor: 'var(--primary)',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: '0.375rem',
@@ -1140,21 +1141,21 @@ export default function BankAccountsPage() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: 'var(--info-bg)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Landmark size={18} />
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                       Add Bank Account
                     </h2>
-                    <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       Add a company bank account and map to your Chart of Accounts.
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowAddModal(false)}
-                  style={{ background: 'none', border: 'none', fontSize: '1.25rem', color: '#64748B', cursor: 'pointer', fontWeight: 700 }}
+                  style={{ background: 'none', border: 'none', fontSize: '1.25rem', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 700 }}
                 >
                   ✕
                 </button>
@@ -1162,7 +1163,7 @@ export default function BankAccountsPage() {
 
               <form onSubmit={handleCreate}>
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Account Name *
                   </label>
                   <input
@@ -1174,17 +1175,17 @@ export default function BankAccountsPage() {
                     style={{
                       width: '100%',
                       padding: '0.55rem 0.75rem',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                       borderRadius: '0.375rem',
                       fontSize: '0.875rem',
-                      color: '#0F172A',
+                      color: 'var(--text-main)',
                     }}
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                       Bank / Provider
                     </label>
                     <input
@@ -1195,16 +1196,16 @@ export default function BankAccountsPage() {
                       style={{
                         width: '100%',
                         padding: '0.55rem 0.75rem',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
                         fontSize: '0.875rem',
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
                       }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                       Currency
                     </label>
                     <select
@@ -1213,12 +1214,12 @@ export default function BankAccountsPage() {
                       style={{
                         width: '100%',
                         padding: '0.55rem 0.75rem',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
                         fontSize: '0.875rem',
                         fontWeight: 600,
                         backgroundColor: '#FFFFFF',
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
                       }}
                     >
                       <option value="GBP">GBP - British Pound</option>
@@ -1229,7 +1230,7 @@ export default function BankAccountsPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Linked Nominal Account (Chart of Accounts) *
                   </label>
                   <select
@@ -1238,12 +1239,12 @@ export default function BankAccountsPage() {
                     style={{
                       width: '100%',
                       padding: '0.55rem 0.75rem',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                       borderRadius: '0.375rem',
                       fontSize: '0.875rem',
                       fontWeight: 600,
                       backgroundColor: '#FFFFFF',
-                      color: '#0F172A',
+                      color: 'var(--text-main)',
                     }}
                   >
                     {nominalAccounts.map((acc) => (
@@ -1256,7 +1257,7 @@ export default function BankAccountsPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                       Sort Code (UK)
                     </label>
                     <input
@@ -1267,16 +1268,16 @@ export default function BankAccountsPage() {
                       style={{
                         width: '100%',
                         padding: '0.55rem 0.75rem',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
                         fontSize: '0.875rem',
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
                       }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                       Account Number
                     </label>
                     <input
@@ -1287,17 +1288,17 @@ export default function BankAccountsPage() {
                       style={{
                         width: '100%',
                         padding: '0.55rem 0.75rem',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
                         fontSize: '0.875rem',
-                        color: '#0F172A',
+                        color: 'var(--text-main)',
                       }}
                     />
                   </div>
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     IBAN (Optional)
                   </label>
                   <input
@@ -1308,10 +1309,10 @@ export default function BankAccountsPage() {
                     style={{
                       width: '100%',
                       padding: '0.55rem 0.75rem',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                       borderRadius: '0.375rem',
                       fontSize: '0.875rem',
-                      color: '#0F172A',
+                      color: 'var(--text-main)',
                     }}
                   />
                 </div>
@@ -1323,11 +1324,11 @@ export default function BankAccountsPage() {
                     style={{
                       padding: '0.55rem 1rem',
                       backgroundColor: '#FFFFFF',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                       borderRadius: '0.375rem',
                       fontWeight: 600,
                       fontSize: '0.875rem',
-                      color: '#475569',
+                      color: 'var(--ink-2)',
                       cursor: 'pointer',
                     }}
                   >
@@ -1338,7 +1339,7 @@ export default function BankAccountsPage() {
                     disabled={submitting}
                     style={{
                       padding: '0.55rem 1.25rem',
-                      backgroundColor: '#2563EB',
+                      backgroundColor: 'var(--primary)',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: '0.375rem',
@@ -1384,7 +1385,7 @@ export default function BankAccountsPage() {
                 maxWidth: '520px',
                 width: '100%',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1394,8 +1395,8 @@ export default function BankAccountsPage() {
                     width: '42px',
                     height: '42px',
                     borderRadius: '10px',
-                    backgroundColor: '#FFE4E6',
-                    color: '#E11D48',
+                    backgroundColor: 'var(--danger-bg)',
+                    color: 'var(--danger)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1404,23 +1405,23 @@ export default function BankAccountsPage() {
                   <Trash2 size={22} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
                     Remove Bank Account?
                   </h3>
-                  <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.15rem 0 0 0' }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
                     Choose whether to safely archive or permanently delete this account.
                   </p>
                 </div>
               </div>
 
-              <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.925rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.25rem' }}>
+              <div style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                   {deletingAccount.name}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   {deletingAccount.bankName || 'Bank Account'} • {deletingAccount.currency || 'GBP'} • Linked Nominal: <strong>{deletingAccount.nominalAccount.code} - {deletingAccount.nominalAccount.name}</strong>
                 </div>
-                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#334155' }}>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--ink-2)' }}>
                   General Ledger Balance: <strong>£{Number(deletingAccount.ledgerBalance || 0).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</strong>
                 </div>
               </div>
@@ -1430,7 +1431,7 @@ export default function BankAccountsPage() {
                 <div
                   onClick={() => handleToggleArchive(deletingAccount)}
                   style={{
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     borderRadius: '0.5rem',
                     padding: '0.85rem',
                     cursor: 'pointer',
@@ -1441,12 +1442,12 @@ export default function BankAccountsPage() {
                     transition: 'border-color 0.15s ease',
                   }}
                 >
-                  <Archive size={18} color="#2563EB" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <Archive size={18} color="#102654" style={{ marginTop: '2px', flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
                       Archive Account (Safe & Recommended)
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem', lineHeight: 1.4 }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.4 }}>
                       Deactivates this account and hides it from active reconciliation feeds while fully preserving your accounting ledger balance and past audit history.
                     </div>
                   </div>
@@ -1455,22 +1456,22 @@ export default function BankAccountsPage() {
                 <div
                   onClick={handleDeleteAccount}
                   style={{
-                    border: '1px solid #FECDD3',
+                    border: '1px solid var(--danger-border)',
                     borderRadius: '0.5rem',
                     padding: '0.85rem',
                     cursor: 'pointer',
-                    backgroundColor: '#FFF1F2',
+                    backgroundColor: 'var(--danger-bg)',
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '0.65rem',
                   }}
                 >
-                  <AlertTriangle size={18} color="#E11D48" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <AlertTriangle size={18} color="#B42318" style={{ marginTop: '2px', flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#991B1B' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--danger-text)' }}>
                       Permanently Delete Account
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#9F1239', marginTop: '0.15rem', lineHeight: 1.4 }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--danger-text)', marginTop: '0.15rem', lineHeight: 1.4 }}>
                       Completely unlinks and removes this bank account and its statement feeds from the system.
                     </div>
                   </div>
@@ -1485,11 +1486,11 @@ export default function BankAccountsPage() {
                   style={{
                     padding: '0.55rem 1.15rem',
                     backgroundColor: '#FFFFFF',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     borderRadius: '0.375rem',
                     fontSize: '0.85rem',
                     fontWeight: 600,
-                    color: '#475569',
+                    color: 'var(--ink-2)',
                     cursor: 'pointer',
                   }}
                 >
@@ -1501,7 +1502,7 @@ export default function BankAccountsPage() {
                   disabled={isDeleting}
                   style={{
                     padding: '0.55rem 1.25rem',
-                    backgroundColor: '#E11D48',
+                    backgroundColor: 'var(--danger)',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: '0.375rem',
@@ -1516,6 +1517,7 @@ export default function BankAccountsPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </AppShell>
   );

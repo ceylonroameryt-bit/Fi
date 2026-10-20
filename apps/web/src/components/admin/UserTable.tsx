@@ -83,7 +83,7 @@ export function UserTable({
       style={{
         backgroundColor: '#FFFFFF',
         borderRadius: '10px',
-        border: '1px solid #E2E8F0',
+        border: '1px solid var(--border-subtle)',
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         padding: '1.5rem',
       }}
@@ -100,10 +100,10 @@ export function UserTable({
         }}
       >
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
             Global Users Directory
           </h2>
-          <p style={{ margin: '0.2rem 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>
+          <p style={{ margin: '0.2rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
             {userTotal} accounts registered across all tenants
           </p>
         </div>
@@ -117,7 +117,7 @@ export function UserTable({
             style={{
               padding: '0.5rem 0.85rem',
               borderRadius: '6px',
-              border: '1px solid #CBD5E1',
+              border: '1px solid var(--border-strong)',
               fontSize: '0.85rem',
               minWidth: '220px',
             }}
@@ -129,7 +129,7 @@ export function UserTable({
             style={{
               padding: '0.5rem 0.85rem',
               borderRadius: '6px',
-              border: '1px solid #CBD5E1',
+              border: '1px solid var(--border-strong)',
               fontSize: '0.85rem',
               backgroundColor: '#FFFFFF',
             }}
@@ -141,7 +141,7 @@ export function UserTable({
             <option value="INVITED">INVITED</option>
           </select>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: '#334155', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--ink-2)', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={userSuperOnly}
@@ -156,25 +156,25 @@ export function UserTable({
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>User</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Privilege</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Status</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Verified</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Last Login</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569', textAlign: 'right' }}>Actions</th>
+            <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>User</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Privilege</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Status</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Verified</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Last Login</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {userLoading ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                   Loading users...
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                   No users found matching criteria.
                 </td>
               </tr>
@@ -182,24 +182,24 @@ export function UserTable({
               users.map((u) => {
                 const isCurrentUser = u.id === currentUserId;
                 return (
-                  <tr key={u.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                  <tr key={u.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
                     <td style={{ padding: '0.85rem 1rem' }}>
-                      <div style={{ fontWeight: 600, color: '#0F172A' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                         {u.firstName || u.lastName ? `${u.firstName} ${u.lastName}` : 'No Name'}
                         {isCurrentUser && (
-                          <span style={{ marginLeft: '0.4rem', fontSize: '0.7rem', color: '#2563EB', backgroundColor: '#EFF6FF', padding: '0.1rem 0.35rem', borderRadius: '3px' }}>
+                          <span style={{ marginLeft: '0.4rem', fontSize: '0.7rem', color: 'var(--primary)', backgroundColor: 'var(--info-bg)', padding: '0.1rem 0.35rem', borderRadius: '3px' }}>
                             You
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{u.email}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.email}</div>
                     </td>
                     <td style={{ padding: '0.85rem 1rem' }}>
                       {u.isSuperAdmin ? (
                         <span
                           style={{
-                            backgroundColor: '#FEF3C7',
-                            color: '#92400E',
+                            backgroundColor: 'var(--warning-bg)',
+                            color: 'var(--warning-text)',
                             border: '1px solid #FCD34D',
                             padding: '0.2rem 0.55rem',
                             borderRadius: '4px',
@@ -210,15 +210,15 @@ export function UserTable({
                           Super Admin
                         </span>
                       ) : (
-                        <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>Standard User</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Standard User</span>
                       )}
                     </td>
                     <td style={{ padding: '0.85rem 1rem' }}>
                       <span
                         style={{
-                          backgroundColor: u.status === 'ACTIVE' ? '#ECFDF5' : '#FEF2F2',
-                          color: u.status === 'ACTIVE' ? '#065F46' : '#991B1B',
-                          border: `1px solid ${u.status === 'ACTIVE' ? '#A7F3D0' : '#FECACA'}`,
+                          backgroundColor: u.status === 'ACTIVE' ? 'var(--success-bg)' : 'var(--danger-bg)',
+                          color: u.status === 'ACTIVE' ? 'var(--success-text)' : 'var(--danger-text)',
+                          border: `1px solid ${u.status === 'ACTIVE' ? 'var(--success-border)' : 'var(--danger-border)'}`,
                           padding: '0.2rem 0.5rem',
                           borderRadius: '4px',
                           fontSize: '0.75rem',
@@ -230,12 +230,12 @@ export function UserTable({
                     </td>
                     <td style={{ padding: '0.85rem 1rem' }}>
                       {u.emailVerified ? (
-                        <span style={{ color: '#16A34A', fontWeight: 600 }}>✓ Verified</span>
+                        <span style={{ color: 'var(--success-text)', fontWeight: 600 }}>✓ Verified</span>
                       ) : (
-                        <span style={{ color: '#D97706' }}>Pending</span>
+                        <span style={{ color: 'var(--warning-text)' }}>Pending</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.85rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
+                    <td style={{ padding: '0.85rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never'}
                     </td>
                     <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
@@ -247,9 +247,9 @@ export function UserTable({
                             setModalError(null);
                           }}
                           style={{
-                            backgroundColor: '#F8FAFC',
-                            color: '#334155',
-                            border: '1px solid #CBD5E1',
+                            backgroundColor: 'var(--bg-app)',
+                            color: 'var(--ink-2)',
+                            border: '1px solid var(--border-strong)',
                             padding: '0.35rem 0.65rem',
                             borderRadius: '5px',
                             fontSize: '0.75rem',
@@ -264,9 +264,9 @@ export function UserTable({
                           <button
                             onClick={() => onToggleSuperAdmin(u)}
                             style={{
-                              backgroundColor: u.isSuperAdmin ? '#FFFBEB' : '#F1F5F9',
-                              color: u.isSuperAdmin ? '#B45309' : '#475569',
-                              border: `1px solid ${u.isSuperAdmin ? '#FDE68A' : '#CBD5E1'}`,
+                              backgroundColor: u.isSuperAdmin ? 'var(--warning-bg)' : 'var(--bg-soft)',
+                              color: u.isSuperAdmin ? 'var(--warning-text)' : 'var(--ink-2)',
+                              border: `1px solid ${u.isSuperAdmin ? 'var(--warning-border)' : 'var(--border-strong)'}`,
                               padding: '0.35rem 0.65rem',
                               borderRadius: '5px',
                               fontSize: '0.75rem',
@@ -283,9 +283,9 @@ export function UserTable({
                           <button
                             onClick={() => onUpdateStatus(u.id, u.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE')}
                             style={{
-                              backgroundColor: u.status === 'ACTIVE' ? '#FEF2F2' : '#ECFDF5',
-                              color: u.status === 'ACTIVE' ? '#DC2626' : '#059669',
-                              border: `1px solid ${u.status === 'ACTIVE' ? '#FECACA' : '#A7F3D0'}`,
+                              backgroundColor: u.status === 'ACTIVE' ? 'var(--danger-bg)' : 'var(--success-bg)',
+                              color: u.status === 'ACTIVE' ? 'var(--danger)' : 'var(--success-text)',
+                              border: `1px solid ${u.status === 'ACTIVE' ? 'var(--danger-border)' : 'var(--success-border)'}`,
                               padding: '0.35rem 0.65rem',
                               borderRadius: '5px',
                               fontSize: '0.75rem',
@@ -308,8 +308,8 @@ export function UserTable({
 
       {/* Pagination Controls */}
       {userTotal > 15 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0' }}>
-          <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Showing {(userPage - 1) * 15 + 1} to {Math.min(userPage * 15, userTotal)} of {userTotal}
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -319,7 +319,7 @@ export function UserTable({
               style={{
                 padding: '0.35rem 0.75rem',
                 borderRadius: '5px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 background: '#FFFFFF',
                 fontSize: '0.8rem',
                 cursor: userPage <= 1 ? 'not-allowed' : 'pointer',
@@ -334,7 +334,7 @@ export function UserTable({
               style={{
                 padding: '0.35rem 0.75rem',
                 borderRadius: '5px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 background: '#FFFFFF',
                 fontSize: '0.8rem',
                 cursor: userPage * 15 >= userTotal ? 'not-allowed' : 'pointer',
@@ -374,22 +374,22 @@ export function UserTable({
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
             }}
           >
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.5rem 0' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
               Force Password Reset
             </h3>
-            <p style={{ color: '#64748B', fontSize: '0.85rem', margin: '0 0 1.25rem 0' }}>
-              Resetting password for user <strong style={{ color: '#0F172A' }}>{resettingUser.email}</strong>. This will revoke existing active sessions.
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 1.25rem 0' }}>
+              Resetting password for user <strong style={{ color: 'var(--text-main)' }}>{resettingUser.email}</strong>. This will revoke existing active sessions.
             </p>
 
             {modalError && (
-              <div style={{ color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', marginBottom: '1rem' }}>
+              <div style={{ color: 'var(--danger)', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', marginBottom: '1rem' }}>
                 {modalError}
               </div>
             )}
 
             <form onSubmit={handleModalSubmit}>
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.4rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.4rem' }}>
                   New Password (min 8 characters)
                 </label>
                 <input
@@ -403,7 +403,7 @@ export function UserTable({
                     width: '100%',
                     padding: '0.6rem 0.85rem',
                     borderRadius: '6px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     fontSize: '0.9rem',
                   }}
                 />
@@ -420,11 +420,11 @@ export function UserTable({
                   style={{
                     padding: '0.5rem 1rem',
                     borderRadius: '6px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     backgroundColor: '#FFFFFF',
                     fontSize: '0.85rem',
                     fontWeight: 600,
-                    color: '#475569',
+                    color: 'var(--ink-2)',
                     cursor: 'pointer',
                   }}
                 >
@@ -437,7 +437,7 @@ export function UserTable({
                     padding: '0.5rem 1.25rem',
                     borderRadius: '6px',
                     border: 'none',
-                    backgroundColor: '#2563EB',
+                    backgroundColor: 'var(--primary)',
                     fontSize: '0.85rem',
                     fontWeight: 600,
                     color: '#FFFFFF',

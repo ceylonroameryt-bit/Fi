@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { askReason, confirmAction, notify } from '@/lib/dialog-bus';
 
 interface InvoiceDetail {
   id: string;
@@ -93,14 +94,14 @@ export default function InvoiceDetailPage() {
 
   const handlePost = async () => {
     if (!invoice) return;
-    if (!confirm(`Post ${invoice.invoiceNumber} to the General Ledger? This creates immutable double-entry postings.`)) return;
+    if (!await confirmAction(`Post ${invoice.invoiceNumber} to the General Ledger? This creates immutable double-entry postings.`)) return;
 
     try {
       setActionLoading(true);
       await apiRequest(`/invoices/${invoice.id}/post`, { method: 'POST' });
       await loadInvoice();
     } catch (err: any) {
-      alert(err.message || 'Failed to post invoice');
+      notify(err.message || 'Failed to post invoice');
     } finally {
       setActionLoading(false);
     }
@@ -108,7 +109,7 @@ export default function InvoiceDetailPage() {
 
   const handleVoid = async () => {
     if (!invoice) return;
-    const reason = prompt('Please enter the reason for voiding this invoice:');
+    const reason = await askReason('Please enter the reason for voiding this invoice:');
     if (!reason) return;
 
     try {
@@ -119,7 +120,7 @@ export default function InvoiceDetailPage() {
       });
       await loadInvoice();
     } catch (err: any) {
-      alert(err.message || 'Failed to void invoice');
+      notify(err.message || 'Failed to void invoice');
     } finally {
       setActionLoading(false);
     }
@@ -128,8 +129,10 @@ export default function InvoiceDetailPage() {
   if (loading) {
     return (
       <AppShell>
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#64748B' }}>
+        <div className="bl-legacy">
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
           Loading invoice details...
+        </div>
         </div>
       </AppShell>
     );
@@ -138,11 +141,13 @@ export default function InvoiceDetailPage() {
   if (error || !invoice) {
     return (
       <AppShell>
+        <div className="bl-legacy">
         <div style={{ maxWidth: '800px', margin: '2rem auto' }}>
           <div className="alert alert-danger">{error || 'Invoice not found'}</div>
           <Link href="/sales/invoices" className="btn btn-secondary">
             &larr; Back to Invoices
           </Link>
+        </div>
         </div>
       </AppShell>
     );
@@ -150,15 +155,16 @@ export default function InvoiceDetailPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ maxWidth: '880px', margin: '0 auto' }}>
         {/* Action Bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Link href="/sales/invoices" style={{ color: '#64748B', textDecoration: 'none', fontSize: '0.85rem' }}>
+            <Link href="/sales/invoices" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
               &larr; Invoices
             </Link>
-            <span style={{ color: '#CBD5E1' }}>/</span>
-            <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.9rem' }}>{invoice.invoiceNumber}</span>
+            <span style={{ color: 'var(--border-strong)' }}>/</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.9rem' }}>{invoice.invoiceNumber}</span>
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -198,8 +204,8 @@ export default function InvoiceDetailPage() {
         {invoice.status === 'POSTED' && invoice.journalEntry && (
           <div
             style={{
-              backgroundColor: '#EFF6FF',
-              border: '1px solid #BFDBFE',
+              backgroundColor: 'var(--info-bg)',
+              border: '1px solid var(--info-border)',
               borderRadius: '8px',
               padding: '0.85rem 1.25rem',
               marginBottom: '1.5rem',
@@ -211,10 +217,10 @@ export default function InvoiceDetailPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <span style={{ fontSize: '1.25rem' }}>📖</span>
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1E40AF' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--info-text)' }}>
                   Posted Authoritative General Ledger Transaction
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#3B82F6' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>
                   Debits Accounts Receivable (1100), credits Revenue & Tax accounts.
                 </div>
               </div>
@@ -232,8 +238,8 @@ export default function InvoiceDetailPage() {
         {invoice.status === 'VOIDED' && (
           <div
             style={{
-              backgroundColor: '#FEF2F2',
-              border: '1px solid #FECACA',
+              backgroundColor: 'var(--danger-bg)',
+              border: '1px solid var(--danger-border)',
               borderRadius: '8px',
               padding: '0.85rem 1.25rem',
               marginBottom: '1.5rem',
@@ -243,10 +249,10 @@ export default function InvoiceDetailPage() {
             }}
           >
             <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#991B1B' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--danger-text)' }}>
                 Invoice Voided & Reversed
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#DC2626' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--danger)' }}>
                 Reason: {invoice.voidReason || 'No reason provided'}
               </div>
             </div>
@@ -269,30 +275,30 @@ export default function InvoiceDetailPage() {
             padding: '2.5rem',
             backgroundColor: '#fff',
             borderRadius: '8px',
-            border: '1px solid #E2E8F0',
+            border: '1px solid var(--border-subtle)',
             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)',
             marginBottom: '2rem',
           }}
         >
           {/* Header Row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0F172A', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--primary)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
             <div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.03em' }}>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.03em' }}>
                 {activeOrg?.name || 'Blynt'}
               </div>
               {activeOrg?.legalName && (
-                <div style={{ fontSize: '0.85rem', color: '#64748B' }}>{activeOrg.legalName}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{activeOrg.legalName}</div>
               )}
               {activeOrg?.taxNumber && (
-                <div style={{ fontSize: '0.8rem', color: '#64748B' }}>VAT: {activeOrg.taxNumber}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>VAT: {activeOrg.taxNumber}</div>
               )}
             </div>
 
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#2563EB', lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1 }}>
                 INVOICE
               </div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
                 {invoice.invoiceNumber}
               </div>
               <div style={{ marginTop: '0.5rem' }}>
@@ -317,62 +323,62 @@ export default function InvoiceDetailPage() {
           {/* Addresses and Metadata */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
             <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
                 Billed To:
               </div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A' }}>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 {invoice.contact.name}
               </div>
               {invoice.contact.companyName && (
-                <div style={{ fontSize: '0.9rem', color: '#334155' }}>{invoice.contact.companyName}</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--ink-2)' }}>{invoice.contact.companyName}</div>
               )}
               {invoice.contact.addressLine1 && (
-                <div style={{ fontSize: '0.85rem', color: '#64748B' }}>{invoice.contact.addressLine1}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{invoice.contact.addressLine1}</div>
               )}
               {[invoice.contact.city, invoice.contact.postcode, invoice.contact.country].filter(Boolean).length > 0 && (
-                <div style={{ fontSize: '0.85rem', color: '#64748B' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                   {[invoice.contact.city, invoice.contact.postcode, invoice.contact.country].filter(Boolean).join(', ')}
                 </div>
               )}
               {invoice.contact.taxNumber && (
-                <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                   VAT ID: {invoice.contact.taxNumber}
                 </div>
               )}
               {invoice.contact.email && (
-                <div style={{ fontSize: '0.85rem', color: '#2563EB', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--primary)', marginTop: '0.25rem' }}>
                   {invoice.contact.email}
                 </div>
               )}
             </div>
 
-            <div style={{ backgroundColor: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+            <div style={{ backgroundColor: 'var(--bg-app)', padding: '1rem 1.25rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
-                <span style={{ color: '#64748B' }}>Invoice Date:</span>
-                <span style={{ fontWeight: 600, color: '#0F172A' }}>{invoice.issueDate.slice(0, 10)}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Invoice Date:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{invoice.issueDate.slice(0, 10)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
-                <span style={{ color: '#64748B' }}>Payment Due:</span>
-                <span style={{ fontWeight: 600, color: '#0F172A' }}>{invoice.dueDate.slice(0, 10)}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Payment Due:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{invoice.dueDate.slice(0, 10)}</span>
               </div>
               {invoice.reference && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
-                  <span style={{ color: '#64748B' }}>Reference / PO:</span>
-                  <span style={{ fontWeight: 600, color: '#0F172A' }}>{invoice.reference}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Reference / PO:</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{invoice.reference}</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.4rem', fontSize: '0.85rem' }}>
-                <span style={{ color: '#64748B' }}>Currency:</span>
-                <span style={{ fontWeight: 600, color: '#0F172A' }}>{invoice.currency}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.4rem', fontSize: '0.85rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Currency:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{invoice.currency}</span>
               </div>
             </div>
           </div>
 
           {/* Line Items Table */}
-          <div style={{ marginBottom: '2rem', borderTop: '1px solid #E2E8F0' }}>
+          <div style={{ marginBottom: '2rem', borderTop: '1px solid var(--border-subtle)' }}>
             <table className="table" style={{ width: '100%', margin: 0 }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #E2E8F0' }}>
+                <tr style={{ borderBottom: '2px solid var(--border-subtle)' }}>
                   <th style={{ width: '8%', textAlign: 'center' }}>#</th>
                   <th style={{ width: '42%' }}>Item & Description</th>
                   <th style={{ width: '10%', textAlign: 'right' }}>Qty</th>
@@ -383,11 +389,11 @@ export default function InvoiceDetailPage() {
               </thead>
               <tbody>
                 {invoice.lines.map((line, idx) => (
-                  <tr key={line.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ textAlign: 'center', color: '#64748B', fontSize: '0.85rem' }}>{idx + 1}</td>
+                  <tr key={line.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
+                    <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>{idx + 1}</td>
                     <td>
-                      <div style={{ fontWeight: 600, color: '#0F172A' }}>{line.description}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{line.description}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                         Account: {line.account.code} - {line.account.name}
                       </div>
                     </td>
@@ -401,10 +407,10 @@ export default function InvoiceDetailPage() {
                           {line.taxCode.name} ({(Number(line.taxRate) * 100).toFixed(Number(line.taxRate) * 100 % 1 ? 1 : 0)}%)
                         </span>
                       ) : (
-                        <span style={{ color: '#B91C1C' }}>No VAT code – cannot post</span>
+                        <span style={{ color: 'var(--danger)' }}>No VAT code – cannot post</span>
                       )}
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-main)', fontSize: '0.85rem' }}>
                       £{Number(line.lineTotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                   </tr>
@@ -416,17 +422,17 @@ export default function InvoiceDetailPage() {
           {/* Financial Totals */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2.5rem' }}>
             <div style={{ width: '320px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.9rem', color: '#64748B' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                 <span>Subtotal (Net)</span>
                 <span>£{Number(invoice.subtotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.9rem', color: '#64748B' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                 <span>VAT / Sales Tax</span>
                 <span>£{Number(invoice.taxTotal).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #0F172A', padding: '0.6rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#0F172A' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid var(--primary)', padding: '0.6rem 0', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>
                 <span>Total Due</span>
-                <span style={{ color: '#2563EB' }}>
+                <span style={{ color: 'var(--primary)' }}>
                   £{Number(invoice.totalAmount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -434,21 +440,22 @@ export default function InvoiceDetailPage() {
           </div>
 
           {/* Notes and Terms Footer */}
-          <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1.25rem', fontSize: '0.8rem', color: '#64748B' }}>
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             {invoice.notes && (
               <div style={{ marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 600, color: '#334155' }}>Notes: </span>
+                <span style={{ fontWeight: 600, color: 'var(--ink-2)' }}>Notes: </span>
                 {invoice.notes}
               </div>
             )}
             {invoice.terms && (
               <div>
-                <span style={{ fontWeight: 600, color: '#334155' }}>Terms: </span>
+                <span style={{ fontWeight: 600, color: 'var(--ink-2)' }}>Terms: </span>
                 {invoice.terms}
               </div>
             )}
           </div>
         </div>
+      </div>
       </div>
     </AppShell>
   );

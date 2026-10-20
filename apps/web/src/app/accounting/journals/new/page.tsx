@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest, ApiError } from '@/lib/api';
+import { notify } from '@/lib/dialog-bus';
 
 interface Account {
   id: string;
@@ -86,7 +87,7 @@ export default function NewJournalPage() {
 
   const handleRemoveLine = (index: number) => {
     if (lines.length <= 2) {
-      alert('A double-entry manual journal must contain at least 2 lines.');
+      notify('A double-entry manual journal must contain at least 2 lines.');
       return;
     }
     setLines(lines.filter((_, idx) => idx !== index));
@@ -206,14 +207,15 @@ export default function NewJournalPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       {/* Breadcrumb & Header */}
       <div style={{ marginBottom: '1.25rem' }}>
-        <div style={{ fontSize: '0.8rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
-          <Link href="/accounting/journals" style={{ color: '#146EF5', textDecoration: 'none' }}>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+          <Link href="/accounting/journals" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
             Journals
           </Link>
           <span>&gt;</span>
-          <span style={{ color: '#172033', fontWeight: 500 }}>New Journal</span>
+          <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>New Journal</span>
         </div>
         <div className="page-header" style={{ marginBottom: 0 }}>
           <div>
@@ -319,7 +321,7 @@ export default function NewJournalPage() {
             <div className="card-header">
               <div>
                 <h3 className="card-title">Journal Lines</h3>
-                <p style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.15rem' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                   Each manual journal requires at least two lines with equal debit and credit sums
                 </p>
               </div>
@@ -343,7 +345,7 @@ export default function NewJournalPage() {
                 <tbody>
                   {lines.map((line, idx) => (
                     <tr key={idx}>
-                      <td className="font-mono" style={{ color: '#6B7280', verticalAlign: 'middle' }}>
+                      <td className="font-mono" style={{ color: 'var(--text-muted)', verticalAlign: 'middle' }}>
                         {idx + 1}
                       </td>
                       <td>
@@ -404,7 +406,7 @@ export default function NewJournalPage() {
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: lines.length <= 2 ? '#CBD5E1' : '#DC3F45',
+                            color: lines.length <= 2 ? 'var(--border-strong)' : 'var(--danger)',
                             cursor: lines.length <= 2 ? 'not-allowed' : 'pointer',
                             fontSize: '1.1rem',
                           }}
@@ -422,34 +424,34 @@ export default function NewJournalPage() {
             {/* Totals Summary Footer */}
             <div
               style={{
-                backgroundColor: '#F8FAFC',
-                borderTop: '1px solid #E6EAF0',
+                backgroundColor: 'var(--bg-app)',
+                borderTop: '1px solid var(--border-subtle)',
                 padding: '1rem 1.5rem',
                 display: 'flex',
                 justifyContent: 'flex-end',
               }}
             >
               <div style={{ display: 'grid', gridTemplateColumns: '140px 140px', gap: '0.5rem', textAlign: 'right', fontSize: '0.825rem' }}>
-                <span style={{ color: '#6B7280' }}>Total Debit:</span>
-                <span className="font-mono" style={{ fontWeight: 600, color: '#172033' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Total Debit:</span>
+                <span className="font-mono" style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                   {currencySymbol}{totalDebit.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
 
-                <span style={{ color: '#6B7280' }}>Total Credit:</span>
-                <span className="font-mono" style={{ fontWeight: 600, color: '#172033' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Total Credit:</span>
+                <span className="font-mono" style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                   {currencySymbol}{totalCredit.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
 
-                <span style={{ fontWeight: 600, color: '#172033', borderTop: '1px solid #E6EAF0', paddingTop: '0.35rem' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.35rem' }}>
                   Difference:
                 </span>
                 <span
                   className="font-mono"
                   style={{
                     fontWeight: 700,
-                    borderTop: '1px solid #E6EAF0',
+                    borderTop: '1px solid var(--border-subtle)',
                     paddingTop: '0.35rem',
-                    color: isBalancedClient ? '#16A56A' : '#DC3F45',
+                    color: isBalancedClient ? 'var(--success-text)' : 'var(--danger)',
                   }}
                 >
                   {currencySymbol}{differenceAbs.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -464,11 +466,11 @@ export default function NewJournalPage() {
           {/* Status Guidance Panel */}
           <div className="card">
             <div className="card-header" style={{ padding: '0.85rem 1.15rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#172033' }}>Journal Status</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Journal Status</span>
               <span className="badge badge-draft">Draft</span>
             </div>
             <div className="card-body" style={{ padding: '1rem 1.15rem' }}>
-              <p style={{ fontSize: '0.785rem', color: '#6B7280', lineHeight: 1.5, margin: 0 }}>
+              <p style={{ fontSize: '0.785rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
                 This is a draft journal. It does not affect accounting balances or nominal ledgers until it is validated and later posted.
               </p>
             </div>
@@ -477,13 +479,13 @@ export default function NewJournalPage() {
           {/* Validation Checklist / Result Panel */}
           <div className="card">
             <div className="card-header" style={{ padding: '0.85rem 1.15rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#172033' }}>Double-Entry Verification</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Double-Entry Verification</span>
               <span
                 className="badge"
                 style={{
-                  backgroundColor: isBalancedClient ? '#ECFDF5' : '#FEF2F2',
-                  color: isBalancedClient ? '#065F46' : '#991B1B',
-                  border: `1px solid ${isBalancedClient ? '#A7F3D0' : '#FECACA'}`,
+                  backgroundColor: isBalancedClient ? 'var(--success-bg)' : 'var(--danger-bg)',
+                  color: isBalancedClient ? 'var(--success-text)' : 'var(--danger-text)',
+                  border: `1px solid ${isBalancedClient ? 'var(--success-border)' : 'var(--danger-border)'}`,
                 }}
               >
                 {isBalancedClient ? 'Balanced' : 'Unbalanced'}
@@ -491,37 +493,37 @@ export default function NewJournalPage() {
             </div>
             <div className="card-body" style={{ padding: '1rem 1.15rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.785rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: activeOrg ? '#065F46' : '#9CA3AF' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: activeOrg ? 'var(--success-text)' : 'var(--text-muted)' }}>
                   <span style={{ fontWeight: 700 }}>✓</span>
                   <span>Organisation valid ({activeOrg?.name ?? 'Alpha Consulting Ltd'})</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: hasAccountsSelected ? '#065F46' : '#9CA3AF' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: hasAccountsSelected ? 'var(--success-text)' : 'var(--text-muted)' }}>
                   <span style={{ fontWeight: 700 }}>{hasAccountsSelected ? '✓' : '○'}</span>
                   <span>Accounts exist and are active</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#065F46' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success-text)' }}>
                   <span style={{ fontWeight: 700 }}>✓</span>
                   <span>Manual posting allowed</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#065F46' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success-text)' }}>
                   <span style={{ fontWeight: 700 }}>✓</span>
                   <span>Posting date is in an open period</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isBalancedClient ? '#065F46' : '#DC3F45' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isBalancedClient ? 'var(--success-text)' : 'var(--danger)' }}>
                   <span style={{ fontWeight: 700 }}>{isBalancedClient ? '✓' : '✕'}</span>
                   <span style={{ fontWeight: isBalancedClient ? 400 : 600 }}>
                     {isBalancedClient ? 'Journal is balanced (ΣDr = ΣCr)' : 'Debit and credit totals do not match'}
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#065F46' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success-text)' }}>
                   <span style={{ fontWeight: 700 }}>✓</span>
                   <span>Currency valid ({activeOrg?.baseCurrency ?? 'GBP'})</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: lines.length >= 2 ? '#065F46' : '#9CA3AF' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: lines.length >= 2 ? 'var(--success-text)' : 'var(--text-muted)' }}>
                   <span style={{ fontWeight: 700 }}>{lines.length >= 2 ? '✓' : '○'}</span>
                   <span>Minimum 2 lines</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#065F46' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success-text)' }}>
                   <span style={{ fontWeight: 700 }}>✓</span>
                   <span>No duplicate journal detected</span>
                 </div>
@@ -534,14 +536,14 @@ export default function NewJournalPage() {
                     marginTop: '1rem',
                     padding: '0.75rem',
                     borderRadius: '6px',
-                    backgroundColor: '#FEF2F2',
-                    border: '1px solid #FECACA',
+                    backgroundColor: 'var(--danger-bg)',
+                    border: '1px solid var(--danger-border)',
                   }}
                 >
-                  <strong style={{ color: '#991B1B', fontSize: '0.75rem', display: 'block', marginBottom: '0.35rem' }}>
+                  <strong style={{ color: 'var(--danger-text)', fontSize: '0.75rem', display: 'block', marginBottom: '0.35rem' }}>
                     Journal Needs Attention ({validationIssues.length} issues):
                   </strong>
-                  <ul style={{ paddingLeft: '1rem', color: '#991B1B', fontSize: '0.725rem', lineHeight: 1.4 }}>
+                  <ul style={{ paddingLeft: '1rem', color: 'var(--danger-text)', fontSize: '0.725rem', lineHeight: 1.4 }}>
                     {validationIssues.map((msg, i) => (
                       <li key={i}>{msg}</li>
                     ))}
@@ -556,9 +558,9 @@ export default function NewJournalPage() {
                     marginTop: '1rem',
                     padding: '0.75rem',
                     borderRadius: '6px',
-                    backgroundColor: '#ECFDF5',
-                    border: '1px solid #A7F3D0',
-                    color: '#065F46',
+                    backgroundColor: 'var(--success-bg)',
+                    border: '1px solid var(--success-border)',
+                    color: 'var(--success-text)',
                     fontSize: '0.775rem',
                   }}
                 >
@@ -579,6 +581,7 @@ export default function NewJournalPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </AppShell>
   );
