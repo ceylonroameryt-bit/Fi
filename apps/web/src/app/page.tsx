@@ -14,7 +14,6 @@ import {
   TrendingDown,
   ArrowRight,
   Building2,
-  User,
   Shield,
   Briefcase,
   FileText,
@@ -22,12 +21,16 @@ import {
   AlertTriangle,
   Receipt,
   Scale,
-  Layers,
   Calendar,
+  BarChart3,
+  PieChart,
+  Activity,
+  Layers,
+  Percent,
 } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
-import { apiRequest, ApiError } from '@/lib/api';
+import { apiRequest } from '@/lib/api';
 import { formatMoney } from '@/lib/money-format';
 import {
   DashboardCustomizerModal,
@@ -36,8 +39,6 @@ import {
 } from '@/components/dashboard/dashboard-customizer-modal';
 import { AddCompanyModal } from '@/components/organization/add-company-modal';
 
-type BusinessScale = 'all' | 'solo' | 'sme' | 'enterprise';
-
 interface AttentionItem {
   id: string;
   tone: 'ai' | 'danger' | 'warning' | 'info';
@@ -45,7 +46,6 @@ interface AttentionItem {
   detail: string;
   action: string;
   href: string;
-  tier: 'all' | 'solo' | 'sme' | 'enterprise';
 }
 
 export default function DashboardPage() {
@@ -58,34 +58,20 @@ export default function DashboardPage() {
     return formatMoney(v, { currency });
   }, [currency]);
 
-  const [scaleMode, setScaleMode] = useState<BusinessScale>('all');
   const [prefs, setPrefs] = useState<DashboardPreferences>(DEFAULT_DASHBOARD_PREFERENCES);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
-
-  // Live state from backend if available
-  const [liveBankCount, setLiveBankCount] = useState<number | null>(null);
-  const [liveReviewCount, setLiveReviewCount] = useState<number | null>(null);
+  const [chartRange, setChartRange] = useState<'30d' | '90d' | '6m' | '12m'>('6m');
+  const [activeBarHover, setActiveBarHover] = useState<number | null>(null);
 
   // Dynamic user greeting
-  const firstName = user?.firstName?.trim() || 'Poorna';
+  const firstName = user?.firstName?.trim() || 'Alice';
   const hour = new Date().getHours();
   const greetingText = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const dateLine = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  // Load live data if an org is active
-  useEffect(() => {
-    if (!activeOrg?.id) return;
-    apiRequest<any[]>('/bank-accounts')
-      .then((accs) => setLiveBankCount(accs.length))
-      .catch(() => setLiveBankCount(null));
-    apiRequest<any[]>('/ai/review-queue')
-      .then((rev) => setLiveReviewCount(rev.length))
-      .catch(() => setLiveReviewCount(null));
-  }, [activeOrg?.id]);
-
-  // Comprehensive Attention Workflows (Page 3 Specification)
-  const allAttentionItems: AttentionItem[] = [
+  // 4 Priority Attention Workflows
+  const attentionItems: AttentionItem[] = [
     {
       id: 'ai-bills',
       tone: 'ai',
@@ -93,7 +79,6 @@ export default function DashboardPage() {
       detail: 'Nothing posts until you approve · 4 high confidence, 1 needs a look',
       action: 'Review 5',
       href: '/purchases/review',
-      tier: 'sme',
     },
     {
       id: 'overdue-invoices',
@@ -102,7 +87,6 @@ export default function DashboardPage() {
       detail: 'Northwind Ltd (12 days) · Acme Corp (4 days)',
       action: 'Send reminders',
       href: '/sales/invoices',
-      tier: 'solo',
     },
     {
       id: 'bank-lines',
@@ -111,7 +95,6 @@ export default function DashboardPage() {
       detail: '10 already matched — one tap each',
       action: 'Confirm',
       href: '/banking/transactions',
-      tier: 'all',
     },
     {
       id: 'vat-return',
@@ -120,22 +103,26 @@ export default function DashboardPage() {
       detail: 'Q3 · estimate £6,140.00 · already set aside below',
       action: 'Prepare',
       href: '/reports/vat',
-      tier: 'enterprise',
     },
   ];
 
-  const filteredAttention = scaleMode === 'all'
-    ? allAttentionItems
-    : allAttentionItems.filter((it) => it.tier === 'all' || it.tier === scaleMode);
-
-  // 6-Month Real Trend Figures
+  // 6-Month Real Trend Figures with Margin and Net Delta
   const trendData = [
-    { month: 'May', in: 18.5, out: 12.0, net: '+£6.5k' },
-    { month: 'Jun', in: 22.0, out: 13.5, net: '+£8.5k' },
-    { month: 'Jul', in: 19.5, out: 11.0, net: '+£8.5k' },
-    { month: 'Aug', in: 23.5, out: 14.2, net: '+£9.3k' },
-    { month: 'Sep', in: 25.0, out: 14.8, net: '+£10.2k' },
-    { month: 'Oct', in: 24.86, out: 11.42, net: '+£13.44k' },
+    { month: 'May', in: 18.5, out: 12.0, margin: 35, net: 6.5, balance: 34.2 },
+    { month: 'Jun', in: 22.0, out: 13.5, margin: 38, net: 8.5, balance: 38.6 },
+    { month: 'Jul', in: 19.5, out: 11.0, margin: 43, net: 8.5, balance: 41.2 },
+    { month: 'Aug', in: 23.5, out: 14.2, margin: 39, net: 9.3, balance: 44.5 },
+    { month: 'Sep', in: 25.0, out: 14.8, margin: 41, net: 10.2, balance: 46.8 },
+    { month: 'Oct', in: 24.86, out: 11.42, margin: 54, net: 13.44, balance: 48.21 },
+  ];
+
+  // Aging distribution for Accounts Receivable & Accounts Payable
+  const arAging = [
+    { label: 'Current', amount: 12430, pct: 66, color: '#102654' },
+    { label: '1-30d', amount: 2000, pct: 11, color: '#2563EB' },
+    { label: '31-60d', amount: 1850, pct: 10, color: '#F59E0B' },
+    { label: '61-90d', amount: 1150, pct: 6, color: '#EF4444' },
+    { label: '90d+', amount: 1320, pct: 7, color: '#B91C1C' },
   ];
 
   return (
@@ -151,133 +138,6 @@ export default function DashboardPage() {
           gap: '1.5rem',
         }}
       >
-        {/* TOP SYSTEM SCALE TOGGLE & ENTERPRISE CONTEXT BAR */}
-        <section
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '0.75rem',
-            padding: '0.65rem 1.15rem',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #E3E7EF',
-            borderRadius: '12px',
-            boxShadow: 'var(--shadow-sm)',
-            fontSize: '0.825rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, color: '#102654' }}>
-              <Scale size={16} color="#FF7D6B" />
-              <span>Platform Tier:</span>
-            </span>
-
-            {/* Segment Controls */}
-            <div style={{ display: 'inline-flex', backgroundColor: '#F1F5F9', padding: '3px', borderRadius: '8px', gap: '2px' }}>
-              <button
-                type="button"
-                onClick={() => setScaleMode('all')}
-                style={{
-                  padding: '0.3rem 0.75rem',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.775rem',
-                  fontWeight: scaleMode === 'all' ? 700 : 500,
-                  backgroundColor: scaleMode === 'all' ? '#102654' : 'transparent',
-                  color: scaleMode === 'all' ? '#FFFFFF' : '#5B6478',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                Full Suite
-              </button>
-              <button
-                type="button"
-                onClick={() => setScaleMode('solo')}
-                style={{
-                  padding: '0.3rem 0.75rem',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.775rem',
-                  fontWeight: scaleMode === 'solo' ? 700 : 500,
-                  backgroundColor: scaleMode === 'solo' ? '#102654' : 'transparent',
-                  color: scaleMode === 'solo' ? '#FFFFFF' : '#5B6478',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                Solo Trader
-              </button>
-              <button
-                type="button"
-                onClick={() => setScaleMode('sme')}
-                style={{
-                  padding: '0.3rem 0.75rem',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.775rem',
-                  fontWeight: scaleMode === 'sme' ? 700 : 500,
-                  backgroundColor: scaleMode === 'sme' ? '#102654' : 'transparent',
-                  color: scaleMode === 'sme' ? '#FFFFFF' : '#5B6478',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                Growing SME
-              </button>
-              <button
-                type="button"
-                onClick={() => setScaleMode('enterprise')}
-                style={{
-                  padding: '0.3rem 0.75rem',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '0.775rem',
-                  fontWeight: scaleMode === 'enterprise' ? 700 : 500,
-                  backgroundColor: scaleMode === 'enterprise' ? '#102654' : 'transparent',
-                  color: scaleMode === 'enterprise' ? '#FFFFFF' : '#5B6478',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                Corporate & Accountant
-              </button>
-            </div>
-          </div>
-
-          {/* Right Status Indicators */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#5B6478', fontSize: '0.785rem' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#12B76A' }} />
-              <strong>Entity:</strong> {activeOrg?.name || 'Demo Consulting Ltd (HQ)'}
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Sparkles size={13} color="#FF7D6B" />
-              <strong>AI Gateway:</strong> Active
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowAddCompanyModal(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                backgroundColor: '#EFF4FC',
-                color: '#102654',
-                border: '1px solid #CBD5E1',
-                padding: '0.25rem 0.65rem',
-                borderRadius: '6px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-              }}
-            >
-              <Plus size={13} /> Add Entity
-            </button>
-          </div>
-        </section>
-
         {/* TOP HEADER / GREETING BANNER */}
         <section
           style={{
@@ -383,7 +243,7 @@ export default function DashboardPage() {
                       border: '1px solid #DBEAFE',
                     }}
                   >
-                    Priority Engine
+                    4 action items
                   </span>
                 </div>
                 <span style={{ color: '#5B6478', fontSize: '0.8rem', fontWeight: 500 }}>
@@ -393,7 +253,7 @@ export default function DashboardPage() {
 
               {/* Items List */}
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {filteredAttention.map((item, idx) => {
+                {attentionItems.map((item, idx) => {
                   const isAi = item.tone === 'ai';
                   const isDanger = item.tone === 'danger';
                   const isWarning = item.tone === 'warning';
@@ -408,7 +268,7 @@ export default function DashboardPage() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.85rem 0',
-                        borderBottom: idx === filteredAttention.length - 1 ? 'none' : '1px solid #F1F5F9',
+                        borderBottom: idx === attentionItems.length - 1 ? 'none' : '1px solid #F1F5F9',
                         gap: '1rem',
                         flexWrap: 'wrap',
                       }}
@@ -513,14 +373,15 @@ export default function DashboardPage() {
                 What&apos;s left after bills due in the next 30 days and tax you&apos;ll owe.
               </p>
 
+              {/* Liquidity Waterfall Bridge */}
               <div
                 style={{
-                  marginTop: '1.25rem',
-                  paddingTop: '1rem',
+                  marginTop: '1.15rem',
+                  paddingTop: '0.9rem',
                   borderTop: '1px solid rgba(255, 255, 255, 0.12)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.65rem',
+                  gap: '0.6rem',
                   fontSize: '0.825rem',
                 }}
               >
@@ -541,7 +402,7 @@ export default function DashboardPage() {
 
             <div
               style={{
-                marginTop: '1.25rem',
+                marginTop: '1.15rem',
                 padding: '0.65rem 0.85rem',
                 borderRadius: '8px',
                 backgroundColor: 'rgba(255, 255, 255, 0.08)',
@@ -560,15 +421,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ROW 2: 4 EXECUTIVE KPI CARDS */}
+        {/* ROW 2: 4 EXECUTIVE KPI CARDS WITH FINANCIAL SPARKLINE CHARTS */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
             gap: '1rem',
           }}
         >
-          {/* Card 1 */}
+          {/* Card 1: Revenue with Sparkline */}
           <div
             className="kpi-card"
             style={{
@@ -577,39 +438,53 @@ export default function DashboardPage() {
               borderRadius: '12px',
               padding: '1.15rem 1.25rem',
               boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
             }}
           >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5B6478', marginBottom: '0.35rem' }}>
-              Income · Oct to date
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5B6478' }}>
+                  Income · Oct to date
+                </span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#12B76A', backgroundColor: '#EDFDF5', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                  +12%
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: '1.65rem',
+                  fontWeight: 800,
+                  color: '#102654',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                £24,860
+              </div>
             </div>
-            <div
-              style={{
-                fontSize: '1.65rem',
-                fontWeight: 800,
-                color: '#102654',
-                fontFamily: 'JetBrains Mono, monospace',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              £24,860
-            </div>
-            <div
-              style={{
-                marginTop: '0.45rem',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#12B76A',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-              }}
-            >
-              <TrendingUp size={13} />
-              <span>12% more than Sept</span>
+
+            {/* SVG Sparkline (Upward Revenue Curve) */}
+            <div style={{ marginTop: '0.65rem' }}>
+              <svg viewBox="0 0 100 24" style={{ width: '100%', height: '24px', overflow: 'visible' }}>
+                <polyline
+                  fill="none"
+                  stroke="#12B76A"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points="0,18 20,16 40,17 60,11 80,8 100,2"
+                />
+              </svg>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: '#5B6478', marginTop: '0.2rem' }}>
+                <span>May: £18.5k</span>
+                <span style={{ fontWeight: 700, color: '#12B76A' }}>Oct: £24.86k</span>
+              </div>
             </div>
           </div>
 
-          {/* Card 2 */}
+          {/* Card 2: Spending with Controlled Cost Curve */}
           <div
             className="kpi-card"
             style={{
@@ -618,35 +493,53 @@ export default function DashboardPage() {
               borderRadius: '12px',
               padding: '1.15rem 1.25rem',
               boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
             }}
           >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5B6478', marginBottom: '0.35rem' }}>
-              Spending · Oct to date
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5B6478' }}>
+                  Spending · Oct to date
+                </span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#5B6478', backgroundColor: '#F1F5F9', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                  Controlled
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: '1.65rem',
+                  fontWeight: 800,
+                  color: '#102654',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                £11,420
+              </div>
             </div>
-            <div
-              style={{
-                fontSize: '1.65rem',
-                fontWeight: 800,
-                color: '#102654',
-                fontFamily: 'JetBrains Mono, monospace',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              £11,420
-            </div>
-            <div
-              style={{
-                marginTop: '0.45rem',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: '#5B6478',
-              }}
-            >
-              — About the same as Sept
+
+            {/* SVG Sparkline (Flat / Controlled Spending Curve) */}
+            <div style={{ marginTop: '0.65rem' }}>
+              <svg viewBox="0 0 100 24" style={{ width: '100%', height: '24px', overflow: 'visible' }}>
+                <polyline
+                  fill="none"
+                  stroke="#64748B"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points="0,12 20,10 40,14 60,9 80,7 100,10"
+                />
+              </svg>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: '#5B6478', marginTop: '0.2rem' }}>
+                <span>Avg: £12.8k/mo</span>
+                <span style={{ fontWeight: 600 }}>Burn: Low</span>
+              </div>
             </div>
           </div>
 
-          {/* Card 3 */}
+          {/* Card 3: Operating Profit & Margin Gauge */}
           <div
             className="kpi-card"
             style={{
@@ -655,39 +548,53 @@ export default function DashboardPage() {
               borderRadius: '12px',
               padding: '1.15rem 1.25rem',
               boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
             }}
           >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5B6478', marginBottom: '0.35rem' }}>
-              Profit · Oct to date
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5B6478' }}>
+                  Profit · Oct to date
+                </span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#102654', backgroundColor: '#EFF4FC', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                  54% margin
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: '1.65rem',
+                  fontWeight: 800,
+                  color: '#102654',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                £13,440
+              </div>
             </div>
-            <div
-              style={{
-                fontSize: '1.65rem',
-                fontWeight: 800,
-                color: '#102654',
-                fontFamily: 'JetBrains Mono, monospace',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              £13,440
-            </div>
-            <div
-              style={{
-                marginTop: '0.45rem',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#12B76A',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-              }}
-            >
-              <TrendingUp size={13} />
-              <span>54% operating margin</span>
+
+            {/* SVG Sparkline (Net Margin Expansion) */}
+            <div style={{ marginTop: '0.65rem' }}>
+              <svg viewBox="0 0 100 24" style={{ width: '100%', height: '24px', overflow: 'visible' }}>
+                <polyline
+                  fill="none"
+                  stroke="#FF7D6B"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points="0,19 20,14 40,13 60,10 80,7 100,2"
+                />
+              </svg>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: '#5B6478', marginTop: '0.2rem' }}>
+                <span>EBITDA: £14.2k</span>
+                <span style={{ fontWeight: 700, color: '#FF7D6B' }}>54.1% Net</span>
+              </div>
             </div>
           </div>
 
-          {/* Card 4 */}
+          {/* Card 4: Customers Owe You with Aging Breakdown */}
           <div
             className="kpi-card"
             style={{
@@ -696,40 +603,50 @@ export default function DashboardPage() {
               borderRadius: '12px',
               padding: '1.15rem 1.25rem',
               boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
             }}
           >
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5B6478', marginBottom: '0.35rem' }}>
-              Customers owe you
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5B6478' }}>
+                  Customers owe you (AR)
+                </span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#D92D20', backgroundColor: '#FEE4E2', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                  ! £4.32k late
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: '1.65rem',
+                  fontWeight: 800,
+                  color: '#102654',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                £18,750
+              </div>
             </div>
-            <div
-              style={{
-                fontSize: '1.65rem',
-                fontWeight: 800,
-                color: '#102654',
-                fontFamily: 'JetBrains Mono, monospace',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              £18,750
-            </div>
-            <div
-              style={{
-                marginTop: '0.45rem',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#D92D20',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-              }}
-            >
-              <AlertTriangle size={13} />
-              <span>! £4,320 overdue (2 invoices)</span>
+
+            {/* Mini Segmented Aging Bar */}
+            <div style={{ marginTop: '0.65rem' }}>
+              <div style={{ height: '7px', display: 'flex', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: '66%', backgroundColor: '#102654' }} title="Current: £12,430 (66%)" />
+                <div style={{ width: '11%', backgroundColor: '#2563EB' }} title="1-30d: £2,000 (11%)" />
+                <div style={{ width: '10%', backgroundColor: '#F59E0B' }} title="31-60d: £1,850 (10%)" />
+                <div style={{ width: '13%', backgroundColor: '#EF4444' }} title="60d+: £2,470 (13%)" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', color: '#5B6478', marginTop: '0.35rem' }}>
+                <span>66% current</span>
+                <span style={{ color: '#D92D20', fontWeight: 700 }}>DSO: 28 days</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ROW 3: MONEY IN VS MONEY OUT (Left) + CLOSE SEPTEMBER WORKFLOW (Right) */}
+        {/* ROW 3: DUAL INTERACTIVE VISUAL CHARTS (Cash Flow Trend + Balance Sheet Liquidity) */}
         <div
           style={{
             display: 'grid',
@@ -738,7 +655,7 @@ export default function DashboardPage() {
             alignItems: 'stretch',
           }}
         >
-          {/* Money in vs Money out Chart */}
+          {/* Chart 1: Money in vs money out (Interactive SVG Dual Bar & Trend Curve) */}
           <div
             style={{
               backgroundColor: '#FFFFFF',
@@ -764,80 +681,144 @@ export default function DashboardPage() {
               >
                 <div>
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#102654', margin: 0 }}>
-                    Money in vs money out
+                    Monthly Cash Flow & Operating Margin
                   </h3>
                   <span style={{ fontSize: '0.75rem', color: '#5B6478' }}>
-                    Past 6 months cash flow & EBITDA trends
+                    Revenue (Money in) vs Expenses (Money out) with cash balance trajectory
                   </span>
                 </div>
 
-                {/* Legend */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.785rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#102654' }} />
-                    <span style={{ color: '#5B6478' }}>Money in</span>
+                {/* Range Selector & Legend */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', fontSize: '0.785rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#102654' }} />
+                      <span style={{ color: '#5B6478', fontWeight: 600 }}>Money in</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#FF7D6B' }} />
+                      <span style={{ color: '#5B6478', fontWeight: 600 }}>Money out</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span style={{ width: '14px', height: '2px', backgroundColor: '#12B76A' }} />
+                      <span style={{ color: '#5B6478', fontWeight: 600 }}>Net Cash</span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: '#FF7D6B' }} />
-                    <span style={{ color: '#5B6478' }}>Money out</span>
+
+                  <div style={{ display: 'inline-flex', backgroundColor: '#F1F5F9', padding: '2px', borderRadius: '6px' }}>
+                    {(['30d', '90d', '6m', '12m'] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setChartRange(r)}
+                        style={{
+                          padding: '0.2rem 0.5rem',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '0.725rem',
+                          fontWeight: chartRange === r ? 700 : 500,
+                          backgroundColor: chartRange === r ? '#FFFFFF' : 'transparent',
+                          color: chartRange === r ? '#102654' : '#64748B',
+                          boxShadow: chartRange === r ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {r.toUpperCase()}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Chart Bars */}
+              {/* Chart Visual Surface with Dual Bars & Axis */}
               <div
                 style={{
-                  height: '190px',
+                  height: '210px',
                   display: 'flex',
                   alignItems: 'flex-end',
                   justifyContent: 'space-between',
                   gap: '1.25rem',
-                  paddingTop: '1rem',
+                  paddingTop: '1.25rem',
                   borderBottom: '1px solid #E3E7EF',
+                  position: 'relative',
                 }}
               >
-                {trendData.map((d) => (
-                  <div
-                    key={d.month}
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      height: '100%',
-                      justifyContent: 'flex-end',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '5px', height: '150px' }}>
-                      {/* Bar In */}
-                      <div
-                        title={`Money in: £${d.in}k`}
-                        style={{
-                          width: '18px',
-                          height: `${(d.in / 30) * 100}%`,
-                          backgroundColor: '#102654',
-                          borderRadius: '4px 4px 0 0',
-                          transition: 'height 0.2s',
-                        }}
-                      />
-                      {/* Bar Out */}
-                      <div
-                        title={`Money out: £${d.out}k`}
-                        style={{
-                          width: '18px',
-                          height: `${(d.out / 30) * 100}%`,
-                          backgroundColor: '#FF7D6B',
-                          borderRadius: '4px 4px 0 0',
-                          transition: 'height 0.2s',
-                        }}
-                      />
+                {/* Horizontal Guide Lines */}
+                <div style={{ position: 'absolute', top: '25%', left: 0, right: 0, borderTop: '1px dashed #F1F5F9' }} />
+                <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, borderTop: '1px dashed #F1F5F9' }} />
+                <div style={{ position: 'absolute', top: '75%', left: 0, right: 0, borderTop: '1px dashed #F1F5F9' }} />
+
+                {trendData.map((d, i) => {
+                  const isHovered = activeBarHover === i;
+                  return (
+                    <div
+                      key={d.month}
+                      onMouseEnter={() => setActiveBarHover(i)}
+                      onMouseLeave={() => setActiveBarHover(null)}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        height: '100%',
+                        justifyContent: 'flex-end',
+                        cursor: 'pointer',
+                        position: 'relative',
+                      }}
+                    >
+                      {/* Floating Tooltip on Hover */}
+                      {isHovered && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '105%',
+                            backgroundColor: '#0B1B3D',
+                            color: '#FFFFFF',
+                            padding: '0.45rem 0.65rem',
+                            borderRadius: '6px',
+                            fontSize: '0.725rem',
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
+                            zIndex: 10,
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, marginBottom: '2px' }}>{d.month} 2026</div>
+                          <div style={{ color: '#C9D2E6' }}>In: £{d.in}k · Out: £{d.out}k</div>
+                          <div style={{ color: '#4ADE80', fontWeight: 700 }}>Net: +£{d.net}k ({d.margin}% margin)</div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '160px' }}>
+                        {/* Bar In */}
+                        <div
+                          style={{
+                            width: '20px',
+                            height: `${(d.in / 30) * 100}%`,
+                            backgroundColor: isHovered ? '#1E3A8A' : '#102654',
+                            borderRadius: '4px 4px 0 0',
+                            transition: 'all 0.15s ease',
+                          }}
+                        />
+                        {/* Bar Out */}
+                        <div
+                          style={{
+                            width: '20px',
+                            height: `${(d.out / 30) * 100}%`,
+                            backgroundColor: isHovered ? '#FF947F' : '#FF7D6B',
+                            borderRadius: '4px 4px 0 0',
+                            transition: 'all 0.15s ease',
+                          }}
+                        />
+                      </div>
+
+                      <span style={{ fontSize: '0.775rem', fontWeight: isHovered ? 800 : 600, color: isHovered ? '#102654' : '#5B6478' }}>
+                        {d.month}
+                      </span>
                     </div>
-                    <span style={{ fontSize: '0.775rem', fontWeight: 600, color: '#5B6478' }}>
-                      {d.month}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -847,18 +828,22 @@ export default function DashboardPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                fontSize: '0.785rem',
+                fontSize: '0.8rem',
                 color: '#5B6478',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
               }}
             >
-              <span>Net operating cash flow this month: <strong style={{ color: '#102654' }}>+£13,440.00</strong></span>
+              <span>
+                Net operating cash surplus: <strong style={{ color: '#102654', fontFamily: 'JetBrains Mono, monospace' }}>+£13,440.00</strong> (54.1% EBITDA margin)
+              </span>
               <Link href="/reports/profit-and-loss" style={{ color: '#B8432F', fontWeight: 700, textDecoration: 'none' }}>
                 Full P&L Report →
               </Link>
             </div>
           </div>
 
-          {/* Close September Card (Period Compliance) */}
+          {/* Chart 2: Working Capital & Liquidity Ratios (Accountant Grade) */}
           <div
             style={{
               backgroundColor: '#FFFFFF',
@@ -872,14 +857,130 @@ export default function DashboardPage() {
             }}
           >
             <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#102654', margin: 0 }}>
+                    Liquidity & Working Capital
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: '#5B6478' }}>
+                    Solvency health & balance sheet ratios
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    backgroundColor: '#EDFDF5',
+                    color: '#12B76A',
+                    padding: '0.15rem 0.45rem',
+                    borderRadius: '4px',
+                    border: '1px solid #A6F4C5',
+                  }}
+                >
+                  Grade: A+ Strong
+                </span>
+              </div>
+
+              {/* Ratios Matrix */}
               <div
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '1rem',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '0.75rem',
+                  padding: '0.85rem',
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: '10px',
+                  border: '1px solid #E2E8F0',
                 }}
               >
+                <div>
+                  <div style={{ fontSize: '0.725rem', color: '#64748B', fontWeight: 600 }}>Current Ratio</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#102654', fontFamily: 'JetBrains Mono, monospace' }}>
+                    2.42x
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#12B76A', fontWeight: 600 }}>Target: &gt; 1.5x</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.725rem', color: '#64748B', fontWeight: 600 }}>Quick Ratio (Acid)</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#102654', fontFamily: 'JetBrains Mono, monospace' }}>
+                    1.85x
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#12B76A', fontWeight: 600 }}>Target: &gt; 1.0x</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.725rem', color: '#64748B', fontWeight: 600 }}>Days Sales Out (DSO)</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#102654', fontFamily: 'JetBrains Mono, monospace' }}>
+                    28 days
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#12B76A', fontWeight: 600 }}>-3 days vs Q2</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.725rem', color: '#64748B', fontWeight: 600 }}>Working Capital</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#102654', fontFamily: 'JetBrains Mono, monospace' }}>
+                    £38.3k
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#12B76A', fontWeight: 600 }}>Surplus buffer</div>
+                </div>
+              </div>
+
+              {/* Accounts Receivable Aging Breakdown Bar */}
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#102654', marginBottom: '0.35rem' }}>
+                  <span>AR Aging Distribution (£18,750)</span>
+                  <span style={{ color: '#B8432F' }}>77% within 30d</span>
+                </div>
+                <div style={{ height: '8px', display: 'flex', borderRadius: '4px', overflow: 'hidden' }}>
+                  {arAging.map((tier) => (
+                    <div
+                      key={tier.label}
+                      style={{ width: `${tier.pct}%`, backgroundColor: tier.color }}
+                      title={`${tier.label}: £${tier.amount.toLocaleString()} (${tier.pct}%)`}
+                    />
+                  ))}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.675rem', color: '#64748B', marginTop: '0.35rem' }}>
+                  <span>Current: £12.4k</span>
+                  <span>1-30d: £2.0k</span>
+                  <span>31-60d: £1.8k</span>
+                  <span style={{ color: '#D92D20', fontWeight: 700 }}>60d+: £2.5k</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href="/reports/balance-sheet"
+              className="btn-v2-secondary"
+              style={{ width: '100%', height: '36px', borderRadius: '8px', marginTop: '1rem', justifyContent: 'center' }}
+            >
+              <span>View Balance Sheet Statement →</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* ROW 4: CLOSE SEPTEMBER COMPLIANCE & VAT RESERVE MODULE */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '1.5rem',
+            alignItems: 'stretch',
+          }}
+        >
+          {/* Close September Period Lock Checklist */}
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E3E7EF',
+              borderRadius: '14px',
+              padding: '1.25rem 1.5rem',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                 <div>
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#102654', margin: 0 }}>
                     Close September
@@ -903,7 +1004,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Checklist */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', margin: '1rem 0' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', margin: '0.85rem 0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <div
                     style={{
@@ -995,9 +1096,76 @@ export default function DashboardPage() {
               <span>Continue closing</span>
             </Link>
           </div>
+
+          {/* Tax & HMRC VAT Reserve Projection */}
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E3E7EF',
+              borderRadius: '14px',
+              padding: '1.25rem 1.5rem',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#102654', margin: 0 }}>
+                    Tax & VAT Provision
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: '#5B6478' }}>
+                    Q3 MTD return due in 18 days
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    backgroundColor: '#FEF8EC',
+                    color: '#8A5A00',
+                    padding: '0.15rem 0.45rem',
+                    borderRadius: '4px',
+                  }}
+                >
+                  Estimate: £6,140
+                </span>
+              </div>
+
+              {/* Tax Provision Status */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', margin: '0.85rem 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem' }}>
+                  <span style={{ color: '#5B6478' }}>Output VAT (Collected on sales)</span>
+                  <span style={{ fontWeight: 700, color: '#102654', fontFamily: 'JetBrains Mono, monospace' }}>£8,420.00</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem' }}>
+                  <span style={{ color: '#5B6478' }}>Input VAT (Reclaimable on expenses)</span>
+                  <span style={{ fontWeight: 700, color: '#12B76A', fontFamily: 'JetBrains Mono, monospace' }}>-£2,280.00</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
+                  <span style={{ fontWeight: 700, color: '#102654' }}>Net Payable to HMRC</span>
+                  <span style={{ fontWeight: 800, color: '#B8432F', fontFamily: 'JetBrains Mono, monospace' }}>£6,140.00</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.785rem', color: '#12B76A', fontWeight: 600 }}>
+                  <span>✓ Covered in Tax Reserve Account</span>
+                  <span>£7,500.00 set aside</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href="/reports/vat"
+              className="btn-v2-secondary"
+              style={{ width: '100%', height: '40px', borderRadius: '8px', textAlign: 'center', justifyContent: 'center' }}
+            >
+              <span>View 9-Box VAT Return →</span>
+            </Link>
+          </div>
         </div>
 
-        {/* ROW 4: RECENT ENTERPRISE ACTIVITY LEDGER */}
+        {/* ROW 5: RECENT ACTIVITY LEDGER */}
         <div
           style={{
             backgroundColor: '#FFFFFF',
