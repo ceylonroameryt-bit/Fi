@@ -127,7 +127,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
           width: '100%',
           maxWidth: '780px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
-          border: '1px solid #CBD5E1',
+          border: '1px solid var(--border-strong)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -137,7 +137,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
         {/* Header */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #0F172A 0%, #0369A1 100%)',
+            background: 'linear-gradient(135deg, var(--primary) 0%, var(--info-text) 100%)',
             padding: '1.25rem 1.75rem',
             color: '#FFFFFF',
             display: 'flex',
@@ -152,7 +152,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
                 height: '38px',
                 borderRadius: '10px',
                 backgroundColor: 'rgba(24, 211, 190, 0.2)',
-                color: '#18D3BE',
+                color: 'var(--action-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -168,7 +168,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
                 <span
                   style={{
                     backgroundColor: 'rgba(24, 211, 190, 0.2)',
-                    color: '#18D3BE',
+                    color: 'var(--action-text)',
                     border: '1px solid rgba(24, 211, 190, 0.4)',
                     fontSize: '0.675rem',
                     fontWeight: 800,
@@ -187,7 +187,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '0.35rem' }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.35rem' }}
           >
             <X size={20} />
           </button>
@@ -197,8 +197,8 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
         <div
           style={{
             display: 'flex',
-            borderBottom: '1px solid #E2E8F0',
-            backgroundColor: '#F8FAFC',
+            borderBottom: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-app)',
             overflowX: 'auto',
             padding: '0.5rem 1.25rem 0 1.25rem',
             gap: '0.5rem',
@@ -224,9 +224,9 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
                   gap: '0.45rem',
                   padding: '0.65rem 0.95rem',
                   border: 'none',
-                  borderBottom: isActive ? '2px solid #0284C7' : '2px solid transparent',
+                  borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
                   backgroundColor: 'transparent',
-                  color: isActive ? '#0284C7' : '#64748B',
+                  color: isActive ? 'var(--primary)' : 'var(--text-muted)',
                   fontWeight: isActive ? 700 : 500,
                   fontSize: '0.85rem',
                   cursor: 'pointer',
@@ -243,7 +243,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
         {/* Body */}
         <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.4rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
               Instruction or Question for {activeTab.toLowerCase()}:
             </label>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -256,7 +256,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
                   flex: 1,
                   padding: '0.65rem 0.85rem',
                   borderRadius: '0.5rem',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   fontSize: '0.9rem',
                   outline: 'none',
                 }}
@@ -269,8 +269,8 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
                 disabled={generating}
                 style={{
                   padding: '0.65rem 1.25rem',
-                  backgroundColor: '#0284C7',
-                  backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+                  backgroundColor: 'var(--primary)',
+                  backgroundImage: 'linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%)',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: '0.5rem',
@@ -290,7 +290,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
           </div>
 
           {error && (
-            <div style={{ padding: '0.75rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '0.375rem', color: '#B91C1C', fontSize: '0.85rem' }}>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: '0.375rem', color: 'var(--danger)', fontSize: '0.85rem' }}>
               {error}
             </div>
           )}
@@ -299,8 +299,8 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
           {result && (
             <div
               style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #CBD5E1',
+                backgroundColor: 'var(--bg-app)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.65rem',
                 padding: '1.25rem',
                 display: 'flex',
@@ -311,17 +311,17 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
               {result.type === 'INVOICE' && (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#16A34A', fontWeight: 700, fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--success-text)', fontWeight: 700, fontSize: '0.85rem' }}>
                       <CheckCircle2 size={16} />
                       <span>Sales Invoice Draft Formulated</span>
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Customer: <strong>{result.data.contactName}</strong></span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Customer: <strong>{result.data.contactName}</strong></span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#334155' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--ink-2)' }}>
                     {result.data.explanation}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '0.75rem 1rem', borderRadius: '0.375rem', border: '1px solid #E2E8F0' }}>
-                    <div>Total: <strong style={{ fontSize: '1.1rem', color: '#0F172A' }}>£{result.data.totalAmount.toFixed(2)}</strong> (Net: £{result.data.subtotal.toFixed(2)}, VAT: £{result.data.taxTotal.toFixed(2)})</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '0.75rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-subtle)' }}>
+                    <div>Total: <strong style={{ fontSize: '1.1rem', color: 'var(--text-main)' }}>£{result.data.totalAmount.toFixed(2)}</strong> (Net: £{result.data.subtotal.toFixed(2)}, VAT: £{result.data.taxTotal.toFixed(2)})</div>
                     <button
                       onClick={() => {
                         sessionStorage.setItem('blynt_ai_invoice_draft', JSON.stringify(result.data));
@@ -330,7 +330,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
                       }}
                       style={{
                         padding: '0.45rem 0.95rem',
-                        backgroundColor: '#10B981',
+                        backgroundColor: 'var(--success)',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: '0.375rem',
@@ -352,13 +352,13 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
               {result.type === 'JOURNAL' && (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#16A34A', fontWeight: 700, fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--success-text)', fontWeight: 700, fontSize: '0.85rem' }}>
                       <CheckCircle2 size={16} />
                       <span>Manual Journal Formulated (Debits = Credits: ✓ BALANCED)</span>
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Total: £{result.data.totalDebit.toFixed(2)}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total: £{result.data.totalDebit.toFixed(2)}</span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#334155' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--ink-2)' }}>
                     {result.data.explanation}
                   </div>
                   <button
@@ -369,7 +369,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
                     }}
                     style={{
                       padding: '0.45rem 0.95rem',
-                      backgroundColor: '#10B981',
+                      backgroundColor: 'var(--success)',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: '0.375rem',
@@ -390,15 +390,15 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
 
               {(result.type === 'REPORT' || activeTab === 'TAX') && (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#16A34A', fontWeight: 700, fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--success-text)', fontWeight: 700, fontSize: '0.85rem' }}>
                     <CheckCircle2 size={16} />
                     <span>Executive Analysis ({result.data.reportType})</span>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: '#1E293B', lineHeight: 1.5, margin: 0 }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.5, margin: 0 }}>
                     {result.data.executiveSummary}
                   </p>
                   {result.data.keyHighlights?.length > 0 && (
-                    <div style={{ fontSize: '0.8rem', color: '#475569' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--ink-2)' }}>
                       <strong>Highlights:</strong>
                       <ul style={{ margin: '0.25rem 0 0 1rem', padding: 0 }}>
                         {result.data.keyHighlights.map((h: string, idx: number) => (
@@ -412,11 +412,11 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
 
               {result.type === 'BANKING' && (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#16A34A', fontWeight: 700, fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--success-text)', fontWeight: 700, fontSize: '0.85rem' }}>
                     <CheckCircle2 size={16} />
                     <span>Banking ML Prediction Engine Complete</span>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: '#334155', margin: 0 }}>{result.data.message}</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--ink-2)', margin: 0 }}>{result.data.message}</p>
                   <button
                     onClick={() => {
                       onClose();
@@ -424,7 +424,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
                     }}
                     style={{
                       padding: '0.45rem 0.95rem',
-                      backgroundColor: '#0D9488',
+                      backgroundColor: 'var(--action)',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: '0.375rem',
@@ -445,7 +445,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
 
               {result.type === 'PURCHASES' && (
                 <>
-                  <p style={{ fontSize: '0.85rem', color: '#334155', margin: 0 }}>{result.data.message}</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--ink-2)', margin: 0 }}>{result.data.message}</p>
                   <button
                     onClick={() => {
                       onClose();
@@ -453,7 +453,7 @@ export function GlobalAiAssistantModal({ isOpen, onClose }: GlobalAiAssistantMod
                     }}
                     style={{
                       padding: '0.45rem 0.95rem',
-                      backgroundColor: '#2563EB',
+                      backgroundColor: 'var(--primary)',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: '0.375rem',

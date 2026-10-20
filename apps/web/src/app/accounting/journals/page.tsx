@@ -79,6 +79,7 @@ export default function JournalsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h1 className="page-title">Manual Journals</h1>
@@ -92,9 +93,9 @@ export default function JournalsPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                backgroundColor: '#F0FDFA',
-                border: '1px solid #99F6E4',
-                color: '#0F766E',
+                backgroundColor: 'var(--action-soft)',
+                border: '1px solid var(--action-soft)',
+                color: 'var(--action-text)',
                 padding: '0.55rem 1rem',
                 borderRadius: '0.375rem',
                 fontWeight: 700,
@@ -102,7 +103,7 @@ export default function JournalsPage() {
                 cursor: 'pointer',
               }}
             >
-              <Sparkles size={16} color="#0D9488" />
+              <Sparkles size={16} color="#B8432F" />
               <span>✨ AI Draft Journal</span>
             </button>
           )}
@@ -143,7 +144,7 @@ export default function JournalsPage() {
             </select>
           </div>
 
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Showing <strong>{filteredJournals.length}</strong> journals
           </div>
         </div>
@@ -168,13 +169,13 @@ export default function JournalsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     Loading manual journals...
                   </td>
                 </tr>
               ) : filteredJournals.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748b' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No manual journals found. Click &quot;+ New Manual Journal&quot; to create an entry.
                   </td>
                 </tr>
@@ -184,21 +185,21 @@ export default function JournalsPage() {
                     <td className="font-mono">
                       <Link
                         href={`/accounting/journals/${j.id}`}
-                        style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}
+                        style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}
                       >
                         {j.entryNumber}
                       </Link>
                     </td>
                     <td className="font-mono">{new Date(j.entryDate).toISOString().split('T')[0]}</td>
                     <td>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{j.description}</div>
+                      <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{j.description}</div>
                       {j.createdBy && (
-                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                           By {j.createdBy.firstName} {j.createdBy.lastName}
                         </div>
                       )}
                     </td>
-                    <td style={{ color: '#64748b', fontSize: '0.8rem' }}>{j.reference || '—'}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{j.reference || '—'}</td>
                     <td>
                       <span className={`badge badge-${j.status.toLowerCase()}`}>
                         {j.status}
@@ -224,6 +225,7 @@ export default function JournalsPage() {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </AppShell>
   );

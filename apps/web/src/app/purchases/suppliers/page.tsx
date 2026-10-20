@@ -118,6 +118,7 @@ export default function SuppliersPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -129,8 +130,8 @@ export default function SuppliersPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                backgroundColor: '#FEF3C7',
-                color: '#92400E',
+                backgroundColor: 'var(--warning-bg)',
+                color: 'var(--warning-text)',
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 padding: '0.2rem 0.55rem',
@@ -143,7 +144,7 @@ export default function SuppliersPage() {
           </div>
           <p
             className="page-subtitle"
-            style={{ margin: '0.25rem 0 0 0', color: '#64748B', fontSize: '0.875rem' }}
+            style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}
           >
             Manage vendors, procurement profiles, payment terms, and accounts payable directory.
           </p>
@@ -175,9 +176,9 @@ export default function SuppliersPage() {
         <div
           style={{
             padding: '0.85rem 1.25rem',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FCA5A5',
-            color: '#991B1B',
+            backgroundColor: 'var(--danger-bg)',
+            border: '1px solid var(--danger-border)',
+            color: 'var(--danger-text)',
             borderRadius: '8px',
             marginBottom: '1rem',
           }}
@@ -196,7 +197,7 @@ export default function SuppliersPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#94A3B8',
+              color: 'var(--text-muted)',
             }}
           />
           <input
@@ -209,7 +210,7 @@ export default function SuppliersPage() {
               paddingLeft: '2.25rem',
               width: '100%',
               borderRadius: '8px',
-              border: '1px solid #CBD5E1',
+              border: '1px solid var(--border-strong)',
             }}
           />
         </div>
@@ -219,7 +220,7 @@ export default function SuppliersPage() {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '10px',
           overflow: 'hidden',
         }}
@@ -228,10 +229,10 @@ export default function SuppliersPage() {
           <thead>
             <tr
               style={{
-                backgroundColor: '#F8FAFC',
-                borderBottom: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-app)',
+                borderBottom: '1px solid var(--border-subtle)',
                 textAlign: 'left',
-                color: '#64748B',
+                color: 'var(--text-muted)',
               }}
             >
               <th style={{ padding: '0.75rem 1.25rem' }}>Supplier Name</th>
@@ -245,13 +246,13 @@ export default function SuppliersPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
+                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Loading supplier directory...
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
+                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No suppliers found matching your query.
                 </td>
               </tr>
@@ -261,20 +262,20 @@ export default function SuppliersPage() {
                   key={s.id}
                   onClick={() => router.push(`/sales/contacts/${s.id}`)}
                   style={{
-                    borderBottom: '1px solid #F1F5F9',
+                    borderBottom: '1px solid var(--bg-soft)',
                     cursor: 'pointer',
                     transition: 'background-color 0.15s ease',
                   }}
                 >
-                  <td style={{ padding: '0.75rem 1.25rem', fontWeight: 600, color: '#0F172A' }}>{s.name}</td>
-                  <td style={{ padding: '0.75rem 1.25rem', color: '#475569' }}>{s.companyName || '—'}</td>
-                  <td style={{ padding: '0.75rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                  <td style={{ padding: '0.75rem 1.25rem', fontWeight: 600, color: 'var(--text-main)' }}>{s.name}</td>
+                  <td style={{ padding: '0.75rem 1.25rem', color: 'var(--ink-2)' }}>{s.companyName || '—'}</td>
+                  <td style={{ padding: '0.75rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                     {s.taxNumber || '—'}
                   </td>
-                  <td style={{ padding: '0.75rem 1.25rem', color: '#475569' }}>
+                  <td style={{ padding: '0.75rem 1.25rem', color: 'var(--ink-2)' }}>
                     {s.email || s.phone || '—'}
                   </td>
-                  <td style={{ padding: '0.75rem 1.25rem', color: '#475569' }}>
+                  <td style={{ padding: '0.75rem 1.25rem', color: 'var(--ink-2)' }}>
                     {s.paymentTermsDays ? `${s.paymentTermsDays} days` : '30 days'}
                   </td>
                   <td style={{ padding: '0.75rem 1.25rem' }}>
@@ -284,8 +285,8 @@ export default function SuppliersPage() {
                         borderRadius: '4px',
                         fontSize: '0.75rem',
                         fontWeight: 600,
-                        backgroundColor: s.status === 'ACTIVE' ? '#DCFCE7' : '#F1F5F9',
-                        color: s.status === 'ACTIVE' ? '#166534' : '#64748B',
+                        backgroundColor: s.status === 'ACTIVE' ? 'var(--success-bg)' : 'var(--bg-soft)',
+                        color: s.status === 'ACTIVE' ? 'var(--success-text)' : 'var(--text-muted)',
                       }}
                     >
                       {s.status}
@@ -345,7 +346,7 @@ export default function SuppliersPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: 600,
-                    color: '#334155',
+                    color: 'var(--ink-2)',
                     marginBottom: '0.35rem',
                   }}
                 >
@@ -362,7 +363,7 @@ export default function SuppliersPage() {
                     width: '100%',
                     padding: '0.5rem',
                     borderRadius: '6px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                   }}
                 />
               </div>
@@ -373,7 +374,7 @@ export default function SuppliersPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: 600,
-                    color: '#334155',
+                    color: 'var(--ink-2)',
                     marginBottom: '0.35rem',
                   }}
                 >
@@ -389,7 +390,7 @@ export default function SuppliersPage() {
                     width: '100%',
                     padding: '0.5rem',
                     borderRadius: '6px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                   }}
                 />
               </div>
@@ -408,7 +409,7 @@ export default function SuppliersPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: 600,
-                      color: '#334155',
+                      color: 'var(--ink-2)',
                       marginBottom: '0.35rem',
                     }}
                   >
@@ -424,7 +425,7 @@ export default function SuppliersPage() {
                       width: '100%',
                       padding: '0.5rem',
                       borderRadius: '6px',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                     }}
                   />
                 </div>
@@ -435,7 +436,7 @@ export default function SuppliersPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: 600,
-                      color: '#334155',
+                      color: 'var(--ink-2)',
                       marginBottom: '0.35rem',
                     }}
                   >
@@ -450,7 +451,7 @@ export default function SuppliersPage() {
                       width: '100%',
                       padding: '0.5rem',
                       borderRadius: '6px',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                     }}
                   />
                 </div>
@@ -470,7 +471,7 @@ export default function SuppliersPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: 600,
-                      color: '#334155',
+                      color: 'var(--ink-2)',
                       marginBottom: '0.35rem',
                     }}
                   >
@@ -486,7 +487,7 @@ export default function SuppliersPage() {
                       width: '100%',
                       padding: '0.5rem',
                       borderRadius: '6px',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                     }}
                   />
                 </div>
@@ -497,7 +498,7 @@ export default function SuppliersPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: 600,
-                      color: '#334155',
+                      color: 'var(--ink-2)',
                       marginBottom: '0.35rem',
                     }}
                   >
@@ -513,7 +514,7 @@ export default function SuppliersPage() {
                       width: '100%',
                       padding: '0.5rem',
                       borderRadius: '6px',
-                      border: '1px solid #CBD5E1',
+                      border: '1px solid var(--border-strong)',
                     }}
                   />
                 </div>
@@ -531,6 +532,7 @@ export default function SuppliersPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

@@ -76,6 +76,7 @@ export default function AuditLogsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -84,7 +85,7 @@ export default function AuditLogsPage() {
             Cryptographically sealed, immutable record of all accounting and administrative actions in <strong>{activeOrg?.name}</strong>
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', color: '#065F46', fontWeight: 600 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--success-text)', fontWeight: 600 }}>
           <span>🔒</span>
           <span>Append-Only Immutable Ledger</span>
         </div>
@@ -105,7 +106,7 @@ export default function AuditLogsPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <span style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', fontSize: '0.8rem' }}>🔍</span>
+              <span style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>🔍</span>
             </div>
 
             {/* Action Type filter */}
@@ -156,7 +157,7 @@ export default function AuditLogsPage() {
             </select>
           </div>
 
-          <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Showing <strong>{filteredLogs.length}</strong> of <strong>{total}</strong> audit entries
           </div>
         </div>
@@ -180,15 +181,15 @@ export default function AuditLogsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: '#6B7280' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     Loading audit trail...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#6B7280' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: '1.25rem', marginBottom: '0.4rem' }}>📜</div>
-                    <div style={{ fontWeight: 600, color: '#172033' }}>No audit records found</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>No audit records found</div>
                     <div style={{ fontSize: '0.775rem', marginTop: '0.2rem' }}>
                       Audit records are recorded automatically whenever accounts, journals, or periods are modified.
                     </div>
@@ -210,7 +211,7 @@ export default function AuditLogsPage() {
 
                   return (
                     <tr key={log.id}>
-                      <td className="font-mono" style={{ fontSize: '0.775rem', color: '#4B5563' }}>
+                      <td className="font-mono" style={{ fontSize: '0.775rem', color: 'var(--ink-2)' }}>
                         {new Date(log.createdAt).toLocaleString('en-GB', {
                           year: 'numeric',
                           month: 'short',
@@ -223,29 +224,29 @@ export default function AuditLogsPage() {
                       <td>
                         {log.user ? (
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontWeight: 600, color: '#172033', fontSize: '0.825rem' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.825rem' }}>
                               {log.user.firstName} {log.user.lastName}
                             </span>
-                            <span style={{ fontSize: '0.7rem', color: '#6B7280' }}>{log.user.email}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{log.user.email}</span>
                           </div>
                         ) : (
-                          <span style={{ fontSize: '0.75rem', color: '#6B7280', fontStyle: 'italic' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             System
                           </span>
                         )}
                       </td>
                       <td>
-                        <span style={{ fontWeight: 600, color: '#172033', fontSize: '0.825rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.825rem' }}>
                           {formatEventLabel(log.eventType)}
                         </span>
                       </td>
                       <td>
                         <span className={`badge ${entityBadgeClass}`}>{log.entityType}</span>
                       </td>
-                      <td className="font-mono" style={{ fontSize: '0.75rem', color: '#6B7280' }}>
+                      <td className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                         {log.entityId ? log.entityId.slice(0, 10) + '...' : '—'}
                       </td>
-                      <td style={{ fontSize: '0.775rem', color: '#4B5563', fontWeight: 500 }}>
+                      <td style={{ fontSize: '0.775rem', color: 'var(--ink-2)', fontWeight: 500 }}>
                         {activeOrg?.name ?? 'Alpha Consulting Ltd'}
                       </td>
                       <td className="text-right">
@@ -272,16 +273,16 @@ export default function AuditLogsPage() {
           <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#172033' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   {formatEventLabel(selectedLog.eventType)}
                 </h3>
-                <p style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.15rem' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                   Event ID: <span className="font-mono">{selectedLog.id}</span>
                 </p>
               </div>
               <button
                 onClick={() => setSelectedLog(null)}
-                style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#6B7280' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ×
               </button>
@@ -290,46 +291,46 @@ export default function AuditLogsPage() {
             <div className="drawer-body">
               {/* Event Metadata */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '6px', border: '1px solid #E6EAF0' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
+                <div style={{ backgroundColor: 'var(--bg-app)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Timestamp
                   </div>
-                  <div className="font-mono" style={{ fontSize: '0.775rem', color: '#172033', marginTop: '0.2rem' }}>
+                  <div className="font-mono" style={{ fontSize: '0.775rem', color: 'var(--text-main)', marginTop: '0.2rem' }}>
                     {new Date(selectedLog.createdAt).toISOString()}
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '6px', border: '1px solid #E6EAF0' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
+                <div style={{ backgroundColor: 'var(--bg-app)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Actor
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#172033', marginTop: '0.2rem', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', fontWeight: 600 }}>
                     {selectedLog.user ? `${selectedLog.user.firstName} ${selectedLog.user.lastName}` : 'System'}
                   </div>
                   {selectedLog.user && (
-                    <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>{selectedLog.user.email}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{selectedLog.user.email}</div>
                   )}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '6px', border: '1px solid #E6EAF0' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
+                <div style={{ backgroundColor: 'var(--bg-app)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Target Entity
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#172033', marginTop: '0.2rem', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', fontWeight: 600 }}>
                     {selectedLog.entityType}
                   </div>
-                  <div className="font-mono" style={{ fontSize: '0.7rem', color: '#6B7280' }}>
+                  <div className="font-mono" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                     {selectedLog.entityId || 'N/A'}
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '6px', border: '1px solid #E6EAF0' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
+                <div style={{ backgroundColor: 'var(--bg-app)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Network Context
                   </div>
-                  <div className="font-mono" style={{ fontSize: '0.775rem', color: '#172033', marginTop: '0.2rem' }}>
+                  <div className="font-mono" style={{ fontSize: '0.775rem', color: 'var(--text-main)', marginTop: '0.2rem' }}>
                     IP: {selectedLog.ipAddress || '127.0.0.1'}
                   </div>
                 </div>
@@ -337,18 +338,18 @@ export default function AuditLogsPage() {
 
               {/* State Snapshots (Old vs New Values) */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#172033', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
                   New Value Snapshot
                 </div>
                 <pre
                   className="font-mono"
                   style={{
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E6EAF0',
+                    backgroundColor: 'var(--bg-app)',
+                    border: '1px solid var(--border-subtle)',
                     padding: '0.75rem',
                     borderRadius: '6px',
                     fontSize: '0.75rem',
-                    color: '#065F46',
+                    color: 'var(--success-text)',
                     overflowX: 'auto',
                     whiteSpace: 'pre-wrap',
                   }}
@@ -359,18 +360,18 @@ export default function AuditLogsPage() {
 
               {selectedLog.oldValues && (
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#172033', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-main)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
                     Previous Value Snapshot
                   </div>
                   <pre
                     className="font-mono"
                     style={{
-                      backgroundColor: '#F8FAFC',
-                      border: '1px solid #E6EAF0',
+                      backgroundColor: 'var(--bg-app)',
+                      border: '1px solid var(--border-subtle)',
                       padding: '0.75rem',
                       borderRadius: '6px',
                       fontSize: '0.75rem',
-                      color: '#991B1B',
+                      color: 'var(--danger-text)',
                       overflowX: 'auto',
                       whiteSpace: 'pre-wrap',
                     }}
@@ -382,7 +383,7 @@ export default function AuditLogsPage() {
             </div>
 
             <div className="drawer-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.72rem', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 <span>🔒</span>
                 <span>Immutable Record • Editing not permitted</span>
               </span>
@@ -393,6 +394,7 @@ export default function AuditLogsPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

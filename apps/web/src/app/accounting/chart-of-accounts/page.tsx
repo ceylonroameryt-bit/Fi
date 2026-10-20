@@ -231,6 +231,7 @@ export default function ChartOfAccountsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -269,7 +270,7 @@ export default function ChartOfAccountsPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <span style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', fontSize: '0.8rem' }}>🔍</span>
+              <span style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.8rem' }}>🔍</span>
             </div>
 
             <select
@@ -298,7 +299,7 @@ export default function ChartOfAccountsPage() {
             </select>
           </div>
 
-          <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Showing <strong>{filteredAccounts.length}</strong> of <strong>{accounts.length}</strong> accounts
           </div>
         </div>
@@ -322,15 +323,15 @@ export default function ChartOfAccountsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: '#6B7280' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     Loading chart of accounts...
                   </td>
                 </tr>
               ) : filteredAccounts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#6B7280' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: '1.25rem', marginBottom: '0.4rem' }}>📋</div>
-                    <div style={{ fontWeight: 600, color: '#172033' }}>No accounts found</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>No accounts found</div>
                     <div style={{ fontSize: '0.775rem', marginTop: '0.2rem' }}>
                       Try adjusting your search criteria or create a new account.
                     </div>
@@ -352,19 +353,19 @@ export default function ChartOfAccountsPage() {
                   return (
                     <tr key={acc.id} style={{ opacity: acc.isActive ? 1 : 0.65 }}>
                       <td className="font-mono">
-                        <strong style={{ color: '#172033' }}>{acc.code}</strong>
+                        <strong style={{ color: 'var(--text-main)' }}>{acc.code}</strong>
                       </td>
                       <td>
-                        <div style={{ fontWeight: 600, color: '#172033', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <span>{acc.name}</span>
                           {acc.isControlAccount && (
-                            <span style={{ fontSize: '0.65rem', backgroundColor: '#FEF3C7', color: '#B45309', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 600 }}>
+                            <span style={{ fontSize: '0.65rem', backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 600 }}>
                               Control (System Locked)
                             </span>
                           )}
                         </div>
                         {acc.description && (
-                          <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.1rem' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
                             {acc.description}
                           </div>
                         )}
@@ -374,7 +375,7 @@ export default function ChartOfAccountsPage() {
                           {acc.type.charAt(0) + acc.type.slice(1).toLowerCase()}
                         </span>
                       </td>
-                      <td style={{ color: '#4B5563', fontSize: '0.75rem' }}>
+                      <td style={{ color: 'var(--ink-2)', fontSize: '0.75rem' }}>
                         {acc.subtype.replace(/_/g, ' ')}
                       </td>
                       <td>
@@ -382,8 +383,8 @@ export default function ChartOfAccountsPage() {
                           style={{
                             fontSize: '0.75rem',
                             fontWeight: 600,
-                            color: acc.normalBalance === 'DEBIT' ? '#16A56A' : '#4B5563',
-                            backgroundColor: acc.normalBalance === 'DEBIT' ? '#ECFDF5' : '#F3F4F6',
+                            color: acc.normalBalance === 'DEBIT' ? 'var(--success-text)' : 'var(--ink-2)',
+                            backgroundColor: acc.normalBalance === 'DEBIT' ? 'var(--success-bg)' : 'var(--bg-soft)',
                             padding: '0.15rem 0.5rem',
                             borderRadius: '4px',
                           }}
@@ -401,11 +402,11 @@ export default function ChartOfAccountsPage() {
                           onClick={() => setActionMenuId(actionMenuId === acc.id ? null : acc.id)}
                           style={{
                             background: 'none',
-                            border: '1px solid #E6EAF0',
+                            border: '1px solid var(--border-subtle)',
                             borderRadius: '4px',
                             padding: '0.2rem 0.5rem',
                             cursor: 'pointer',
-                            color: '#4B5563',
+                            color: 'var(--ink-2)',
                             fontWeight: 'bold',
                           }}
                           title="Actions"
@@ -424,7 +425,7 @@ export default function ChartOfAccountsPage() {
                               backgroundColor: '#FFFFFF',
                               borderRadius: '6px',
                               boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                              border: '1px solid #E6EAF0',
+                              border: '1px solid var(--border-subtle)',
                               padding: '0.35rem',
                               zIndex: 30,
                               textAlign: 'left',
@@ -438,10 +439,10 @@ export default function ChartOfAccountsPage() {
                                 fontSize: '0.775rem',
                                 cursor: 'pointer',
                                 borderRadius: '4px',
-                                color: '#146EF5',
+                                color: 'var(--primary)',
                                 textDecoration: 'none',
                               }}
-                              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
+                              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-app)')}
                               onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                             >
                               View Transactions &rarr;
@@ -453,9 +454,9 @@ export default function ChartOfAccountsPage() {
                                 fontSize: '0.775rem',
                                 cursor: 'pointer',
                                 borderRadius: '4px',
-                                color: '#172033',
+                                color: 'var(--text-main)',
                               }}
-                              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
+                              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-app)')}
                               onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                             >
                               Edit Details
@@ -468,9 +469,9 @@ export default function ChartOfAccountsPage() {
                                   fontSize: '0.775rem',
                                   cursor: 'pointer',
                                   borderRadius: '4px',
-                                  color: acc.isActive ? '#DC3F45' : '#16A56A',
+                                  color: acc.isActive ? 'var(--danger)' : 'var(--success-text)',
                                 }}
-                                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
+                                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-app)')}
                                 onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                               >
                                 {acc.isActive ? 'Archive Account' : 'Restore Account'}
@@ -494,16 +495,16 @@ export default function ChartOfAccountsPage() {
           <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#172033' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   {editingAccount ? `Edit Account: ${editingAccount.code}` : 'Create Nominal Account'}
                 </h3>
-                <p style={{ fontSize: '0.775rem', color: '#6B7280', marginTop: '0.15rem' }}>
+                <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                   {editingAccount ? 'Modify account classification and settings' : 'Define new ledger account with normal balance rules'}
                 </p>
               </div>
               <button
                 onClick={() => setShowDrawer(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#6B7280' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ×
               </button>
@@ -573,7 +574,7 @@ export default function ChartOfAccountsPage() {
                       className="form-input"
                       value={formData.normalBalance}
                       disabled
-                      style={{ backgroundColor: '#F8FAFC', color: '#6B7280', fontWeight: 600 }}
+                      style={{ backgroundColor: 'var(--bg-app)', color: 'var(--text-muted)', fontWeight: 600 }}
                     />
                   </div>
                 </div>
@@ -621,8 +622,8 @@ export default function ChartOfAccountsPage() {
                   />
                 </div>
 
-                <div className="form-group" style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '6px', border: '1px solid #E6EAF0' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.825rem', fontWeight: 600, color: '#172033' }}>
+                <div className="form-group" style={{ backgroundColor: 'var(--bg-app)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-main)' }}>
                     <input
                       type="checkbox"
                       checked={formData.allowManualPosting}
@@ -631,7 +632,7 @@ export default function ChartOfAccountsPage() {
                     />
                     Allow Manual Journal Posting
                   </label>
-                  <p style={{ fontSize: '0.725rem', color: '#6B7280', marginTop: '0.25rem', marginLeft: '1.4rem' }}>
+                  <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.25rem', marginLeft: '1.4rem' }}>
                     When disabled, this account is restricted from manual journal entry adjustments (e.g. control accounts).
                   </p>
                 </div>
@@ -649,6 +650,7 @@ export default function ChartOfAccountsPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

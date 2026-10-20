@@ -216,6 +216,7 @@ function GeneralLedgerContent() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header">
         <div>
           <h1 className="page-title">General Ledger</h1>
@@ -380,13 +381,13 @@ function GeneralLedgerContent() {
         >
           <div className="card">
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                 Account
               </div>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                 {accountSummary.account.code} - {accountSummary.account.name}
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.1rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
                 Normal Balance: <strong>{accountSummary.account.normalBalance}</strong>
               </div>
             </div>
@@ -394,48 +395,48 @@ function GeneralLedgerContent() {
 
           <div className="card">
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                 Opening Balance
               </div>
-              <div className="font-mono" style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginTop: '0.25rem' }}>
+              <div className="font-mono" style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                 {Number(accountSummary.openingBalance).toLocaleString('en-GB', { minimumFractionDigits: 2 })}{' '}
-                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>{activeOrg?.baseCurrency}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>{activeOrg?.baseCurrency}</span>
               </div>
             </div>
           </div>
 
           <div className="card">
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                 Period Debits
               </div>
-              <div className="font-mono" style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginTop: '0.25rem' }}>
+              <div className="font-mono" style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                 {Number(accountSummary.totalDebits).toLocaleString('en-GB', { minimumFractionDigits: 2 })}{' '}
-                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>{activeOrg?.baseCurrency}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>{activeOrg?.baseCurrency}</span>
               </div>
             </div>
           </div>
 
           <div className="card">
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                 Period Credits
               </div>
-              <div className="font-mono" style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', marginTop: '0.25rem' }}>
+              <div className="font-mono" style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                 {Number(accountSummary.totalCredits).toLocaleString('en-GB', { minimumFractionDigits: 2 })}{' '}
-                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>{activeOrg?.baseCurrency}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>{activeOrg?.baseCurrency}</span>
               </div>
             </div>
           </div>
 
-          <div className="card" style={{ backgroundColor: '#F8FAFC' }}>
+          <div className="card" style={{ backgroundColor: 'var(--bg-app)' }}>
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#1E40AF', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--info-text)', textTransform: 'uppercase', fontWeight: 600 }}>
                 Closing Balance
               </div>
-              <div className="font-mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1E40AF', marginTop: '0.25rem' }}>
+              <div className="font-mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--info-text)', marginTop: '0.25rem' }}>
                 {Number(accountSummary.closingBalance).toLocaleString('en-GB', { minimumFractionDigits: 2 })}{' '}
-                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>{activeOrg?.baseCurrency}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>{activeOrg?.baseCurrency}</span>
               </div>
             </div>
           </div>
@@ -469,40 +470,40 @@ function GeneralLedgerContent() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={selectedAccountId ? 7 : 7} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan={selectedAccountId ? 7 : 7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     Loading General Ledger records...
                   </td>
                 </tr>
               ) : entries.length === 0 ? (
                 <tr>
-                  <td colSpan={selectedAccountId ? 7 : 7} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan={selectedAccountId ? 7 : 7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No posted general ledger entries match the selected filters.
                   </td>
                 </tr>
               ) : (
                 entries.map((entry) => (
                   <tr key={entry.id}>
-                    <td className="font-mono" style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    <td className="font-mono" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       {entry.postingDate}
                     </td>
                     <td className="font-mono">
                       <Link
                         href={`/accounting/journals/${entry.journalId}`}
-                        style={{ color: '#146EF5', textDecoration: 'none', fontWeight: 600 }}
+                        style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}
                       >
                         {entry.journalNumber}
                       </Link>
                     </td>
-                    <td style={{ fontSize: '0.825rem', color: '#64748b' }}>{entry.reference || '—'}</td>
+                    <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{entry.reference || '—'}</td>
                     {!selectedAccountId && (
                       <td>
-                        <strong style={{ color: '#0f172a' }}>{entry.accountCode}</strong>
-                        <span style={{ color: '#64748b', marginLeft: '0.35rem', fontSize: '0.8rem' }}>
+                        <strong style={{ color: 'var(--text-main)' }}>{entry.accountCode}</strong>
+                        <span style={{ color: 'var(--text-muted)', marginLeft: '0.35rem', fontSize: '0.8rem' }}>
                           {entry.accountName}
                         </span>
                       </td>
                     )}
-                    <td style={{ color: '#334155' }}>{entry.description || '—'}</td>
+                    <td style={{ color: 'var(--ink-2)' }}>{entry.description || '—'}</td>
                     <td className="text-right font-mono" style={{ fontWeight: Number(entry.debit) > 0 ? 600 : 400 }}>
                       {Number(entry.debit) > 0 ? Number(entry.debit).toLocaleString('en-GB', { minimumFractionDigits: 2 }) : '—'}
                     </td>
@@ -510,7 +511,7 @@ function GeneralLedgerContent() {
                       {Number(entry.credit) > 0 ? Number(entry.credit).toLocaleString('en-GB', { minimumFractionDigits: 2 }) : '—'}
                     </td>
                     {selectedAccountId && (
-                      <td className="text-right font-mono" style={{ fontWeight: 600, color: '#0f172a' }}>
+                      <td className="text-right font-mono" style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                         {entry.runningBalance != null
                           ? Number(entry.runningBalance).toLocaleString('en-GB', { minimumFractionDigits: 2 })
                           : '—'}
@@ -531,11 +532,11 @@ function GeneralLedgerContent() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              borderTop: '1px solid #e2e8f0',
+              borderTop: '1px solid var(--border-subtle)',
               fontSize: '0.85rem',
             }}
           >
-            <div style={{ color: '#64748b' }}>
+            <div style={{ color: 'var(--text-muted)' }}>
               Showing {entries.length} of {totalEntries} entries
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -557,13 +558,14 @@ function GeneralLedgerContent() {
           </div>
         )}
       </div>
+      </div>
     </AppShell>
   );
 }
 
 export default function GeneralLedgerPage() {
   return (
-    <Suspense fallback={<AppShell><div style={{ padding: '3rem', textAlign: 'center' }}>Loading General Ledger...</div></AppShell>}>
+    <Suspense fallback={<AppShell><div className="bl-legacy"><div style={{ padding: '3rem', textAlign: 'center' }}>Loading General Ledger...</div></div></AppShell>}>
       <GeneralLedgerContent />
     </Suspense>
   );

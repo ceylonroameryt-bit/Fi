@@ -134,12 +134,13 @@ function ArAgeingContent() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
             Aged Debtors (AR Ageing)
           </h1>
-          <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Monitor outstanding customer receivables bucketed by payment aging to optimize collections and cash flow.
           </p>
         </div>
@@ -150,11 +151,11 @@ function ArAgeingContent() {
             style={{
               padding: '0.5rem 1rem',
               backgroundColor: '#FFFFFF',
-              border: '1px solid #CBD5E1',
+              border: '1px solid var(--border-strong)',
               borderRadius: '0.375rem',
               fontSize: '0.875rem',
               fontWeight: 600,
-              color: '#334155',
+              color: 'var(--ink-2)',
               cursor: exporting ? 'not-allowed' : 'pointer',
             }}
           >
@@ -173,31 +174,31 @@ function ArAgeingContent() {
           backgroundColor: '#FFFFFF',
           padding: '1rem 1.25rem',
           borderRadius: '0.5rem',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle)',
           marginBottom: '1.5rem',
           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
         }}
       >
         <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.25rem' }}>
             As of Date
           </label>
           <input
             type="date"
             value={asOfDate}
             onChange={(e) => setAsOfDate(e.target.value)}
-            style={{ padding: '0.4rem 0.75rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.875rem' }}
+            style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border-strong)', borderRadius: '0.375rem', fontSize: '0.875rem' }}
           />
         </div>
 
         <div style={{ minWidth: '220px' }}>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.25rem' }}>
             Filter Customer
           </label>
           <select
             value={selectedContactId}
             onChange={(e) => setSelectedContactId(e.target.value)}
-            style={{ width: '100%', padding: '0.4rem 0.75rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#FFFFFF' }}
+            style={{ width: '100%', padding: '0.4rem 0.75rem', border: '1px solid var(--border-strong)', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#FFFFFF' }}
           >
             <option value="">All Customers</option>
             {contacts.map((c) => (
@@ -210,67 +211,67 @@ function ArAgeingContent() {
       </div>
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FEF2F2', border: '1px solid #F87171', color: '#B91C1C', borderRadius: '0.375rem', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger)', borderRadius: '0.375rem', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
           {error}
         </div>
       )}
 
       {/* Ageing Metric Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Total Receivables</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0F172A', marginTop: '0.25rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Receivables</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
             £{Number(totals?.total || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.2rem' }}>{report?.totalCount || 0} open invoices</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{report?.totalCount || 0} open invoices</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Current (Not Due)</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#10B981', marginTop: '0.25rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Current (Not Due)</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--success-text)', marginTop: '0.25rem' }}>
             £{Number(totals?.current || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#10B981', marginTop: '0.2rem' }}>Within agreed credit terms</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--success-text)', marginTop: '0.2rem' }}>Within agreed credit terms</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>1 - 30 Days</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#F59E0B', marginTop: '0.25rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>1 - 30 Days</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--warning-text)', marginTop: '0.25rem' }}>
             £{Number(totals?.days1To30 || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.2rem' }}>Overdue &lt; 1 month</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Overdue &lt; 1 month</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>31 - 60 Days</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#D97706', marginTop: '0.25rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>31 - 60 Days</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--warning-text)', marginTop: '0.25rem' }}>
             £{Number(totals?.days31To60 || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.2rem' }}>Overdue 1-2 months</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Overdue 1-2 months</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>61 - 90 Days</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#EA580C', marginTop: '0.25rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>61 - 90 Days</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--warning-text)', marginTop: '0.25rem' }}>
             £{Number(totals?.days61To90 || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.2rem' }}>Overdue 2-3 months</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Overdue 2-3 months</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>90+ Days</div>
-          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#DC2626', marginTop: '0.25rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.1rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>90+ Days</div>
+          <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--danger)', marginTop: '0.25rem' }}>
             £{Number(totals?.days90Plus || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#DC2626', marginTop: '0.2rem' }}>High risk collections</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--danger)', marginTop: '0.2rem' }}>High risk collections</div>
         </div>
       </div>
 
       {/* Main Table */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 600 }}>
+            <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)', fontWeight: 600 }}>
               <th style={{ padding: '0.75rem 1rem' }}>Customer / Invoice</th>
               <th style={{ padding: '0.75rem 1rem' }}>Due Date</th>
               <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Days Overdue</th>
@@ -285,14 +286,14 @@ function ArAgeingContent() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} style={{ padding: '2.5rem', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={9} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Calculating aged receivables...
                 </td>
               </tr>
             ) : !report?.groups || report.groups.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ padding: '2.5rem', textAlign: 'center', color: '#64748B' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0F172A', marginBottom: '0.25rem' }}>No outstanding debtors</div>
+                <td colSpan={9} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>No outstanding debtors</div>
                   <div style={{ fontSize: '0.85rem' }}>All posted customer invoices have been fully paid as of {asOfDate}.</div>
                 </td>
               </tr>
@@ -300,58 +301,58 @@ function ArAgeingContent() {
               report.groups.map((group) => (
                 <React.Fragment key={group.contactId}>
                   {/* Customer Group Header */}
-                  <tr style={{ backgroundColor: '#F1F5F9', borderTop: '2px solid #E2E8F0', borderBottom: '1px solid #CBD5E1' }}>
-                    <td colSpan={3} style={{ padding: '0.65rem 1rem', fontWeight: 700, color: '#0F172A' }}>
+                  <tr style={{ backgroundColor: 'var(--bg-soft)', borderTop: '2px solid var(--border-subtle)', borderBottom: '1px solid var(--border-strong)' }}>
+                    <td colSpan={3} style={{ padding: '0.65rem 1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                       <Link
                         href={`/sales/contacts/${group.contactId}`}
-                        style={{ color: '#0F172A', textDecoration: 'none' }}
+                        style={{ color: 'var(--text-main)', textDecoration: 'none' }}
                       >
                         {group.contactName} {group.companyName ? `(${group.companyName})` : ''}
                       </Link>
                     </td>
-                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: '#10B981' }}>
+                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: 'var(--success-text)' }}>
                       £{Number(group.totals.current).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: '#F59E0B' }}>
+                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: 'var(--warning-text)' }}>
                       £{Number(group.totals.days1To30).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: '#D97706' }}>
+                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: 'var(--warning-text)' }}>
                       £{Number(group.totals.days31To60).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: '#EA580C' }}>
+                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: 'var(--warning-text)' }}>
                       £{Number(group.totals.days61To90).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: '#DC2626' }}>
+                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: 'var(--danger)' }}>
                       £{Number(group.totals.days90Plus).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: '#0F172A' }}>
+                    <td style={{ padding: '0.65rem 1rem', textAlign: 'right', fontWeight: 700, color: 'var(--text-main)' }}>
                       £{Number(group.totals.total).toFixed(2)}
                     </td>
                   </tr>
 
                   {/* Individual Invoices for Customer */}
                   {group.items.map((item) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <tr key={item.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
                       <td style={{ padding: '0.55rem 1rem 0.55rem 2rem' }}>
                         <Link
                           href={`/sales/invoices/${item.id}`}
-                          style={{ color: '#2563EB', fontWeight: 600, textDecoration: 'none' }}
+                          style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}
                         >
                           {item.referenceNumber}
                         </Link>
-                        <span style={{ fontSize: '0.75rem', color: '#64748B', marginLeft: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
                           (Issued {item.issueDate})
                         </span>
                       </td>
-                      <td style={{ padding: '0.55rem 1rem', color: '#64748B' }}>
+                      <td style={{ padding: '0.55rem 1rem', color: 'var(--text-muted)' }}>
                         {item.dueDate}
                       </td>
                       <td style={{ padding: '0.55rem 1rem', textAlign: 'center' }}>
                         {item.daysOverdue > 0 ? (
                           <span
                             style={{
-                              backgroundColor: item.daysOverdue > 60 ? '#FEF2F2' : '#FEF3C7',
-                              color: item.daysOverdue > 60 ? '#DC2626' : '#92400E',
+                              backgroundColor: item.daysOverdue > 60 ? 'var(--danger-bg)' : 'var(--warning-bg)',
+                              color: item.daysOverdue > 60 ? 'var(--danger)' : 'var(--warning-text)',
                               padding: '0.15rem 0.4rem',
                               borderRadius: '0.25rem',
                               fontWeight: 600,
@@ -361,25 +362,25 @@ function ArAgeingContent() {
                             {item.daysOverdue} days
                           </span>
                         ) : (
-                          <span style={{ color: '#10B981', fontSize: '0.75rem', fontWeight: 600 }}>Not due</span>
+                          <span style={{ color: 'var(--success-text)', fontSize: '0.75rem', fontWeight: 600 }}>Not due</span>
                         )}
                       </td>
-                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === 'CURRENT' ? '#0F172A' : '#94A3B8' }}>
+                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === 'CURRENT' ? 'var(--text-main)' : 'var(--text-muted)' }}>
                         {item.bucket === 'CURRENT' ? `£${Number(item.amountDue).toFixed(2)}` : '—'}
                       </td>
-                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === '1_30' ? '#0F172A' : '#94A3B8' }}>
+                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === '1_30' ? 'var(--text-main)' : 'var(--text-muted)' }}>
                         {item.bucket === '1_30' ? `£${Number(item.amountDue).toFixed(2)}` : '—'}
                       </td>
-                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === '31_60' ? '#0F172A' : '#94A3B8' }}>
+                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === '31_60' ? 'var(--text-main)' : 'var(--text-muted)' }}>
                         {item.bucket === '31_60' ? `£${Number(item.amountDue).toFixed(2)}` : '—'}
                       </td>
-                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === '61_90' ? '#0F172A' : '#94A3B8' }}>
+                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === '61_90' ? 'var(--text-main)' : 'var(--text-muted)' }}>
                         {item.bucket === '61_90' ? `£${Number(item.amountDue).toFixed(2)}` : '—'}
                       </td>
-                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === '90_PLUS' ? '#DC2626' : '#94A3B8', fontWeight: item.bucket === '90_PLUS' ? 600 : 400 }}>
+                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', color: item.bucket === '90_PLUS' ? 'var(--danger)' : 'var(--text-muted)', fontWeight: item.bucket === '90_PLUS' ? 600 : 400 }}>
                         {item.bucket === '90_PLUS' ? `£${Number(item.amountDue).toFixed(2)}` : '—'}
                       </td>
-                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', fontWeight: 600, color: '#0F172A' }}>
+                      <td style={{ padding: '0.55rem 1rem', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                         £{Number(item.amountDue).toFixed(2)}
                       </td>
                     </tr>
@@ -392,7 +393,7 @@ function ArAgeingContent() {
           {/* Grand Totals Footer */}
           {report && report.groups.length > 0 && (
             <tfoot>
-              <tr style={{ backgroundColor: '#0F172A', color: '#FFFFFF', fontWeight: 700, fontSize: '0.9rem' }}>
+              <tr style={{ backgroundColor: 'var(--primary)', color: '#FFFFFF', fontWeight: 700, fontSize: '0.9rem' }}>
                 <td colSpan={3} style={{ padding: '0.85rem 1rem' }}>
                   TOTAL RECEIVABLES (ALL DEBTORS)
                 </td>
@@ -419,6 +420,7 @@ function ArAgeingContent() {
           )}
         </table>
       </div>
+      </div>
     </AppShell>
   );
 }
@@ -428,8 +430,10 @@ export default function ArAgeingPage() {
     <Suspense
       fallback={
         <AppShell>
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#64748B' }}>
+          <div className="bl-legacy">
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             Loading Aged Debtors report...
+          </div>
           </div>
         </AppShell>
       }

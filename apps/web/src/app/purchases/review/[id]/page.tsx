@@ -252,7 +252,9 @@ export default function ReviewDocumentPage() {
   if (!review) {
     return (
       <AppShell>
+        <div className="bl-legacy">
         {error ? <div className="alert alert-danger">{error}</div> : <p>Loading…</p>}
+        </div>
       </AppShell>
     );
   }
@@ -262,12 +264,13 @@ export default function ReviewDocumentPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ marginBottom: '1rem' }}>
         <Link href="/purchases/review" style={{ fontSize: '0.85rem' }}>
           ← Review queue
         </Link>
         <h1 style={{ margin: '0.25rem 0 0' }}>Review {review.document.fileName}</h1>
-        <p style={{ margin: '0.25rem 0 0', color: '#64748B', fontSize: '0.9rem' }}>
+        <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
           {review.document.directionReason}
           {review.document.confidenceScore !== null && <> · confidence {Math.round(review.document.confidenceScore * 100)}% (orders the queue only)</>}
         </p>
@@ -323,7 +326,7 @@ export default function ReviewDocumentPage() {
               </div>
             )}
             {review.counterparty.match?.candidates && review.counterparty.match.candidates.length > 0 && !review.counterparty.entity && (
-              <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: 0 }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 0 }}>
                 Similar contacts: {review.counterparty.match.candidates.map((c) => `${c.name} (${Math.round(c.score * 100)}%)`).join(', ')}
               </p>
             )}
@@ -348,9 +351,9 @@ export default function ReviewDocumentPage() {
                     onFocus={() => setFocus({ boxes: f.boxes, text: f.source ?? f.value })}
                     onChange={(e) => setValues((v) => ({ ...v, [f.path]: e.target.value }))}
                   />
-                  {f.source && <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Read from: “{f.source}”</div>}
+                  {f.source && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Read from: “{f.source}”</div>}
                   {findingsFor(f.path).map((m, i) => (
-                    <div key={i} style={{ fontSize: '0.75rem', color: '#B91C1C' }}>
+                    <div key={i} style={{ fontSize: '0.75rem', color: 'var(--danger)' }}>
                       {m}
                     </div>
                   ))}
@@ -363,7 +366,7 @@ export default function ReviewDocumentPage() {
             {lines.map((l, i) => {
               const meta = review.lines[i];
               return (
-                <div key={l.lineNumber} style={{ borderTop: i ? '1px solid #E2E8F0' : 'none', paddingTop: i ? '0.75rem' : 0, marginBottom: '0.75rem' }}>
+                <div key={l.lineNumber} style={{ borderTop: i ? '1px solid var(--border-subtle)' : 'none', paddingTop: i ? '0.75rem' : 0, marginBottom: '0.75rem' }}>
                   <input
                     className="form-input"
                     value={l.description}
@@ -404,12 +407,12 @@ export default function ReviewDocumentPage() {
                     </select>
                   </div>
                   {meta?.codingReason && (
-                    <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                       Suggestion ({meta.accountSource.toLowerCase()} / {meta.taxSource.toLowerCase()}): {meta.codingReason}
                     </div>
                   )}
                   {[...(meta?.status.net.findings ?? []), ...(meta?.status.vat.findings ?? [])].map((m, k) => (
-                    <div key={k} style={{ fontSize: '0.75rem', color: '#B91C1C' }}>
+                    <div key={k} style={{ fontSize: '0.75rem', color: 'var(--danger)' }}>
                       {m}
                     </div>
                   ))}
@@ -419,9 +422,9 @@ export default function ReviewDocumentPage() {
           </div>
 
           {overrideList.length > 0 && (
-            <div className="card" style={{ padding: '1rem', borderColor: '#FCA5A5' }}>
+            <div className="card" style={{ padding: '1rem', borderColor: 'var(--danger-border)' }}>
               <h3 style={{ marginTop: 0 }}>Values that need attention</h3>
-              <p style={{ fontSize: '0.85rem', color: '#64748B' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                 Correct the value above, or say why it is right as printed. Reasons are recorded with the approval.
               </p>
               {overrideList.map((path) => (
@@ -443,7 +446,7 @@ export default function ReviewDocumentPage() {
             <button className="btn btn-primary" disabled={busy || !canApprove || !contactId} onClick={approve}>
               {direction === 'PURCHASE' ? 'Approve as draft bill' : 'Approve as draft sales invoice'}
             </button>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B' }}>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               Creates a draft only. {direction === 'PURCHASE' ? 'The bill is posted when someone approves it on the bill page.' : 'The invoice is posted from the invoice page.'}
             </p>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -454,6 +457,7 @@ export default function ReviewDocumentPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </AppShell>
   );

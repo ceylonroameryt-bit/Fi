@@ -89,10 +89,11 @@ export default function InvoicesPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Sales Invoices</h1>
-          <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Sales Invoices</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Authoritative sales invoicing engine automatically integrated into the General Ledger.
           </p>
         </div>
@@ -104,9 +105,9 @@ export default function InvoicesPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                backgroundColor: '#F0FDFA',
-                border: '1px solid #99F6E4',
-                color: '#0F766E',
+                backgroundColor: 'var(--action-soft)',
+                border: '1px solid var(--action-soft)',
+                color: 'var(--action-text)',
                 padding: '0.55rem 1rem',
                 borderRadius: '0.375rem',
                 fontWeight: 700,
@@ -114,7 +115,7 @@ export default function InvoicesPage() {
                 cursor: 'pointer',
               }}
             >
-              <Sparkles size={16} color="#0D9488" />
+              <Sparkles size={16} color="#B8432F" />
               <span>✨ AI Draft Invoice</span>
             </button>
           )}
@@ -131,25 +132,25 @@ export default function InvoicesPage() {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="card" style={{ padding: '1rem 1.25rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Invoiced</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Invoiced</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
             £{totalInvoiced.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Across all active sales</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Across all active sales</div>
         </div>
         <div className="card" style={{ padding: '1rem 1.25rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Posted to Ledger</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2563EB', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Posted to Ledger</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary)', marginTop: '0.25rem' }}>
             £{postedAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Authoritative accounts receivable</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Authoritative accounts receivable</div>
         </div>
         <div className="card" style={{ padding: '1rem 1.25rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Draft Invoices</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#D97706', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--warning-text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Draft Invoices</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--warning-text)', marginTop: '0.25rem' }}>
             {draftCount}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Awaiting posting approval</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Awaiting posting approval</div>
         </div>
       </div>
 
@@ -202,14 +203,14 @@ export default function InvoicesPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#64748B' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     Loading invoices...
                   </td>
                 </tr>
               ) : invoices.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>No sales invoices found</div>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.25rem' }}>No sales invoices found</div>
                     <div style={{ fontSize: '0.85rem' }}>Create a sales invoice to bill customers and record sales revenue.</div>
                   </td>
                 </tr>
@@ -217,14 +218,14 @@ export default function InvoicesPage() {
                 invoices.map((inv) => (
                   <tr key={inv.id}>
                     <td>
-                      <Link href={`/sales/invoices/${inv.id}`} style={{ fontWeight: 600, color: '#2563EB', textDecoration: 'none' }}>
+                      <Link href={`/sales/invoices/${inv.id}`} style={{ fontWeight: 600, color: 'var(--primary)', textDecoration: 'none' }}>
                         {inv.invoiceNumber}
                       </Link>
-                      {inv.reference && <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Ref: {inv.reference}</div>}
+                      {inv.reference && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ref: {inv.reference}</div>}
                     </td>
                     <td>
-                      <div style={{ fontWeight: 500, color: '#0F172A' }}>{inv.contact.name}</div>
-                      {inv.contact.companyName && <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{inv.contact.companyName}</div>}
+                      <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{inv.contact.name}</div>
+                      {inv.contact.companyName && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{inv.contact.companyName}</div>}
                     </td>
                     <td style={{ fontSize: '0.85rem' }}>{inv.issueDate.slice(0, 10)}</td>
                     <td style={{ fontSize: '0.85rem' }}>{inv.dueDate.slice(0, 10)}</td>
@@ -254,10 +255,10 @@ export default function InvoicesPage() {
                           📖 {inv.journalEntry.journalNumber}
                         </Link>
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Not posted</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Not posted</span>
                       )}
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A' }}>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                       £{Number(inv.totalAmount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style={{ textAlign: 'right' }}>
@@ -282,6 +283,7 @@ export default function InvoicesPage() {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </AppShell>
   );

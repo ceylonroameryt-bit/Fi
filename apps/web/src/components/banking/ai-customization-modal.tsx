@@ -122,7 +122,7 @@ export function AiCustomizationModal({
           flexDirection: 'column',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           overflow: 'hidden',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -130,7 +130,7 @@ export function AiCustomizationModal({
         <div
           style={{
             padding: '1.25rem 1.75rem',
-            background: 'linear-gradient(135deg, #041F46 0%, #082E64 100%)',
+            background: 'linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg) 100%)',
             color: '#FFFFFF',
             display: 'flex',
             justifyContent: 'space-between',
@@ -144,7 +144,7 @@ export function AiCustomizationModal({
                 height: '36px',
                 borderRadius: '8px',
                 backgroundColor: 'rgba(24, 211, 190, 0.2)',
-                color: '#18D3BE',
+                color: 'var(--action-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -156,7 +156,7 @@ export function AiCustomizationModal({
               <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
                 AI Bookkeeping & Reconciliation Settings
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: 0 }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
                 Customize Blynt AI intelligence, auto-pilot strictness, and specific business rules.
               </p>
             </div>
@@ -166,7 +166,7 @@ export function AiCustomizationModal({
             style={{
               background: 'none',
               border: 'none',
-              color: '#94A3B8',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               padding: '0.25rem',
               display: 'flex',
@@ -184,7 +184,7 @@ export function AiCustomizationModal({
           
           {/* Section 1: Automation Mode */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
               Automation & Workflow Mode
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
@@ -192,8 +192,8 @@ export function AiCustomizationModal({
               <div
                 onClick={() => setPrefs((p) => ({ ...p, mode: 'COPILOT' }))}
                 style={{
-                  border: prefs.mode === 'COPILOT' ? '2px solid #0EA5E9' : '1px solid #E2E8F0',
-                  backgroundColor: prefs.mode === 'COPILOT' ? '#F0F9FF' : '#FFFFFF',
+                  border: prefs.mode === 'COPILOT' ? '2px solid var(--primary)' : '1px solid var(--border-subtle)',
+                  backgroundColor: prefs.mode === 'COPILOT' ? 'var(--info-bg)' : '#FFFFFF',
                   borderRadius: '0.625rem',
                   padding: '0.85rem',
                   cursor: 'pointer',
@@ -202,15 +202,15 @@ export function AiCustomizationModal({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                  <Zap size={16} color={prefs.mode === 'COPILOT' ? '#0EA5E9' : '#64748B'} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>Co-Pilot</span>
+                  <Zap size={16} color={prefs.mode === 'COPILOT' ? '#102654' : '#5B6478'} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>Co-Pilot</span>
                 </div>
-                <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, lineHeight: 1.35 }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.35 }}>
                   AI pre-fills nominals & VAT. You confirm with 1 click. Recommended.
                 </p>
                 {prefs.mode === 'COPILOT' && (
                   <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem' }}>
-                    <CheckCircle2 size={15} color="#0EA5E9" />
+                    <CheckCircle2 size={15} color="#102654" />
                   </div>
                 )}
               </div>
@@ -219,8 +219,8 @@ export function AiCustomizationModal({
               <div
                 onClick={() => setPrefs((p) => ({ ...p, mode: 'AUTOPILOT' }))}
                 style={{
-                  border: prefs.mode === 'AUTOPILOT' ? '2px solid #10B8A7' : '1px solid #E2E8F0',
-                  backgroundColor: prefs.mode === 'AUTOPILOT' ? '#F0FDF4' : '#FFFFFF',
+                  border: prefs.mode === 'AUTOPILOT' ? '2px solid var(--action)' : '1px solid var(--border-subtle)',
+                  backgroundColor: prefs.mode === 'AUTOPILOT' ? 'var(--success-bg)' : '#FFFFFF',
                   borderRadius: '0.625rem',
                   padding: '0.85rem',
                   cursor: 'pointer',
@@ -229,15 +229,15 @@ export function AiCustomizationModal({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                  <Bot size={16} color={prefs.mode === 'AUTOPILOT' ? '#10B8A7' : '#64748B'} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>Autopilot</span>
+                  <Bot size={16} color={prefs.mode === 'AUTOPILOT' ? '#B8432F' : '#5B6478'} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>Autopilot</span>
                 </div>
-                <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, lineHeight: 1.35 }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.35 }}>
                   Instantly reconciles all transactions above your confidence threshold.
                 </p>
                 {prefs.mode === 'AUTOPILOT' && (
                   <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem' }}>
-                    <CheckCircle2 size={15} color="#10B8A7" />
+                    <CheckCircle2 size={15} color="#B8432F" />
                   </div>
                 )}
               </div>
@@ -246,8 +246,8 @@ export function AiCustomizationModal({
               <div
                 onClick={() => setPrefs((p) => ({ ...p, mode: 'REVIEW' }))}
                 style={{
-                  border: prefs.mode === 'REVIEW' ? '2px solid #6366F1' : '1px solid #E2E8F0',
-                  backgroundColor: prefs.mode === 'REVIEW' ? '#EEF2FF' : '#FFFFFF',
+                  border: prefs.mode === 'REVIEW' ? '2px solid var(--primary)' : '1px solid var(--border-subtle)',
+                  backgroundColor: prefs.mode === 'REVIEW' ? 'var(--info-bg)' : '#FFFFFF',
                   borderRadius: '0.625rem',
                   padding: '0.85rem',
                   cursor: 'pointer',
@@ -256,15 +256,15 @@ export function AiCustomizationModal({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-                  <ShieldCheck size={16} color={prefs.mode === 'REVIEW' ? '#6366F1' : '#64748B'} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>Manual Review</span>
+                  <ShieldCheck size={16} color={prefs.mode === 'REVIEW' ? '#102654' : '#5B6478'} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>Manual Review</span>
                 </div>
-                <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, lineHeight: 1.35 }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.35 }}>
                   Only suggests existing unpaid invoices/bills. No auto-fill.
                 </p>
                 {prefs.mode === 'REVIEW' && (
                   <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem' }}>
-                    <CheckCircle2 size={15} color="#6366F1" />
+                    <CheckCircle2 size={15} color="#102654" />
                   </div>
                 )}
               </div>
@@ -272,14 +272,14 @@ export function AiCustomizationModal({
           </div>
 
           {/* Section 2: Confidence Threshold Slider */}
-          <div style={{ backgroundColor: '#F8FAFC', borderRadius: '0.75rem', padding: '1rem 1.25rem', border: '1px solid #E2E8F0' }}>
+          <div style={{ backgroundColor: 'var(--bg-app)', borderRadius: '0.75rem', padding: '1rem 1.25rem', border: '1px solid var(--border-subtle)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <div>
-                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <SlidersHorizontal size={15} color="#0EA5E9" />
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <SlidersHorizontal size={15} color="#102654" />
                   AI Confidence Sensitivity
                 </label>
-                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                   Only transactions meeting or exceeding this threshold qualify for 1-click Auto-Reconcile.
                 </span>
               </div>
@@ -287,9 +287,9 @@ export function AiCustomizationModal({
                 style={{
                   fontSize: '1rem',
                   fontWeight: 800,
-                  color: prefs.confidenceThreshold >= 0.9 ? '#10B8A7' : prefs.confidenceThreshold >= 0.8 ? '#0EA5E9' : '#F59E0B',
+                  color: prefs.confidenceThreshold >= 0.9 ? 'var(--action-text)' : prefs.confidenceThreshold >= 0.8 ? 'var(--primary)' : 'var(--warning-text)',
                   backgroundColor: '#FFFFFF',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '0.375rem',
                   padding: '0.2rem 0.6rem',
                 }}
@@ -305,7 +305,7 @@ export function AiCustomizationModal({
               max="99"
               value={Math.round(prefs.confidenceThreshold * 100)}
               onChange={(e) => setPrefs((p) => ({ ...p, confidenceThreshold: Number(e.target.value) / 100 }))}
-              style={{ width: '100%', accentColor: '#10B8A7', cursor: 'pointer', marginBottom: '0.75rem' }}
+              style={{ width: '100%', accentColor: 'var(--action-text)', cursor: 'pointer', marginBottom: '0.75rem' }}
             />
 
             {/* Presets */}
@@ -325,11 +325,11 @@ export function AiCustomizationModal({
                       flex: 1,
                       padding: '0.4rem 0.5rem',
                       borderRadius: '0.375rem',
-                      border: isActive ? '1px solid #10B8A7' : '1px solid #CBD5E1',
+                      border: isActive ? '1px solid var(--action)' : '1px solid var(--border-strong)',
                       backgroundColor: isActive ? '#E6FFFA' : '#FFFFFF',
                       fontSize: '0.75rem',
                       fontWeight: isActive ? 700 : 500,
-                      color: isActive ? '#0D9488' : '#475569',
+                      color: isActive ? 'var(--action-text)' : 'var(--ink-2)',
                       cursor: 'pointer',
                     }}
                   >
@@ -340,8 +340,8 @@ export function AiCustomizationModal({
             </div>
 
             {currentTotalItems > 0 && (
-              <div style={{ marginTop: '0.75rem', fontSize: '0.775rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Check size={14} color="#10B8A7" />
+              <div style={{ marginTop: '0.75rem', fontSize: '0.775rem', color: 'var(--ink-2)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Check size={14} color="#B8432F" />
                 <span>
                   <strong>{qualifyingItemsCount}</strong> of <strong>{currentTotalItems}</strong> pending statement items qualify for 1-click Auto-Reconcile at {Math.round(prefs.confidenceThreshold * 100)}% sensitivity.
                 </span>
@@ -352,10 +352,10 @@ export function AiCustomizationModal({
           {/* Section 3: Custom Business Rules (Natural Language Prompt) */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 Custom Business Instructions & Memory
               </label>
-              <span style={{ fontSize: '0.725rem', color: '#64748B' }}>Blynt AI applies these rules first</span>
+              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>Blynt AI applies these rules first</span>
             </div>
             <textarea
               rows={3}
@@ -365,16 +365,16 @@ export function AiCustomizationModal({
               style={{
                 width: '100%',
                 padding: '0.65rem 0.85rem',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.5rem',
                 fontSize: '0.825rem',
-                color: '#1E293B',
+                color: 'var(--text-main)',
                 fontFamily: 'inherit',
                 resize: 'vertical',
                 lineHeight: 1.4,
               }}
             />
-            <p style={{ fontSize: '0.725rem', color: '#64748B', marginTop: '0.3rem' }}>
+            <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
               Tell Blynt AI how your company classifies specific suppliers, client retainers, or VAT expectations.
             </p>
           </div>
@@ -382,7 +382,7 @@ export function AiCustomizationModal({
           {/* Section 4: Fallback Defaults */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.3rem' }}>
                 Default Expense Category
               </label>
               <select
@@ -391,7 +391,7 @@ export function AiCustomizationModal({
                 style={{
                   width: '100%',
                   padding: '0.5rem 0.75rem',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '0.375rem',
                   fontSize: '0.825rem',
                   backgroundColor: '#FFFFFF',
@@ -407,7 +407,7 @@ export function AiCustomizationModal({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.3rem' }}>
                 Default VAT Rate
               </label>
               <select
@@ -416,7 +416,7 @@ export function AiCustomizationModal({
                 style={{
                   width: '100%',
                   padding: '0.5rem 0.75rem',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '0.375rem',
                   fontSize: '0.825rem',
                   backgroundColor: '#FFFFFF',
@@ -431,16 +431,16 @@ export function AiCustomizationModal({
           </div>
 
           {/* Section 5: Reasoning Visibility Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid var(--bg-soft)' }}>
             <div>
-              <span style={{ fontSize: '0.825rem', fontWeight: 600, color: '#1E293B' }}>Display AI Reasoning Badge</span>
-              <p style={{ fontSize: '0.725rem', color: '#64748B', margin: 0 }}>Show why Blynt AI picked a specific nominal code and tax treatment</p>
+              <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-main)' }}>Display AI Reasoning Badge</span>
+              <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)', margin: 0 }}>Show why Blynt AI picked a specific nominal code and tax treatment</p>
             </div>
             <input
               type="checkbox"
               checked={prefs.showAiReasoning}
               onChange={(e) => setPrefs((p) => ({ ...p, showAiReasoning: e.target.checked }))}
-              style={{ width: '18px', height: '18px', accentColor: '#0EA5E9', cursor: 'pointer' }}
+              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
             />
           </div>
 
@@ -450,8 +450,8 @@ export function AiCustomizationModal({
         <div
           style={{
             padding: '1rem 1.75rem',
-            backgroundColor: '#F8FAFC',
-            borderTop: '1px solid #E2E8F0',
+            backgroundColor: 'var(--bg-app)',
+            borderTop: '1px solid var(--border-subtle)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -463,7 +463,7 @@ export function AiCustomizationModal({
             style={{
               background: 'none',
               border: 'none',
-              color: '#64748B',
+              color: 'var(--text-muted)',
               fontSize: '0.8rem',
               fontWeight: 500,
               cursor: 'pointer',
@@ -479,10 +479,10 @@ export function AiCustomizationModal({
               onClick={onClose}
               style={{
                 padding: '0.55rem 1.15rem',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.5rem',
                 backgroundColor: '#FFFFFF',
-                color: '#334155',
+                color: 'var(--ink-2)',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -500,7 +500,7 @@ export function AiCustomizationModal({
                 padding: '0.55rem 1.35rem',
                 border: 'none',
                 borderRadius: '0.5rem',
-                backgroundColor: savedSuccess ? '#10B981' : '#041F46',
+                backgroundColor: savedSuccess ? 'var(--success)' : 'var(--nav-bg)',
                 color: '#FFFFFF',
                 fontSize: '0.85rem',
                 fontWeight: 600,

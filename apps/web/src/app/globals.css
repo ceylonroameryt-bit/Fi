@@ -3185,3 +3185,234 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Legacy component refresh ───────────────────────────────────────────────
+   Pages built before design system v2 use these classes. Restyling them here
+   brings every page onto the same look without rewriting each page. */
+.page-body {
+  padding: 28px;
+  max-width: 1280px;
+  width: 100%;
+}
+.page-header {
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+.page-title,
+#main-content h1:not([class]) {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text-main);
+}
+.page-subtitle {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+#main-content h2:not([class]) {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.card {
+  border-radius: 16px;
+  box-shadow: none;
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom-color: var(--line-soft);
+}
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.card-body {
+  padding: 20px;
+}
+.table-wrapper,
+.table-responsive {
+  border-radius: 16px;
+  border-color: var(--border-subtle);
+}
+.table {
+  font-size: 14px;
+}
+.table th {
+  background-color: transparent;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  padding: 12px 14px;
+  border-bottom-color: var(--border-subtle);
+}
+.table td {
+  padding: 12px 14px;
+  border-bottom-color: var(--line-soft);
+}
+.table tr:hover td {
+  background-color: var(--bg-app);
+}
+.text-right {
+  text-align: right;
+}
+td.text-right,
+th.text-right,
+.font-mono,
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.form-group {
+  margin-bottom: 16px;
+}
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+.form-input,
+.form-select {
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: 14px;
+  padding: 0 12px;
+}
+.form-textarea {
+  border-radius: 10px;
+  font-size: 14px;
+  padding: 10px 12px;
+}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 0;
+  border-color: var(--primary);
+  box-shadow: none;
+}
+.alert {
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px 14px;
+}
+.alert-warning {
+  background: #fff8e6;
+  border: 1px solid var(--warning-border);
+  color: #4d3a10;
+}
+.alert-info {
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  color: #1d3f6e;
+}
+.alert-success {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: #0b4f3d;
+}
+.modal-overlay,
+.drawer-overlay {
+  background-color: rgba(11, 27, 61, 0.55);
+  backdrop-filter: none;
+}
+.modal-content {
+  border-radius: 16px;
+  box-shadow: 0 30px 70px rgba(11, 27, 61, 0.3);
+}
+.modal-header,
+.drawer-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.modal-footer,
+.drawer-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Status badges: always symbol + word, so status reads without colour. */
+.badge {
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 9px;
+  letter-spacing: 0;
+}
+.badge-draft {
+  background-color: var(--bg-soft);
+  color: var(--ink-2);
+  border-color: var(--border-subtle);
+}
+.badge-draft::before {
+  content: '○';
+}
+.badge-validated::before,
+.badge-soft-locked::before {
+  content: '◐';
+}
+.badge-validated {
+  background-color: var(--info-bg);
+  color: var(--info-text);
+  border-color: var(--info-border);
+}
+.badge-posted::before,
+.badge-open::before,
+.badge-active::before {
+  content: '●';
+}
+.badge-reversed {
+  background-color: var(--bg-soft);
+  color: var(--ink-2);
+  border-color: var(--border-subtle);
+}
+.badge-reversed::before {
+  content: '↺';
+}
+.badge-hard-locked::before {
+  content: '■';
+}
+.badge-danger::before,
+.badge-suspended::before {
+  content: '!';
+}
+.badge-invited {
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+  border-color: var(--warning-border);
+}
+.badge-invited::before {
+  content: '◷';
+}
+.badge-archived,
+.badge-disabled,
+.badge-closed,
+.badge-neutral {
+  background-color: var(--bg-soft);
+  color: var(--ink-2);
+  border-color: var(--border-subtle);
+}
+.badge-primary {
+  background-color: var(--info-bg);
+  color: var(--primary);
+  border-color: var(--info-border);
+}
+
+/* Content area for pages built before v2 (padding + readable max width). */
+.bl-legacy {
+  padding: 28px;
+  max-width: 1280px;
+  width: 100%;
+}
+@media (max-width: 960px) {
+  .bl-legacy {
+    padding: 20px 16px;
+  }
+}

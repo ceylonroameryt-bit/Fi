@@ -53,6 +53,7 @@ export default function AccountingIntegrityPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header">
         <div>
           <h1 className="page-title">Accounting Integrity & Controls</h1>
@@ -86,14 +87,14 @@ export default function AccountingIntegrityPage() {
         >
           <div className="card">
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                 System Status
               </div>
               <div
                 style={{
                   fontSize: '1.25rem',
                   fontWeight: 700,
-                  color: summary.allPassed ? '#15803D' : '#B91C1C',
+                  color: summary.allPassed ? 'var(--success-text)' : 'var(--danger)',
                   marginTop: '0.25rem',
                 }}
               >
@@ -104,10 +105,10 @@ export default function AccountingIntegrityPage() {
 
           <div className="card">
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                 Total Controls Checked
               </div>
-              <div className="font-mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginTop: '0.25rem' }}>
+              <div className="font-mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                 {summary.totalChecks}
               </div>
             </div>
@@ -115,10 +116,10 @@ export default function AccountingIntegrityPage() {
 
           <div className="card">
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                 Controls Passed
               </div>
-              <div className="font-mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: '#15803D', marginTop: '0.25rem' }}>
+              <div className="font-mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--success-text)', marginTop: '0.25rem' }}>
                 {summary.passedChecks}
               </div>
             </div>
@@ -126,7 +127,7 @@ export default function AccountingIntegrityPage() {
 
           <div className="card">
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                 Controls Failed
               </div>
               <div
@@ -134,7 +135,7 @@ export default function AccountingIntegrityPage() {
                 style={{
                   fontSize: '1.25rem',
                   fontWeight: 700,
-                  color: summary.failedChecks > 0 ? '#B91C1C' : '#64748b',
+                  color: summary.failedChecks > 0 ? 'var(--danger)' : 'var(--text-muted)',
                   marginTop: '0.25rem',
                 }}
               >
@@ -145,10 +146,10 @@ export default function AccountingIntegrityPage() {
 
           <div className="card">
             <div className="card-body">
-              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                 Last Diagnostic Check
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#0f172a', marginTop: '0.4rem' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '0.4rem' }}>
                 {new Date(summary.checkedAt).toLocaleTimeString()} ({new Date(summary.checkedAt).toLocaleDateString()})
               </div>
             </div>
@@ -175,32 +176,32 @@ export default function AccountingIntegrityPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     Running accounting integrity checks...
                   </td>
                 </tr>
               ) : !summary || summary.checks.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No check results available.
                   </td>
                 </tr>
               ) : (
                 summary.checks.map((chk, idx) => (
                   <tr key={chk.checkName}>
-                    <td className="font-mono text-center" style={{ color: '#64748b' }}>
+                    <td className="font-mono text-center" style={{ color: 'var(--text-muted)' }}>
                       {idx + 1}
                     </td>
                     <td>
-                      <strong style={{ color: '#0f172a' }}>{chk.checkName}</strong>
+                      <strong style={{ color: 'var(--text-main)' }}>{chk.checkName}</strong>
                     </td>
                     <td>
                       <span
                         className="badge"
                         style={{
-                          backgroundColor: chk.severity === 'CRITICAL' ? '#FEF2F2' : '#FFFBEB',
-                          color: chk.severity === 'CRITICAL' ? '#B91C1C' : '#B45309',
-                          border: `1px solid ${chk.severity === 'CRITICAL' ? '#FECACA' : '#FDE68A'}`,
+                          backgroundColor: chk.severity === 'CRITICAL' ? 'var(--danger-bg)' : 'var(--warning-bg)',
+                          color: chk.severity === 'CRITICAL' ? 'var(--danger)' : 'var(--warning-text)',
+                          border: `1px solid ${chk.severity === 'CRITICAL' ? 'var(--danger-border)' : 'var(--warning-border)'}`,
                           fontSize: '0.7rem',
                         }}
                       >
@@ -215,14 +216,14 @@ export default function AccountingIntegrityPage() {
                         {chk.passed ? '✓ PASSED' : '✕ FAILED'}
                       </span>
                     </td>
-                    <td style={{ color: chk.passed ? '#334155' : '#B91C1C' }}>
+                    <td style={{ color: chk.passed ? 'var(--ink-2)' : 'var(--danger)' }}>
                       <div>{chk.message}</div>
                       {chk.details && !chk.passed && (
                         <pre
                           style={{
                             marginTop: '0.5rem',
                             padding: '0.5rem',
-                            backgroundColor: '#FEF2F2',
+                            backgroundColor: 'var(--danger-bg)',
                             borderRadius: '4px',
                             fontSize: '0.75rem',
                             overflowX: 'auto',
@@ -238,6 +239,7 @@ export default function AccountingIntegrityPage() {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </AppShell>
   );

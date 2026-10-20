@@ -48,10 +48,11 @@ export default function BillsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.25rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ margin: 0 }}>Supplier bills</h1>
-          <p style={{ margin: '0.25rem 0 0', color: '#64748B' }}>Drafts are posted to the ledger only when approved.</p>
+          <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)' }}>Drafts are posted to the ledger only when approved.</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Link href="/purchases/review" className="btn btn-secondary">
@@ -90,14 +91,14 @@ export default function BillsPage() {
                 </tr>
               ) : bills.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '1.5rem', color: '#64748B' }}>No bills yet.</td>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>No bills yet.</td>
                 </tr>
               ) : (
                 bills.map((b) => (
                   <tr key={b.id}>
                     <td>
                       <Link href={`/purchases/bills/${b.id}`}>{b.billNumber}</Link>
-                      {b.sourceDocumentId && <span title="Created from an uploaded document" style={{ marginLeft: 6, fontSize: '0.75rem', color: '#7C3AED' }}>AI</span>}
+                      {b.sourceDocumentId && <span title="Created from an uploaded document" style={{ marginLeft: 6, fontSize: '0.75rem', color: 'var(--primary)' }}>AI</span>}
                     </td>
                     <td>{b.contact.name}</td>
                     <td>{b.supplierInvoiceNumber}</td>
@@ -113,6 +114,7 @@ export default function BillsPage() {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </AppShell>
   );

@@ -15,17 +15,17 @@ export function AdminMetricCard({ title, value, subtitle }: AdminMetricCardProps
         backgroundColor: '#FFFFFF',
         borderRadius: '10px',
         padding: '1.25rem',
-        border: '1px solid #E2E8F0',
+        border: '1px solid var(--border-subtle)',
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
       }}
     >
-      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
         {title}
       </div>
-      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
+      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
         {value}
       </div>
-      {subtitle && <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{subtitle}</div>}
+      {subtitle && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{subtitle}</div>}
     </div>
   );
 }

@@ -102,7 +102,7 @@ export function DocumentViewer({ documentId, fileName, mimeType, pages, extracte
     return (
       <div>
         {header}
-        <div style={{ position: 'relative', border: '1px solid #E2E8F0', borderRadius: 6, overflow: 'hidden' }}>
+        <div style={{ position: 'relative', border: '1px solid var(--border-subtle)', borderRadius: 6, overflow: 'hidden' }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- local blob URL of the user's own upload; next/image cannot optimise it */}
           {url ? <img src={url} alt={fileName} style={{ display: 'block', width: '100%' }} /> : <div style={{ padding: '2rem' }}>Loading…</div>}
           <Overlay boxes={highlight.filter((b) => b.page === 1)} />
@@ -128,7 +128,7 @@ export function DocumentViewer({ documentId, fileName, mimeType, pages, extracte
                   width: '100%',
                   aspectRatio: `1 / ${ratio}`,
                   background: '#fff',
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-subtle)',
                   boxShadow: '0 1px 3px rgba(15,23,42,0.08)',
                   containerType: 'inline-size',
                 }}
@@ -143,7 +143,7 @@ export function DocumentViewer({ documentId, fileName, mimeType, pages, extracte
                       fontSize: `${Math.max((w.y1 - w.y0) * ratio * 100 * 0.85, 0.8)}cqw`,
                       lineHeight: 1,
                       whiteSpace: 'nowrap',
-                      color: '#0F172A',
+                      color: 'var(--text-main)',
                       fontFamily: 'Helvetica, Arial, sans-serif',
                     }}
                   >
@@ -165,7 +165,7 @@ export function DocumentViewer({ documentId, fileName, mimeType, pages, extracte
   return (
     <div>
       {header}
-      <pre style={{ whiteSpace: 'pre-wrap', background: '#fff', border: '1px solid #E2E8F0', padding: '1rem', borderRadius: 6, fontSize: '0.85rem' }}>
+      <pre style={{ whiteSpace: 'pre-wrap', background: '#fff', border: '1px solid var(--border-subtle)', padding: '1rem', borderRadius: 6, fontSize: '0.85rem' }}>
         {idx >= 0 ? (
           <>
             {text.slice(0, idx)}
@@ -182,9 +182,9 @@ export function DocumentViewer({ documentId, fileName, mimeType, pages, extracte
 
 export function StatusBadge({ status }: { status: 'verified' | 'inconsistent' | 'missing' | string }) {
   const style: Record<string, React.CSSProperties> = {
-    verified: { background: '#DCFCE7', color: '#166534' },
-    inconsistent: { background: '#FEE2E2', color: '#991B1B' },
-    missing: { background: '#F1F5F9', color: '#475569' },
+    verified: { background: 'var(--success-bg)', color: 'var(--success-text)' },
+    inconsistent: { background: 'var(--danger-bg)', color: 'var(--danger-text)' },
+    missing: { background: 'var(--bg-soft)', color: 'var(--ink-2)' },
   };
   return (
     <span style={{ ...(style[status] ?? style.missing), fontSize: '0.7rem', fontWeight: 600, padding: '0.1rem 0.45rem', borderRadius: 999, textTransform: 'uppercase' }}>

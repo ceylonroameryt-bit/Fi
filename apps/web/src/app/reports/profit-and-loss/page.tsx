@@ -179,6 +179,7 @@ function ProfitAndLossContent() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -190,8 +191,8 @@ function ProfitAndLossContent() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                backgroundColor: '#DCFCE7',
-                color: '#15803D',
+                backgroundColor: 'var(--success-bg)',
+                color: 'var(--success-text)',
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 padding: '0.2rem 0.55rem',
@@ -204,7 +205,7 @@ function ProfitAndLossContent() {
           </div>
           <p
             className="page-subtitle"
-            style={{ margin: '0.25rem 0 0 0', color: '#64748B', fontSize: '0.875rem' }}
+            style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}
           >
             Authoritative statement of operational performance derived exclusively from posted General Ledger
             entries.
@@ -218,9 +219,9 @@ function ProfitAndLossContent() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.45rem',
-              backgroundColor: '#ECFDF5',
-              border: '1px solid #A7F3D0',
-              color: '#065F46',
+              backgroundColor: 'var(--success-bg)',
+              border: '1px solid var(--success-border)',
+              color: 'var(--success-text)',
               padding: '0.5rem 0.95rem',
               borderRadius: '0.375rem',
               fontWeight: 700,
@@ -229,7 +230,7 @@ function ProfitAndLossContent() {
               boxShadow: '0 1px 2px rgba(6, 95, 70, 0.08)',
             }}
           >
-            <Sparkles size={15} color="#059669" />
+            <Sparkles size={15} color="#0B6B52" />
             <span>✨ AI Commentary & Insights</span>
           </button>
 
@@ -261,7 +262,7 @@ function ProfitAndLossContent() {
           alignItems: 'flex-end',
           padding: '1rem 1.25rem',
           backgroundColor: '#FFFFFF',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '10px',
           marginBottom: '1.5rem',
         }}
@@ -272,7 +273,7 @@ function ProfitAndLossContent() {
               display: 'block',
               fontSize: '0.75rem',
               fontWeight: 600,
-              color: '#475569',
+              color: 'var(--ink-2)',
               marginBottom: '0.25rem',
             }}
           >
@@ -288,7 +289,7 @@ function ProfitAndLossContent() {
             style={{
               padding: '0.45rem 0.65rem',
               borderRadius: '6px',
-              border: '1px solid #CBD5E1',
+              border: '1px solid var(--border-strong)',
               fontSize: '0.85rem',
             }}
           >
@@ -308,7 +309,7 @@ function ProfitAndLossContent() {
                 display: 'block',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: '#475569',
+                color: 'var(--ink-2)',
                 marginBottom: '0.25rem',
               }}
             >
@@ -321,7 +322,7 @@ function ProfitAndLossContent() {
               style={{
                 padding: '0.45rem 0.65rem',
                 borderRadius: '6px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 fontSize: '0.85rem',
               }}
             >
@@ -345,7 +346,7 @@ function ProfitAndLossContent() {
                   display: 'block',
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  color: '#475569',
+                  color: 'var(--ink-2)',
                   marginBottom: '0.25rem',
                 }}
               >
@@ -359,7 +360,7 @@ function ProfitAndLossContent() {
                 style={{
                   padding: '0.45rem 0.65rem',
                   borderRadius: '6px',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   fontSize: '0.85rem',
                 }}
               />
@@ -371,7 +372,7 @@ function ProfitAndLossContent() {
                   display: 'block',
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  color: '#475569',
+                  color: 'var(--ink-2)',
                   marginBottom: '0.25rem',
                 }}
               >
@@ -385,7 +386,7 @@ function ProfitAndLossContent() {
                 style={{
                   padding: '0.45rem 0.65rem',
                   borderRadius: '6px',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   fontSize: '0.85rem',
                 }}
               />
@@ -407,9 +408,9 @@ function ProfitAndLossContent() {
         <div
           style={{
             padding: '1rem',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FCA5A5',
-            color: '#991B1B',
+            backgroundColor: 'var(--danger-bg)',
+            border: '1px solid var(--danger-border)',
+            color: 'var(--danger-text)',
             borderRadius: '8px',
             marginBottom: '1.5rem',
           }}
@@ -419,7 +420,7 @@ function ProfitAndLossContent() {
       )}
 
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>
+        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
           Calculating Profit & Loss statement from General Ledger...
         </div>
       ) : !report ? null : (
@@ -438,15 +439,15 @@ function ProfitAndLossContent() {
                 backgroundColor: '#FFFFFF',
                 padding: '1.25rem',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <div
-                style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}
+                style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}
               >
                 Operating Revenue
               </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
                 £{report.revenue.total}
               </div>
             </div>
@@ -456,15 +457,15 @@ function ProfitAndLossContent() {
                 backgroundColor: '#FFFFFF',
                 padding: '1.25rem',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <div
-                style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}
+                style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}
               >
                 Cost of Sales
               </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
                 £{report.costOfSales.total}
               </div>
             </div>
@@ -474,11 +475,11 @@ function ProfitAndLossContent() {
                 backgroundColor: '#FFFFFF',
                 padding: '1.25rem',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <div
-                style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}
+                style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}
               >
                 Gross Profit
               </div>
@@ -486,7 +487,7 @@ function ProfitAndLossContent() {
                 style={{
                   fontSize: '1.4rem',
                   fontWeight: 700,
-                  color: Number(report.grossProfit) >= 0 ? '#16A34A' : '#DC2626',
+                  color: Number(report.grossProfit) >= 0 ? 'var(--success-text)' : 'var(--danger)',
                   marginTop: '0.35rem',
                 }}
               >
@@ -499,32 +500,32 @@ function ProfitAndLossContent() {
                 backgroundColor: '#FFFFFF',
                 padding: '1.25rem',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <div
-                style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}
+                style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}
               >
                 Operating Expenses
               </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
                 £{report.operatingExpenses.total}
               </div>
             </div>
 
             <div
               style={{
-                backgroundColor: report.isProfitable ? '#F0FDF4' : '#FEF2F2',
+                backgroundColor: report.isProfitable ? 'var(--success-bg)' : 'var(--danger-bg)',
                 padding: '1.25rem',
                 borderRadius: '10px',
-                border: report.isProfitable ? '1px solid #86EFAC' : '1px solid #FCA5A5',
+                border: report.isProfitable ? '1px solid var(--success-border)' : '1px solid var(--danger-border)',
               }}
             >
               <div
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  color: report.isProfitable ? '#166534' : '#991B1B',
+                  color: report.isProfitable ? 'var(--success-text)' : 'var(--danger-text)',
                   textTransform: 'uppercase',
                 }}
               >
@@ -534,7 +535,7 @@ function ProfitAndLossContent() {
                 style={{
                   fontSize: '1.4rem',
                   fontWeight: 700,
-                  color: report.isProfitable ? '#15803D' : '#DC2626',
+                  color: report.isProfitable ? 'var(--success-text)' : 'var(--danger)',
                   marginTop: '0.35rem',
                 }}
               >
@@ -547,7 +548,7 @@ function ProfitAndLossContent() {
           <div
             style={{
               backgroundColor: '#FFFFFF',
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '10px',
               overflow: 'hidden',
             }}
@@ -556,10 +557,10 @@ function ProfitAndLossContent() {
               <thead>
                 <tr
                   style={{
-                    backgroundColor: '#F8FAFC',
-                    borderBottom: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-app)',
+                    borderBottom: '1px solid var(--border-subtle)',
                     textAlign: 'left',
-                    color: '#64748B',
+                    color: 'var(--text-muted)',
                   }}
                 >
                   <th style={{ padding: '0.75rem 1.25rem', width: '120px' }}>Code</th>
@@ -569,11 +570,11 @@ function ProfitAndLossContent() {
               </thead>
               <tbody>
                 {/* 1. Revenue */}
-                <tr style={{ backgroundColor: '#F1F5F9', fontWeight: 700 }}>
-                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: '#1E293B' }}>
+                <tr style={{ backgroundColor: 'var(--bg-soft)', fontWeight: 700 }}>
+                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: 'var(--text-main)' }}>
                     OPERATING REVENUE
                   </td>
-                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                     £{report.revenue.total}
                   </td>
                 </tr>
@@ -581,12 +582,12 @@ function ProfitAndLossContent() {
                   <tr
                     key={r.accountId}
                     onClick={() => handleRowClick(r.accountId)}
-                    style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                    style={{ borderBottom: '1px solid var(--bg-soft)', cursor: 'pointer' }}
                   >
-                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                       {r.accountCode}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
+                    <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 500 }}>
                       {r.accountName}
                     </td>
                     <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{r.amount}</td>
@@ -594,11 +595,11 @@ function ProfitAndLossContent() {
                 ))}
 
                 {/* 2. Cost of Sales */}
-                <tr style={{ backgroundColor: '#F1F5F9', fontWeight: 700, borderTop: '1px solid #E2E8F0' }}>
-                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: '#1E293B' }}>
+                <tr style={{ backgroundColor: 'var(--bg-soft)', fontWeight: 700, borderTop: '1px solid var(--border-subtle)' }}>
+                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: 'var(--text-main)' }}>
                     COST OF SALES (COGS)
                   </td>
-                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                     £{report.costOfSales.total}
                   </td>
                 </tr>
@@ -606,12 +607,12 @@ function ProfitAndLossContent() {
                   <tr
                     key={c.accountId}
                     onClick={() => handleRowClick(c.accountId)}
-                    style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                    style={{ borderBottom: '1px solid var(--bg-soft)', cursor: 'pointer' }}
                   >
-                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                       {c.accountCode}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
+                    <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 500 }}>
                       {c.accountName}
                     </td>
                     <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{c.amount}</td>
@@ -621,26 +622,26 @@ function ProfitAndLossContent() {
                 {/* Gross Profit Subtotal */}
                 <tr
                   style={{
-                    backgroundColor: '#EEF2FF',
+                    backgroundColor: 'var(--info-bg)',
                     fontWeight: 700,
-                    borderTop: '2px solid #CBD5E1',
-                    borderBottom: '2px solid #CBD5E1',
+                    borderTop: '2px solid var(--border-strong)',
+                    borderBottom: '2px solid var(--border-strong)',
                   }}
                 >
-                  <td colSpan={2} style={{ padding: '0.75rem 1.25rem', color: '#3730A3' }}>
+                  <td colSpan={2} style={{ padding: '0.75rem 1.25rem', color: 'var(--info-text)' }}>
                     GROSS PROFIT
                   </td>
-                  <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: '#3730A3' }}>
+                  <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: 'var(--info-text)' }}>
                     £{report.grossProfit}
                   </td>
                 </tr>
 
                 {/* 3. Operating Expenses */}
-                <tr style={{ backgroundColor: '#F1F5F9', fontWeight: 700 }}>
-                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: '#1E293B' }}>
+                <tr style={{ backgroundColor: 'var(--bg-soft)', fontWeight: 700 }}>
+                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: 'var(--text-main)' }}>
                     OPERATING EXPENSES
                   </td>
-                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                     £{report.operatingExpenses.total}
                   </td>
                 </tr>
@@ -648,12 +649,12 @@ function ProfitAndLossContent() {
                   <tr
                     key={o.accountId}
                     onClick={() => handleRowClick(o.accountId)}
-                    style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                    style={{ borderBottom: '1px solid var(--bg-soft)', cursor: 'pointer' }}
                   >
-                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                       {o.accountCode}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
+                    <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 500 }}>
                       {o.accountName}
                     </td>
                     <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{o.amount}</td>
@@ -663,16 +664,16 @@ function ProfitAndLossContent() {
                 {/* Operating Profit Subtotal */}
                 <tr
                   style={{
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: 'var(--bg-app)',
                     fontWeight: 700,
-                    borderTop: '1px solid #CBD5E1',
-                    borderBottom: '1px solid #CBD5E1',
+                    borderTop: '1px solid var(--border-strong)',
+                    borderBottom: '1px solid var(--border-strong)',
                   }}
                 >
-                  <td colSpan={2} style={{ padding: '0.75rem 1.25rem', color: '#1E293B' }}>
+                  <td colSpan={2} style={{ padding: '0.75rem 1.25rem', color: 'var(--text-main)' }}>
                     OPERATING PROFIT (EBIT)
                   </td>
-                  <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                  <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                     £{report.operatingProfit}
                   </td>
                 </tr>
@@ -680,11 +681,11 @@ function ProfitAndLossContent() {
                 {/* 4. Other Expenses */}
                 {report.otherExpenses.accounts.length > 0 && (
                   <>
-                    <tr style={{ backgroundColor: '#F1F5F9', fontWeight: 700 }}>
-                      <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: '#1E293B' }}>
+                    <tr style={{ backgroundColor: 'var(--bg-soft)', fontWeight: 700 }}>
+                      <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: 'var(--text-main)' }}>
                         OTHER EXPENSES & TAXES
                       </td>
-                      <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                      <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                         £{report.otherExpenses.total}
                       </td>
                     </tr>
@@ -692,12 +693,12 @@ function ProfitAndLossContent() {
                       <tr
                         key={ot.accountId}
                         onClick={() => handleRowClick(ot.accountId)}
-                        style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                        style={{ borderBottom: '1px solid var(--bg-soft)', cursor: 'pointer' }}
                       >
-                        <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                        <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                           {ot.accountCode}
                         </td>
-                        <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
+                        <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 500 }}>
                           {ot.accountName}
                         </td>
                         <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{ot.amount}</td>
@@ -709,15 +710,15 @@ function ProfitAndLossContent() {
                 {/* Final Net Profit */}
                 <tr
                   style={{
-                    backgroundColor: report.isProfitable ? '#DCFCE7' : '#FEE2E2',
+                    backgroundColor: report.isProfitable ? 'var(--success-bg)' : 'var(--danger-bg)',
                     fontWeight: 800,
                     fontSize: '1rem',
-                    borderTop: '2px solid #0F172A',
+                    borderTop: '2px solid var(--primary)',
                   }}
                 >
                   <td
                     colSpan={2}
-                    style={{ padding: '0.9rem 1.25rem', color: report.isProfitable ? '#14532D' : '#7F1D1D' }}
+                    style={{ padding: '0.9rem 1.25rem', color: report.isProfitable ? 'var(--success-text)' : 'var(--danger-text)' }}
                   >
                     NET PROFIT / (LOSS)
                   </td>
@@ -725,7 +726,7 @@ function ProfitAndLossContent() {
                     style={{
                       padding: '0.9rem 1.25rem',
                       textAlign: 'right',
-                      color: report.isProfitable ? '#14532D' : '#7F1D1D',
+                      color: report.isProfitable ? 'var(--success-text)' : 'var(--danger-text)',
                     }}
                   >
                     £{report.netProfit}
@@ -736,6 +737,7 @@ function ProfitAndLossContent() {
           </div>
         </>
       )}
+      </div>
     </AppShell>
   );
 }

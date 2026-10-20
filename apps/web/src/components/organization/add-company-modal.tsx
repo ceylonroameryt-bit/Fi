@@ -148,7 +148,7 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
           flexDirection: 'column',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           overflow: 'hidden',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -156,7 +156,7 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
         <div
           style={{
             padding: '1.25rem 1.75rem',
-            background: 'linear-gradient(135deg, #041F46 0%, #082E64 100%)',
+            background: 'linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg) 100%)',
             color: '#FFFFFF',
             display: 'flex',
             justifyContent: 'space-between',
@@ -170,7 +170,7 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                 height: '38px',
                 borderRadius: '8px',
                 backgroundColor: 'rgba(255, 112, 91, 0.2)',
-                color: '#FF705B',
+                color: 'var(--action-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -182,7 +182,7 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
               <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#FFFFFF' }}>
                 Add New Company
               </h2>
-              <p style={{ fontSize: '0.775rem', color: '#94A3B8', margin: '0.15rem 0 0 0' }}>
+              <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
                 Add an additional corporate entity or subsidiary to your workspace
               </p>
             </div>
@@ -192,7 +192,7 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94A3B8',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               padding: '0.25rem',
               display: 'flex',
@@ -216,10 +216,10 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: '0.75rem 1rem',
-                  backgroundColor: '#FEF2F2',
-                  border: '1px solid #FECACA',
+                  backgroundColor: 'var(--danger-bg)',
+                  border: '1px solid var(--danger-border)',
                   borderRadius: '8px',
-                  color: '#DC2626',
+                  color: 'var(--danger)',
                   fontSize: '0.85rem',
                 }}
               >
@@ -230,8 +230,8 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
 
             {/* Company Display Name */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
-                Company Display Name <span style={{ color: '#EF4444' }}>*</span>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+                Company Display Name <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 type="text"
@@ -243,14 +243,14 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                   width: '100%',
                   padding: '0.65rem 0.85rem',
                   borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   fontSize: '0.875rem',
-                  color: '#0F172A',
+                  color: 'var(--text-main)',
                   outline: 'none',
-                  backgroundColor: '#F8FAFC',
+                  backgroundColor: 'var(--bg-app)',
                 }}
               />
-              <span style={{ fontSize: '0.725rem', color: '#64748B', marginTop: '0.25rem', display: 'block' }}>
+              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
                 This is the primary name that appears in your top company switcher.
               </span>
             </div>
@@ -258,7 +258,7 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
             {/* Legal Registered Name & Tax/Reg No (2 Columns) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                   Legal Registered Name
                 </label>
                 <input
@@ -270,9 +270,9 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     fontSize: '0.875rem',
-                    color: '#0F172A',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     backgroundColor: '#FFFFFF',
                   }}
@@ -280,7 +280,7 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                   Tax / VAT Registration
                 </label>
                 <input
@@ -292,9 +292,9 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     fontSize: '0.875rem',
-                    color: '#0F172A',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     backgroundColor: '#FFFFFF',
                   }}
@@ -305,8 +305,8 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
             {/* Country & Base Currency (2 Columns) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
-                  Country <span style={{ color: '#EF4444' }}>*</span>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+                  Country <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <select
                   value={formData.country}
@@ -315,9 +315,9 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     fontSize: '0.875rem',
-                    color: '#0F172A',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     backgroundColor: '#FFFFFF',
                   }}
@@ -331,8 +331,8 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.35rem' }}>
-                  Base Currency <span style={{ color: '#EF4444' }}>*</span>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+                  Base Currency <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <select
                   value={formData.baseCurrency}
@@ -341,9 +341,9 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     fontSize: '0.875rem',
-                    color: '#0F172A',
+                    color: 'var(--text-main)',
                     outline: 'none',
                     backgroundColor: '#FFFFFF',
                   }}
@@ -364,9 +364,9 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                 alignItems: 'flex-start',
                 gap: '0.75rem',
                 padding: '0.85rem 1rem',
-                backgroundColor: '#F0FDF4',
+                backgroundColor: 'var(--success-bg)',
                 borderRadius: '8px',
-                border: '1px solid #BBF7D0',
+                border: '1px solid var(--success-border)',
                 cursor: 'pointer',
               }}
               onClick={() => setFormData({ ...formData, loadTemplate: !formData.loadTemplate })}
@@ -378,16 +378,16 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                 style={{
                   width: '18px',
                   height: '18px',
-                  accentColor: '#10B981',
+                  accentColor: 'var(--success-text)',
                   marginTop: '0.15rem',
                   cursor: 'pointer',
                 }}
               />
               <div>
-                <div style={{ fontSize: '0.825rem', fontWeight: 700, color: '#166534' }}>
+                <div style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--success-text)' }}>
                   Provision Standard Chart of Accounts Template
                 </div>
-                <div style={{ fontSize: '0.725rem', color: '#15803D', marginTop: '0.15rem' }}>
+                <div style={{ fontSize: '0.725rem', color: 'var(--success-text)', marginTop: '0.15rem' }}>
                   Automatically load complete standard accounts (Bank accounts, Revenue, Expenses, VAT control, Assets &amp; Liabilities) so you can start immediately.
                 </div>
               </div>
@@ -398,8 +398,8 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
           <div
             style={{
               padding: '1rem 1.75rem',
-              backgroundColor: '#F8FAFC',
-              borderTop: '1px solid #E2E8F0',
+              backgroundColor: 'var(--bg-app)',
+              borderTop: '1px solid var(--border-subtle)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -412,9 +412,9 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
               style={{
                 padding: '0.6rem 1.1rem',
                 borderRadius: '8px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 backgroundColor: '#FFFFFF',
-                color: '#475569',
+                color: 'var(--ink-2)',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -433,7 +433,7 @@ export function AddCompanyModal({ isOpen, onClose, onSuccess }: AddCompanyModalP
                 padding: '0.65rem 1.35rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #FF705B 0%, #FF5A43 100%)',
+                background: 'linear-gradient(135deg, var(--action) 0%, #FF5A43 100%)',
                 color: '#FFFFFF',
                 fontSize: '0.85rem',
                 fontWeight: 700,

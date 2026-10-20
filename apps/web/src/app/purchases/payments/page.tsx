@@ -238,10 +238,11 @@ export default function PurchasesPaymentsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Supplier Payments</h1>
-          <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Supplier Payments</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Record outgoing supplier payments, allocate against supplier bills, and post directly to the General Ledger.
           </p>
         </div>
@@ -253,7 +254,7 @@ export default function PurchasesPaymentsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              backgroundColor: '#2563EB',
+              backgroundColor: 'var(--primary)',
               color: '#FFFFFF',
               border: 'none',
               padding: '0.5rem 1rem',
@@ -269,26 +270,26 @@ export default function PurchasesPaymentsPage() {
 
       {/* Metrics Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Total Paid</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Paid</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
             £{totalPaid.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#10B981', marginTop: '0.25rem' }}>Credited to Bank Account</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--success-text)', marginTop: '0.25rem' }}>Credited to Bank Account</div>
         </div>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Allocated to Bills</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10B981', marginTop: '0.35rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Allocated to Bills</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success-text)', marginTop: '0.35rem' }}>
             £{totalAllocated.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Debited to Trade Creditors</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Debited to Trade Creditors</div>
         </div>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Unallocated Balance</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: unallocatedBalance > 0 ? '#F59E0B' : '#64748B', marginTop: '0.35rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Unallocated Balance</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: unallocatedBalance > 0 ? 'var(--warning-text)' : 'var(--text-muted)', marginTop: '0.35rem' }}>
             £{unallocatedBalance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Advance payment / unallocated</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Advance payment / unallocated</div>
         </div>
       </div>
 
@@ -301,9 +302,9 @@ export default function PurchasesPaymentsPage() {
             style={{
               padding: '0.35rem 0.75rem',
               borderRadius: '0.375rem',
-              border: statusFilter === st ? '1px solid #2563EB' : '1px solid #E2E8F0',
-              backgroundColor: statusFilter === st ? '#EFF6FF' : '#FFFFFF',
-              color: statusFilter === st ? '#2563EB' : '#475569',
+              border: statusFilter === st ? '1px solid var(--primary)' : '1px solid var(--border-subtle)',
+              backgroundColor: statusFilter === st ? 'var(--info-bg)' : '#FFFFFF',
+              color: statusFilter === st ? 'var(--primary)' : 'var(--ink-2)',
               fontSize: '0.8rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -315,16 +316,16 @@ export default function PurchasesPaymentsPage() {
       </div>
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FEF2F2', border: '1px solid #F87171', color: '#B91C1C', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger)', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
           {error}
         </div>
       )}
 
       {/* Payments Table */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 600 }}>
+            <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)', fontWeight: 600 }}>
               <th style={{ padding: '0.75rem 1rem' }}>Date</th>
               <th style={{ padding: '0.75rem 1rem' }}>Reference</th>
               <th style={{ padding: '0.75rem 1rem' }}>Supplier</th>
@@ -338,13 +339,13 @@ export default function PurchasesPaymentsPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Loading supplier payments...
                 </td>
               </tr>
             ) : payments.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No supplier payments recorded yet.
                 </td>
               </tr>
@@ -352,23 +353,23 @@ export default function PurchasesPaymentsPage() {
               payments.map((p) => {
                 const isVoided = p.status === 'VOIDED';
                 return (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '0.75rem 1rem', color: '#0F172A' }}>
+                  <tr key={p.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-main)' }}>
                       {new Date(p.paymentDate).toLocaleDateString('en-GB')}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: '#0F172A' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: 'var(--text-main)' }}>
                       {p.reference || '—'}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#334155' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--ink-2)' }}>
                       {p.contact.name}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: '#0F172A' }}>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                       £{Number(p.amount).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#10B981' }}>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'var(--success-text)' }}>
                       £{Number(p.amountAllocated).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                       {p.journalEntry?.journalNumber || '—'}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
@@ -379,8 +380,8 @@ export default function PurchasesPaymentsPage() {
                           borderRadius: '9999px',
                           fontSize: '0.75rem',
                           fontWeight: 600,
-                          backgroundColor: isVoided ? '#F1F5F9' : '#ECFDF5',
-                          color: isVoided ? '#64748B' : '#059669',
+                          backgroundColor: isVoided ? 'var(--bg-soft)' : 'var(--success-bg)',
+                          color: isVoided ? 'var(--text-muted)' : 'var(--success-text)',
                         }}
                       >
                         {p.status}
@@ -392,7 +393,7 @@ export default function PurchasesPaymentsPage() {
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#2563EB',
+                          color: 'var(--primary)',
                           cursor: 'pointer',
                           fontWeight: 500,
                           marginRight: '0.75rem',
@@ -406,7 +407,7 @@ export default function PurchasesPaymentsPage() {
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: '#EF4444',
+                            color: 'var(--danger)',
                             cursor: 'pointer',
                             fontWeight: 500,
                           }}
@@ -451,10 +452,10 @@ export default function PurchasesPaymentsPage() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>Record Supplier Payment</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>Record Supplier Payment</h2>
               <button
                 onClick={() => setShowModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94A3B8' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ✕
               </button>
@@ -463,14 +464,14 @@ export default function PurchasesPaymentsPage() {
             <form onSubmit={handleCreatePayment}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Supplier *
                   </label>
                   <select
                     value={selectedSupplierId}
                     onChange={(e) => setSelectedSupplierId(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   >
                     <option value="">Select supplier...</option>
                     {suppliers.map((s) => (
@@ -481,7 +482,7 @@ export default function PurchasesPaymentsPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Payment Date *
                   </label>
                   <input
@@ -489,14 +490,14 @@ export default function PurchasesPaymentsPage() {
                     value={paymentDate}
                     onChange={(e) => setPaymentDate(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Amount Paid (£) *
                   </label>
                   <input
@@ -507,11 +508,11 @@ export default function PurchasesPaymentsPage() {
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
                     required
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Reference (Faster Payments / Transfer)
                   </label>
                   <input
@@ -519,13 +520,13 @@ export default function PurchasesPaymentsPage() {
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
                     placeholder="e.g. FP-90412"
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   />
                 </div>
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                   Notes
                 </label>
                 <input
@@ -533,28 +534,28 @@ export default function PurchasesPaymentsPage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optional internal note"
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                 />
               </div>
 
               {/* Open Bills Allocation Section */}
               {selectedSupplierId && (
-                <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem', borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
+                <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0F172A' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)' }}>
                       Allocate to Open Bills ({openBills.length})
                     </div>
                   </div>
 
                   {openBills.length === 0 ? (
-                    <div style={{ color: '#64748B', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                       No open bills for this supplier. Payment will remain unallocated as an advance payment.
                     </div>
                   ) : (
-                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '0.375rem', overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '0.375rem', overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                         <thead>
-                          <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
+                          <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)' }}>
                             <th style={{ padding: '0.5rem' }}>Bill</th>
                             <th style={{ padding: '0.5rem' }}>Invoice Ref</th>
                             <th style={{ padding: '0.5rem', textAlign: 'right' }}>Total</th>
@@ -567,13 +568,13 @@ export default function PurchasesPaymentsPage() {
                           {openBills.map((bill) => {
                             const bal = Number(bill.totalAmount) - Number(bill.amountPaid);
                             return (
-                              <tr key={bill.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                              <tr key={bill.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
                                 <td style={{ padding: '0.5rem', fontWeight: 600 }}>{bill.billNumber}</td>
-                                <td style={{ padding: '0.5rem', color: '#64748B' }}>
+                                <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>
                                   {bill.supplierInvoiceNumber || '—'}
                                 </td>
                                 <td style={{ padding: '0.5rem', textAlign: 'right' }}>£{Number(bill.totalAmount).toFixed(2)}</td>
-                                <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 600, color: '#E11D48' }}>
+                                <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 600, color: 'var(--danger)' }}>
                                   £{bal.toFixed(2)}
                                 </td>
                                 <td style={{ padding: '0.5rem', textAlign: 'right' }}>
@@ -584,14 +585,14 @@ export default function PurchasesPaymentsPage() {
                                     value={allocations[bill.id] ?? ''}
                                     onChange={(e) => handleAllocationChange(bill.id, e.target.value)}
                                     placeholder="0.00"
-                                    style={{ width: '100%', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', border: '1px solid #CBD5E1', fontSize: '0.8rem', textAlign: 'right' }}
+                                    style={{ width: '100%', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', border: '1px solid var(--border-strong)', fontSize: '0.8rem', textAlign: 'right' }}
                                   />
                                 </td>
                                 <td style={{ padding: '0.5rem' }}>
                                   <button
                                     type="button"
                                     onClick={() => handlePayInFull(bill)}
-                                    style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1D4ED8', fontSize: '0.7rem', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', cursor: 'pointer' }}
+                                    style={{ background: 'var(--info-bg)', border: '1px solid var(--info-border)', color: 'var(--primary)', fontSize: '0.7rem', padding: '0.2rem 0.4rem', borderRadius: '0.25rem', cursor: 'pointer' }}
                                   >
                                     Full
                                   </button>
@@ -610,14 +611,14 @@ export default function PurchasesPaymentsPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', cursor: 'pointer', fontWeight: 500 }}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', backgroundColor: '#FFFFFF', color: 'var(--ink-2)', cursor: 'pointer', fontWeight: 500 }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
+                  style={{ padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'var(--primary)', color: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
                 >
                   {submitting ? 'Posting...' : 'Post Supplier Payment'}
                 </button>
@@ -653,10 +654,10 @@ export default function PurchasesPaymentsPage() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>Payment Details</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>Payment Details</h2>
               <button
                 onClick={() => setSelectedPayment(null)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94A3B8' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ✕
               </button>
@@ -673,10 +674,10 @@ export default function PurchasesPaymentsPage() {
               {selectedPayment.notes && <div><strong>Notes:</strong> {selectedPayment.notes}</div>}
             </div>
 
-            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1rem', marginTop: '1rem' }}>
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', marginTop: '1rem' }}>
               <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.5rem' }}>Allocations</div>
               {!selectedPayment.allocations || selectedPayment.allocations.length === 0 ? (
-                <div style={{ color: '#64748B', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                   No active bill allocations for this payment.
                 </div>
               ) : (
@@ -693,7 +694,7 @@ export default function PurchasesPaymentsPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
               <button
                 onClick={() => setSelectedPayment(null)}
-                style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', cursor: 'pointer', fontWeight: 500 }}
+                style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', backgroundColor: '#FFFFFF', color: 'var(--ink-2)', cursor: 'pointer', fontWeight: 500 }}
               >
                 Close
               </button>
@@ -701,6 +702,7 @@ export default function PurchasesPaymentsPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

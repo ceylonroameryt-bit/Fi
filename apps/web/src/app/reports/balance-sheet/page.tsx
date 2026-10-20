@@ -161,6 +161,7 @@ function BalanceSheetContent() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -172,8 +173,8 @@ function BalanceSheetContent() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                backgroundColor: report?.isBalanced ? '#DCFCE7' : '#FEF3C7',
-                color: report?.isBalanced ? '#15803D' : '#92400E',
+                backgroundColor: report?.isBalanced ? 'var(--success-bg)' : 'var(--warning-bg)',
+                color: report?.isBalanced ? 'var(--success-text)' : 'var(--warning-text)',
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 padding: '0.2rem 0.55rem',
@@ -186,7 +187,7 @@ function BalanceSheetContent() {
           </div>
           <p
             className="page-subtitle"
-            style={{ margin: '0.25rem 0 0 0', color: '#64748B', fontSize: '0.875rem' }}
+            style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}
           >
             Snapshot of Assets, Liabilities, and Equity satisfying Assets ≡ Liabilities + Equity.
           </p>
@@ -212,7 +213,7 @@ function BalanceSheetContent() {
           alignItems: 'flex-end',
           padding: '1rem 1.25rem',
           backgroundColor: '#FFFFFF',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '10px',
           marginBottom: '1.5rem',
         }}
@@ -223,7 +224,7 @@ function BalanceSheetContent() {
               display: 'block',
               fontSize: '0.75rem',
               fontWeight: 600,
-              color: '#475569',
+              color: 'var(--ink-2)',
               marginBottom: '0.25rem',
             }}
           >
@@ -239,7 +240,7 @@ function BalanceSheetContent() {
             style={{
               padding: '0.45rem 0.65rem',
               borderRadius: '6px',
-              border: '1px solid #CBD5E1',
+              border: '1px solid var(--border-strong)',
               fontSize: '0.85rem',
             }}
           >
@@ -259,7 +260,7 @@ function BalanceSheetContent() {
                 display: 'block',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: '#475569',
+                color: 'var(--ink-2)',
                 marginBottom: '0.25rem',
               }}
             >
@@ -272,7 +273,7 @@ function BalanceSheetContent() {
               style={{
                 padding: '0.45rem 0.65rem',
                 borderRadius: '6px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 fontSize: '0.85rem',
               }}
             >
@@ -295,7 +296,7 @@ function BalanceSheetContent() {
                 display: 'block',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                color: '#475569',
+                color: 'var(--ink-2)',
                 marginBottom: '0.25rem',
               }}
             >
@@ -309,7 +310,7 @@ function BalanceSheetContent() {
               style={{
                 padding: '0.45rem 0.65rem',
                 borderRadius: '6px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 fontSize: '0.85rem',
               }}
             />
@@ -330,9 +331,9 @@ function BalanceSheetContent() {
         <div
           style={{
             padding: '1rem',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FCA5A5',
-            color: '#991B1B',
+            backgroundColor: 'var(--danger-bg)',
+            border: '1px solid var(--danger-border)',
+            color: 'var(--danger-text)',
             borderRadius: '8px',
             marginBottom: '1.5rem',
           }}
@@ -342,7 +343,7 @@ function BalanceSheetContent() {
       )}
 
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>
+        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
           Compiling authoritative Balance Sheet statement...
         </div>
       ) : !report ? null : (
@@ -356,9 +357,9 @@ function BalanceSheetContent() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              backgroundColor: report.isBalanced ? '#F0FDF4' : '#FEF2F2',
-              border: report.isBalanced ? '1px solid #86EFAC' : '1px solid #FCA5A5',
-              color: report.isBalanced ? '#166534' : '#991B1B',
+              backgroundColor: report.isBalanced ? 'var(--success-bg)' : 'var(--danger-bg)',
+              border: report.isBalanced ? '1px solid var(--success-border)' : '1px solid var(--danger-border)',
+              color: report.isBalanced ? 'var(--success-text)' : 'var(--danger-text)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -386,15 +387,15 @@ function BalanceSheetContent() {
                 backgroundColor: '#FFFFFF',
                 padding: '1.25rem',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <div
-                style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}
+                style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}
               >
                 Total Assets
               </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
                 £{report.totalAssets}
               </div>
             </div>
@@ -404,15 +405,15 @@ function BalanceSheetContent() {
                 backgroundColor: '#FFFFFF',
                 padding: '1.25rem',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <div
-                style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}
+                style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}
               >
                 Total Liabilities
               </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
                 £{report.totalLiabilities}
               </div>
             </div>
@@ -422,15 +423,15 @@ function BalanceSheetContent() {
                 backgroundColor: '#FFFFFF',
                 padding: '1.25rem',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <div
-                style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}
+                style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}
               >
                 Total Equity
               </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
                 £{report.totalEquity}
               </div>
             </div>
@@ -440,11 +441,11 @@ function BalanceSheetContent() {
                 backgroundColor: '#FFFFFF',
                 padding: '1.25rem',
                 borderRadius: '10px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <div
-                style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}
+                style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}
               >
                 Current Period Net Income
               </div>
@@ -452,7 +453,7 @@ function BalanceSheetContent() {
                 style={{
                   fontSize: '1.4rem',
                   fontWeight: 700,
-                  color: Number(report.currentYearEarnings) >= 0 ? '#16A34A' : '#DC2626',
+                  color: Number(report.currentYearEarnings) >= 0 ? 'var(--success-text)' : 'var(--danger)',
                   marginTop: '0.35rem',
                 }}
               >
@@ -465,7 +466,7 @@ function BalanceSheetContent() {
           <div
             style={{
               backgroundColor: '#FFFFFF',
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '10px',
               overflow: 'hidden',
             }}
@@ -474,10 +475,10 @@ function BalanceSheetContent() {
               <thead>
                 <tr
                   style={{
-                    backgroundColor: '#F8FAFC',
-                    borderBottom: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-app)',
+                    borderBottom: '1px solid var(--border-subtle)',
                     textAlign: 'left',
-                    color: '#64748B',
+                    color: 'var(--text-muted)',
                   }}
                 >
                   <th style={{ padding: '0.75rem 1.25rem', width: '120px' }}>Code</th>
@@ -487,11 +488,11 @@ function BalanceSheetContent() {
               </thead>
               <tbody>
                 {/* 1. CURRENT ASSETS */}
-                <tr style={{ backgroundColor: '#F1F5F9', fontWeight: 700 }}>
-                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: '#1E293B' }}>
+                <tr style={{ backgroundColor: 'var(--bg-soft)', fontWeight: 700 }}>
+                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: 'var(--text-main)' }}>
                     CURRENT ASSETS
                   </td>
-                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                     £{report.currentAssets.total}
                   </td>
                 </tr>
@@ -499,12 +500,12 @@ function BalanceSheetContent() {
                   <tr
                     key={a.accountId}
                     onClick={() => handleRowClick(a.accountId)}
-                    style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                    style={{ borderBottom: '1px solid var(--bg-soft)', cursor: 'pointer' }}
                   >
-                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                       {a.accountCode}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
+                    <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 500 }}>
                       {a.accountName}
                     </td>
                     <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{a.amount}</td>
@@ -515,12 +516,12 @@ function BalanceSheetContent() {
                 {report.nonCurrentAssets.accounts.length > 0 && (
                   <>
                     <tr
-                      style={{ backgroundColor: '#F1F5F9', fontWeight: 700, borderTop: '1px solid #E2E8F0' }}
+                      style={{ backgroundColor: 'var(--bg-soft)', fontWeight: 700, borderTop: '1px solid var(--border-subtle)' }}
                     >
-                      <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: '#1E293B' }}>
+                      <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: 'var(--text-main)' }}>
                         NON-CURRENT ASSETS
                       </td>
-                      <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                      <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                         £{report.nonCurrentAssets.total}
                       </td>
                     </tr>
@@ -528,12 +529,12 @@ function BalanceSheetContent() {
                       <tr
                         key={na.accountId}
                         onClick={() => handleRowClick(na.accountId)}
-                        style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                        style={{ borderBottom: '1px solid var(--bg-soft)', cursor: 'pointer' }}
                       >
-                        <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                        <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                           {na.accountCode}
                         </td>
-                        <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
+                        <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 500 }}>
                           {na.accountName}
                         </td>
                         <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{na.amount}</td>
@@ -545,27 +546,27 @@ function BalanceSheetContent() {
                 {/* TOTAL ASSETS */}
                 <tr
                   style={{
-                    backgroundColor: '#EEF2FF',
+                    backgroundColor: 'var(--info-bg)',
                     fontWeight: 800,
-                    borderTop: '2px solid #CBD5E1',
-                    borderBottom: '2px solid #CBD5E1',
+                    borderTop: '2px solid var(--border-strong)',
+                    borderBottom: '2px solid var(--border-strong)',
                     fontSize: '0.95rem',
                   }}
                 >
-                  <td colSpan={2} style={{ padding: '0.8rem 1.25rem', color: '#312E81' }}>
+                  <td colSpan={2} style={{ padding: '0.8rem 1.25rem', color: 'var(--info-text)' }}>
                     TOTAL ASSETS
                   </td>
-                  <td style={{ padding: '0.8rem 1.25rem', textAlign: 'right', color: '#312E81' }}>
+                  <td style={{ padding: '0.8rem 1.25rem', textAlign: 'right', color: 'var(--info-text)' }}>
                     £{report.totalAssets}
                   </td>
                 </tr>
 
                 {/* 3. CURRENT LIABILITIES */}
-                <tr style={{ backgroundColor: '#F1F5F9', fontWeight: 700 }}>
-                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: '#1E293B' }}>
+                <tr style={{ backgroundColor: 'var(--bg-soft)', fontWeight: 700 }}>
+                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: 'var(--text-main)' }}>
                     CURRENT LIABILITIES
                   </td>
-                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                     £{report.currentLiabilities.total}
                   </td>
                 </tr>
@@ -573,12 +574,12 @@ function BalanceSheetContent() {
                   <tr
                     key={l.accountId}
                     onClick={() => handleRowClick(l.accountId)}
-                    style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                    style={{ borderBottom: '1px solid var(--bg-soft)', cursor: 'pointer' }}
                   >
-                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                       {l.accountCode}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
+                    <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 500 }}>
                       {l.accountName}
                     </td>
                     <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{l.amount}</td>
@@ -589,12 +590,12 @@ function BalanceSheetContent() {
                 {report.nonCurrentLiabilities.accounts.length > 0 && (
                   <>
                     <tr
-                      style={{ backgroundColor: '#F1F5F9', fontWeight: 700, borderTop: '1px solid #E2E8F0' }}
+                      style={{ backgroundColor: 'var(--bg-soft)', fontWeight: 700, borderTop: '1px solid var(--border-subtle)' }}
                     >
-                      <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: '#1E293B' }}>
+                      <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: 'var(--text-main)' }}>
                         NON-CURRENT LIABILITIES
                       </td>
-                      <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                      <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                         £{report.nonCurrentLiabilities.total}
                       </td>
                     </tr>
@@ -602,12 +603,12 @@ function BalanceSheetContent() {
                       <tr
                         key={nl.accountId}
                         onClick={() => handleRowClick(nl.accountId)}
-                        style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                        style={{ borderBottom: '1px solid var(--bg-soft)', cursor: 'pointer' }}
                       >
-                        <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                        <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                           {nl.accountCode}
                         </td>
-                        <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
+                        <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 500 }}>
                           {nl.accountName}
                         </td>
                         <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{nl.amount}</td>
@@ -619,26 +620,26 @@ function BalanceSheetContent() {
                 {/* TOTAL LIABILITIES */}
                 <tr
                   style={{
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: 'var(--bg-app)',
                     fontWeight: 700,
-                    borderTop: '1px solid #CBD5E1',
-                    borderBottom: '1px solid #CBD5E1',
+                    borderTop: '1px solid var(--border-strong)',
+                    borderBottom: '1px solid var(--border-strong)',
                   }}
                 >
-                  <td colSpan={2} style={{ padding: '0.75rem 1.25rem', color: '#1E293B' }}>
+                  <td colSpan={2} style={{ padding: '0.75rem 1.25rem', color: 'var(--text-main)' }}>
                     TOTAL LIABILITIES
                   </td>
-                  <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                  <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                     £{report.totalLiabilities}
                   </td>
                 </tr>
 
                 {/* 5. EQUITY */}
-                <tr style={{ backgroundColor: '#F1F5F9', fontWeight: 700 }}>
-                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: '#1E293B' }}>
+                <tr style={{ backgroundColor: 'var(--bg-soft)', fontWeight: 700 }}>
+                  <td colSpan={2} style={{ padding: '0.65rem 1.25rem', color: 'var(--text-main)' }}>
                     EQUITY
                   </td>
-                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                  <td style={{ padding: '0.65rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                     £{report.equity.total}
                   </td>
                 </tr>
@@ -646,23 +647,23 @@ function BalanceSheetContent() {
                   <tr
                     key={eq.accountId}
                     onClick={() => handleRowClick(eq.accountId)}
-                    style={{ borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}
+                    style={{ borderBottom: '1px solid var(--bg-soft)', cursor: 'pointer' }}
                   >
-                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                    <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                       {eq.accountCode}
                     </td>
-                    <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 500 }}>
+                    <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 500 }}>
                       {eq.accountName}
                     </td>
                     <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right' }}>£{eq.amount}</td>
                   </tr>
                 ))}
                 {/* Current Year Net Income Line */}
-                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: '#64748B' }}>
+                <tr style={{ borderBottom: '1px solid var(--bg-soft)' }}>
+                  <td style={{ padding: '0.6rem 1.25rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                     GL-INC
                   </td>
-                  <td style={{ padding: '0.6rem 1.25rem', color: '#0F172A', fontWeight: 600 }}>
+                  <td style={{ padding: '0.6rem 1.25rem', color: 'var(--text-main)', fontWeight: 600 }}>
                     Current Period Retained Earnings (Net Profit)
                   </td>
                   <td style={{ padding: '0.6rem 1.25rem', textAlign: 'right', fontWeight: 600 }}>
@@ -673,16 +674,16 @@ function BalanceSheetContent() {
                 {/* TOTAL EQUITY */}
                 <tr
                   style={{
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: 'var(--bg-app)',
                     fontWeight: 700,
-                    borderTop: '1px solid #CBD5E1',
-                    borderBottom: '1px solid #CBD5E1',
+                    borderTop: '1px solid var(--border-strong)',
+                    borderBottom: '1px solid var(--border-strong)',
                   }}
                 >
-                  <td colSpan={2} style={{ padding: '0.75rem 1.25rem', color: '#1E293B' }}>
+                  <td colSpan={2} style={{ padding: '0.75rem 1.25rem', color: 'var(--text-main)' }}>
                     TOTAL EQUITY
                   </td>
-                  <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: '#1E293B' }}>
+                  <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', color: 'var(--text-main)' }}>
                     £{report.totalEquity}
                   </td>
                 </tr>
@@ -690,15 +691,15 @@ function BalanceSheetContent() {
                 {/* TOTAL LIABILITIES & EQUITY */}
                 <tr
                   style={{
-                    backgroundColor: report.isBalanced ? '#F0FDF4' : '#FEF2F2',
+                    backgroundColor: report.isBalanced ? 'var(--success-bg)' : 'var(--danger-bg)',
                     fontWeight: 800,
                     fontSize: '1rem',
-                    borderTop: '2px solid #0F172A',
+                    borderTop: '2px solid var(--primary)',
                   }}
                 >
                   <td
                     colSpan={2}
-                    style={{ padding: '0.9rem 1.25rem', color: report.isBalanced ? '#166534' : '#991B1B' }}
+                    style={{ padding: '0.9rem 1.25rem', color: report.isBalanced ? 'var(--success-text)' : 'var(--danger-text)' }}
                   >
                     TOTAL LIABILITIES & EQUITY
                   </td>
@@ -706,7 +707,7 @@ function BalanceSheetContent() {
                     style={{
                       padding: '0.9rem 1.25rem',
                       textAlign: 'right',
-                      color: report.isBalanced ? '#166534' : '#991B1B',
+                      color: report.isBalanced ? 'var(--success-text)' : 'var(--danger-text)',
                     }}
                   >
                     £{report.totalLiabilitiesAndEquity}
@@ -717,6 +718,7 @@ function BalanceSheetContent() {
           </div>
         </>
       )}
+      </div>
     </AppShell>
   );
 }

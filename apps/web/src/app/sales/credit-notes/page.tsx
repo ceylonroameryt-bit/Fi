@@ -301,10 +301,11 @@ export default function CreditNotesPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Sales Credit Notes</h1>
-          <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Sales Credit Notes</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Issue customer credit notes, reduce open invoice balances, and integrate with VAT and the General Ledger.
           </p>
         </div>
@@ -316,7 +317,7 @@ export default function CreditNotesPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              backgroundColor: '#2563EB',
+              backgroundColor: 'var(--primary)',
               color: '#FFFFFF',
               border: 'none',
               padding: '0.5rem 1rem',
@@ -332,26 +333,26 @@ export default function CreditNotesPage() {
 
       {/* Metrics Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Total Credited</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', marginTop: '0.35rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Credited</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem' }}>
             £{totalCredit.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#10B981', marginTop: '0.25rem' }}>Posted to General Ledger</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--success-text)', marginTop: '0.25rem' }}>Posted to General Ledger</div>
         </div>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Allocated to Invoices</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2563EB', marginTop: '0.35rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Allocated to Invoices</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary)', marginTop: '0.35rem' }}>
             £{totalAllocated.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Offset against sales invoices</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Offset against sales invoices</div>
         </div>
-        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Available Credit</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: availableCredit > 0 ? '#F59E0B' : '#64748B', marginTop: '0.35rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '1.25rem', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Available Credit</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: availableCredit > 0 ? 'var(--warning-text)' : 'var(--text-muted)', marginTop: '0.35rem' }}>
             £{availableCredit.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Unapplied customer credit</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Unapplied customer credit</div>
         </div>
       </div>
 
@@ -364,9 +365,9 @@ export default function CreditNotesPage() {
             style={{
               padding: '0.35rem 0.75rem',
               borderRadius: '0.375rem',
-              border: statusFilter === st ? '1px solid #2563EB' : '1px solid #E2E8F0',
-              backgroundColor: statusFilter === st ? '#EFF6FF' : '#FFFFFF',
-              color: statusFilter === st ? '#2563EB' : '#475569',
+              border: statusFilter === st ? '1px solid var(--primary)' : '1px solid var(--border-subtle)',
+              backgroundColor: statusFilter === st ? 'var(--info-bg)' : '#FFFFFF',
+              color: statusFilter === st ? 'var(--primary)' : 'var(--ink-2)',
               fontSize: '0.8rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -378,16 +379,16 @@ export default function CreditNotesPage() {
       </div>
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FEF2F2', border: '1px solid #F87171', color: '#B91C1C', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger)', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
           {error}
         </div>
       )}
 
       {/* Credit Notes Table */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 600 }}>
+            <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)', fontWeight: 600 }}>
               <th style={{ padding: '0.75rem 1rem' }}>Credit Note</th>
               <th style={{ padding: '0.75rem 1rem' }}>Date</th>
               <th style={{ padding: '0.75rem 1rem' }}>Customer</th>
@@ -402,13 +403,13 @@ export default function CreditNotesPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Loading credit notes...
                 </td>
               </tr>
             ) : creditNotes.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No sales credit notes recorded yet.
                 </td>
               </tr>
@@ -420,26 +421,26 @@ export default function CreditNotesPage() {
                 const remaining = Number(cn.totalAmount) - Number(cn.amountAllocated);
 
                 return (
-                  <tr key={cn.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#0F172A' }}>
+                  <tr key={cn.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text-main)' }}>
                       {cn.creditNoteNumber}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748B' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>
                       {new Date(cn.issueDate).toLocaleDateString('en-GB')}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#334155' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--ink-2)' }}>
                       {cn.contact.name}
                     </td>
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
                       £{Number(cn.subtotal).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#64748B' }}>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'var(--text-muted)' }}>
                       £{Number(cn.taxTotal).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: '#0F172A' }}>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
                       £{Number(cn.totalAmount).toFixed(2)}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#10B981' }}>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'var(--success-text)' }}>
                       £{Number(cn.amountAllocated).toFixed(2)}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
@@ -450,8 +451,8 @@ export default function CreditNotesPage() {
                           borderRadius: '9999px',
                           fontSize: '0.75rem',
                           fontWeight: 600,
-                          backgroundColor: isDraft ? '#FEF3C7' : isPosted ? '#ECFDF5' : '#F1F5F9',
-                          color: isDraft ? '#D97706' : isPosted ? '#059669' : '#64748B',
+                          backgroundColor: isDraft ? 'var(--warning-bg)' : isPosted ? 'var(--success-bg)' : 'var(--bg-soft)',
+                          color: isDraft ? 'var(--warning-text)' : isPosted ? 'var(--success-text)' : 'var(--text-muted)',
                         }}
                       >
                         {cn.status}
@@ -460,14 +461,14 @@ export default function CreditNotesPage() {
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
                       <button
                         onClick={() => setSelectedCreditNote(cn)}
-                        style={{ background: 'none', border: 'none', color: '#2563EB', cursor: 'pointer', fontWeight: 500, marginRight: '0.5rem' }}
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, marginRight: '0.5rem' }}
                       >
                         View
                       </button>
                       {isDraft && canPost && (
                         <button
                           onClick={() => handlePost(cn.id, cn.creditNoteNumber)}
-                          style={{ background: 'none', border: 'none', color: '#10B981', cursor: 'pointer', fontWeight: 600, marginRight: '0.5rem' }}
+                          style={{ background: 'none', border: 'none', color: 'var(--success-text)', cursor: 'pointer', fontWeight: 600, marginRight: '0.5rem' }}
                         >
                           Post
                         </button>
@@ -475,7 +476,7 @@ export default function CreditNotesPage() {
                       {isPosted && remaining > 0.001 && canPost && (
                         <button
                           onClick={() => openAllocateModal(cn)}
-                          style={{ background: 'none', border: 'none', color: '#6366F1', cursor: 'pointer', fontWeight: 500, marginRight: '0.5rem' }}
+                          style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, marginRight: '0.5rem' }}
                         >
                           Allocate
                         </button>
@@ -483,7 +484,7 @@ export default function CreditNotesPage() {
                       {!isVoided && canVoid && (
                         <button
                           onClick={() => handleVoid(cn.id)}
-                          style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontWeight: 500 }}
+                          style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontWeight: 500 }}
                         >
                           Void
                         </button>
@@ -525,10 +526,10 @@ export default function CreditNotesPage() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>New Sales Credit Note</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>New Sales Credit Note</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94A3B8' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ✕
               </button>
@@ -537,14 +538,14 @@ export default function CreditNotesPage() {
             <form onSubmit={handleCreate}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Customer *
                   </label>
                   <select
                     value={selectedCustomerId}
                     onChange={(e) => setSelectedCustomerId(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   >
                     <option value="">Select customer...</option>
                     {customers.map((c) => (
@@ -553,7 +554,7 @@ export default function CreditNotesPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Issue Date *
                   </label>
                   <input
@@ -561,14 +562,14 @@ export default function CreditNotesPage() {
                     value={issueDate}
                     onChange={(e) => setIssueDate(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Reference
                   </label>
                   <input
@@ -576,11 +577,11 @@ export default function CreditNotesPage() {
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
                     placeholder="e.g. Return #4401"
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                     Notes
                   </label>
                   <input
@@ -588,28 +589,28 @@ export default function CreditNotesPage() {
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Internal note"
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', fontSize: '0.875rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', fontSize: '0.875rem' }}
                   />
                 </div>
               </div>
 
               {/* Line items */}
-              <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0F172A' }}>Line Items</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)' }}>Line Items</div>
                   <button
                     type="button"
                     onClick={addLine}
-                    style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#2563EB', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ background: 'var(--info-bg)', border: '1px solid var(--info-border)', color: 'var(--primary)', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                   >
                     + Add Line
                   </button>
                 </div>
 
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: '0.375rem', overflow: 'hidden' }}>
+                <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '0.375rem', overflow: 'hidden' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                     <thead>
-                      <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
+                      <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)' }}>
                         <th style={{ padding: '0.5rem' }}>Account</th>
                         <th style={{ padding: '0.5rem' }}>Description</th>
                         <th style={{ padding: '0.5rem', textAlign: 'right', width: '100px' }}>Net (£)</th>
@@ -619,13 +620,13 @@ export default function CreditNotesPage() {
                     </thead>
                     <tbody>
                       {lines.map((l, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
                           <td style={{ padding: '0.5rem' }}>
                             <select
                               value={l.accountId}
                               onChange={(e) => handleLineChange(idx, 'accountId', e.target.value)}
                               required
-                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid #CBD5E1', borderRadius: '0.25rem' }}
+                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: '0.25rem' }}
                             >
                               {accounts.map((a) => (
                                 <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
@@ -639,7 +640,7 @@ export default function CreditNotesPage() {
                               onChange={(e) => handleLineChange(idx, 'description', e.target.value)}
                               placeholder="Description"
                               required
-                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid #CBD5E1', borderRadius: '0.25rem' }}
+                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: '0.25rem' }}
                             />
                           </td>
                           <td style={{ padding: '0.5rem', textAlign: 'right' }}>
@@ -651,7 +652,7 @@ export default function CreditNotesPage() {
                               onChange={(e) => handleLineChange(idx, 'netAmount', e.target.value)}
                               placeholder="0.00"
                               required
-                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid #CBD5E1', borderRadius: '0.25rem', textAlign: 'right' }}
+                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: '0.25rem', textAlign: 'right' }}
                             />
                           </td>
                           <td style={{ padding: '0.5rem', textAlign: 'right' }}>
@@ -661,7 +662,7 @@ export default function CreditNotesPage() {
                               value={l.taxAmount || ''}
                               onChange={(e) => handleLineChange(idx, 'taxAmount', e.target.value)}
                               placeholder="0.00"
-                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid #CBD5E1', borderRadius: '0.25rem', textAlign: 'right' }}
+                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: '0.25rem', textAlign: 'right' }}
                             />
                           </td>
                           <td style={{ padding: '0.5rem', textAlign: 'center' }}>
@@ -669,7 +670,7 @@ export default function CreditNotesPage() {
                               <button
                                 type="button"
                                 onClick={() => removeLine(idx)}
-                                style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontWeight: 'bold' }}
+                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontWeight: 'bold' }}
                               >
                                 ✕
                               </button>
@@ -686,14 +687,14 @@ export default function CreditNotesPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', cursor: 'pointer', fontWeight: 500 }}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', backgroundColor: '#FFFFFF', color: 'var(--ink-2)', cursor: 'pointer', fontWeight: 500 }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
+                  style={{ padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'var(--primary)', color: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
                 >
                   {submitting ? 'Creating...' : 'Create Draft Credit Note'}
                 </button>
@@ -729,31 +730,31 @@ export default function CreditNotesPage() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
                 Allocate Credit Note {allocatingCN.creditNoteNumber}
               </h2>
               <button
                 onClick={() => setAllocatingCN(null)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94A3B8' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ✕
               </button>
             </div>
 
-            <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
               Available credit to allocate: <strong>£{(Number(allocatingCN.totalAmount) - Number(allocatingCN.amountAllocated)).toFixed(2)}</strong>
             </p>
 
             <form onSubmit={handleAllocateSubmit}>
               {openInvoices.length === 0 ? (
-                <div style={{ padding: '1rem', backgroundColor: '#F8FAFC', borderRadius: '0.375rem', color: '#64748B', fontSize: '0.85rem' }}>
+                <div style={{ padding: '1rem', backgroundColor: 'var(--bg-app)', borderRadius: '0.375rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                   No open invoices available for customer {allocatingCN.contact.name}.
                 </div>
               ) : (
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: '0.375rem', overflow: 'hidden', marginBottom: '1.25rem' }}>
+                <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '0.375rem', overflow: 'hidden', marginBottom: '1.25rem' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                     <thead>
-                      <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569' }}>
+                      <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)' }}>
                         <th style={{ padding: '0.5rem' }}>Invoice</th>
                         <th style={{ padding: '0.5rem', textAlign: 'right' }}>Total</th>
                         <th style={{ padding: '0.5rem', textAlign: 'right' }}>Due</th>
@@ -764,10 +765,10 @@ export default function CreditNotesPage() {
                       {openInvoices.map((inv) => {
                         const bal = Number(inv.totalAmount) - Number(inv.amountPaid);
                         return (
-                          <tr key={inv.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <tr key={inv.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
                             <td style={{ padding: '0.5rem', fontWeight: 600 }}>{inv.invoiceNumber}</td>
                             <td style={{ padding: '0.5rem', textAlign: 'right' }}>£{Number(inv.totalAmount).toFixed(2)}</td>
-                            <td style={{ padding: '0.5rem', textAlign: 'right', color: '#E11D48', fontWeight: 600 }}>£{bal.toFixed(2)}</td>
+                            <td style={{ padding: '0.5rem', textAlign: 'right', color: 'var(--danger)', fontWeight: 600 }}>£{bal.toFixed(2)}</td>
                             <td style={{ padding: '0.5rem', textAlign: 'right' }}>
                               <input
                                 type="number"
@@ -787,7 +788,7 @@ export default function CreditNotesPage() {
                                   }
                                 }}
                                 placeholder="0.00"
-                                style={{ width: '100%', padding: '0.25rem 0.5rem', fontSize: '0.8rem', border: '1px solid #CBD5E1', borderRadius: '0.25rem', textAlign: 'right' }}
+                                style={{ width: '100%', padding: '0.25rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: '0.25rem', textAlign: 'right' }}
                               />
                             </td>
                           </tr>
@@ -802,14 +803,14 @@ export default function CreditNotesPage() {
                 <button
                   type="button"
                   onClick={() => setAllocatingCN(null)}
-                  style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', cursor: 'pointer', fontWeight: 500 }}
+                  style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', backgroundColor: '#FFFFFF', color: 'var(--ink-2)', cursor: 'pointer', fontWeight: 500 }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={allocating || openInvoices.length === 0}
-                  style={{ padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#2563EB', color: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
+                  style={{ padding: '0.5rem 1.25rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'var(--primary)', color: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
                 >
                   {allocating ? 'Applying...' : 'Apply Credit'}
                 </button>
@@ -845,12 +846,12 @@ export default function CreditNotesPage() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
                 Credit Note {selectedCreditNote.creditNoteNumber}
               </h2>
               <button
                 onClick={() => setSelectedCreditNote(null)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94A3B8' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ✕
               </button>
@@ -867,10 +868,10 @@ export default function CreditNotesPage() {
               <div><strong>Journal:</strong> {selectedCreditNote.journalEntry?.journalNumber || '—'}</div>
             </div>
 
-            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1rem', marginTop: '1rem' }}>
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', marginTop: '1rem' }}>
               <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.5rem' }}>Allocations</div>
               {!selectedCreditNote.allocations || selectedCreditNote.allocations.length === 0 ? (
-                <div style={{ color: '#64748B', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                   No active allocations for this credit note.
                 </div>
               ) : (
@@ -887,7 +888,7 @@ export default function CreditNotesPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
               <button
                 onClick={() => setSelectedCreditNote(null)}
-                style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', cursor: 'pointer', fontWeight: 500 }}
+                style={{ padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid var(--border-strong)', backgroundColor: '#FFFFFF', color: 'var(--ink-2)', cursor: 'pointer', fontWeight: 500 }}
               >
                 Close
               </button>
@@ -895,6 +896,7 @@ export default function CreditNotesPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

@@ -223,15 +223,16 @@ function NewInvoiceForm() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <Link href="/sales/invoices" style={{ color: '#64748B', textDecoration: 'none', fontSize: '0.85rem' }}>
+              <Link href="/sales/invoices" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.85rem' }}>
                 &larr; Back to Invoices
               </Link>
             </div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Create Sales Invoice</h1>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Create Sales Invoice</h1>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button
@@ -257,7 +258,7 @@ function NewInvoiceForm() {
 
         {/* Invoice Header Details Card */}
         <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#0F172A', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
             Invoice Header & Customer
           </h2>
 
@@ -318,8 +319,8 @@ function NewInvoiceForm() {
 
         {/* Line Items Table Card */}
         <div className="card" style={{ marginBottom: '1.5rem', padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#0F172A', margin: 0 }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
               Line Items & Commercial Services
             </h2>
             <button type="button" className="btn btn-secondary btn-sm" onClick={addLine}>
@@ -407,14 +408,14 @@ function NewInvoiceForm() {
                         ))}
                       </select>
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#0F172A', verticalAlign: 'middle' }}>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-main)', verticalAlign: 'middle' }}>
                       £{line.total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                       <button
                         type="button"
                         onClick={() => removeLine(index)}
-                        style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '1.1rem' }}
+                        style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '1.1rem' }}
                         title="Delete line"
                       >
                         &times;
@@ -451,28 +452,28 @@ function NewInvoiceForm() {
           </div>
 
           <div className="card" style={{ padding: '1.25rem' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0F172A', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
               Financial Summary
             </h3>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#64748B' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
               <span>Subtotal (Net)</span>
               <span>£{subtotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.875rem', color: '#64748B' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
               <span>VAT / Sales Tax</span>
               <span>£{taxTotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #E2E8F0', paddingTop: '0.75rem', fontSize: '1.15rem', fontWeight: 700, color: '#0F172A' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid var(--border-subtle)', paddingTop: '0.75rem', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>
               <span>Total Invoiced</span>
-              <span style={{ color: '#2563EB' }}>
+              <span style={{ color: 'var(--primary)' }}>
                 £{totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
 
-            <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+            <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--bg-soft)' }}>
               <button
                 type="button"
                 className="btn btn-primary"
@@ -495,13 +496,14 @@ function NewInvoiceForm() {
           </div>
         </div>
       </div>
+      </div>
     </AppShell>
   );
 }
 
 export default function NewInvoicePage() {
   return (
-    <Suspense fallback={<div style={{ padding: '3rem', textAlign: 'center', color: '#64748B' }}>Loading invoice builder...</div>}>
+    <Suspense fallback={<div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading invoice builder...</div>}>
       <NewInvoiceForm />
     </Suspense>
   );

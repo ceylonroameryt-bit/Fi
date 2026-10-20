@@ -39,7 +39,7 @@ export function AuditTable({
       style={{
         backgroundColor: '#FFFFFF',
         borderRadius: '10px',
-        border: '1px solid #E2E8F0',
+        border: '1px solid var(--border-subtle)',
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
         padding: '1.5rem',
       }}
@@ -56,10 +56,10 @@ export function AuditTable({
         }}
       >
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
             Platform Security & Audit Trail
           </h2>
-          <p style={{ margin: '0.2rem 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>
+          <p style={{ margin: '0.2rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
             Immutable cross-tenant activity log stream ({auditTotal} records)
           </p>
         </div>
@@ -71,7 +71,7 @@ export function AuditTable({
             style={{
               padding: '0.5rem 0.85rem',
               borderRadius: '6px',
-              border: '1px solid #CBD5E1',
+              border: '1px solid var(--border-strong)',
               fontSize: '0.85rem',
               backgroundColor: '#FFFFFF',
             }}
@@ -93,25 +93,25 @@ export function AuditTable({
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Timestamp</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Event Type</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Actor</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Tenant</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>Target Entity</th>
-              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#475569' }}>IP Address</th>
+            <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left' }}>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Timestamp</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Event Type</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Actor</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Tenant</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>Target Entity</th>
+              <th style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--ink-2)' }}>IP Address</th>
             </tr>
           </thead>
           <tbody>
             {auditLoading ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                   Loading audit logs...
                 </td>
               </tr>
             ) : auditLogs.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                   No audit records found matching criteria.
                 </td>
               </tr>
@@ -119,15 +119,15 @@ export function AuditTable({
               auditLogs.map((log) => {
                 const isAdminEvent = log.eventType.startsWith('ADMIN');
                 return (
-                  <tr key={log.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', whiteSpace: 'nowrap' }}>
+                  <tr key={log.id} style={{ borderBottom: '1px solid var(--bg-soft)' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <span
                         style={{
-                          backgroundColor: isAdminEvent ? '#FEF3C7' : '#EFF6FF',
-                          color: isAdminEvent ? '#92400E' : '#1E40AF',
+                          backgroundColor: isAdminEvent ? 'var(--warning-bg)' : 'var(--info-bg)',
+                          color: isAdminEvent ? 'var(--warning-text)' : 'var(--info-text)',
                           padding: '0.2rem 0.5rem',
                           borderRadius: '4px',
                           fontWeight: 600,
@@ -140,20 +140,20 @@ export function AuditTable({
                     <td style={{ padding: '0.75rem 1rem' }}>
                       {log.user ? (
                         <div>
-                          <div style={{ fontWeight: 500, color: '#0F172A' }}>{log.user.firstName} {log.user.lastName}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{log.user.email}</div>
+                          <div style={{ fontWeight: 500, color: 'var(--text-main)' }}>{log.user.firstName} {log.user.lastName}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{log.user.email}</div>
                         </div>
                       ) : (
-                        <span style={{ color: '#94A3B8' }}>System Engine</span>
+                        <span style={{ color: 'var(--text-muted)' }}>System Engine</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#334155' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--ink-2)' }}>
                       {log.organization?.name || 'Platform Wide'}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.75rem' }}>
                       {log.entityType} {log.entityId ? `(${log.entityId.slice(0, 8)}...)` : ''}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                       {log.ipAddress || '—'}
                     </td>
                   </tr>
@@ -166,8 +166,8 @@ export function AuditTable({
 
       {/* Pagination Controls */}
       {auditTotal > 20 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0' }}>
-          <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Showing {(auditPage - 1) * 20 + 1} to {Math.min(auditPage * 20, auditTotal)} of {auditTotal}
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -177,7 +177,7 @@ export function AuditTable({
               style={{
                 padding: '0.35rem 0.75rem',
                 borderRadius: '5px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 background: '#FFFFFF',
                 fontSize: '0.8rem',
                 cursor: auditPage <= 1 ? 'not-allowed' : 'pointer',
@@ -192,7 +192,7 @@ export function AuditTable({
               style={{
                 padding: '0.35rem 0.75rem',
                 borderRadius: '5px',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 background: '#FFFFFF',
                 fontSize: '0.8rem',
                 cursor: auditPage * 20 >= auditTotal ? 'not-allowed' : 'pointer',
