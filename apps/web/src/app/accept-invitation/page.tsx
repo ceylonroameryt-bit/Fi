@@ -1,48 +1,54 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { apiRequest, ApiError } from '../../lib/api';
-import { useAuth } from '../../context/auth-context';
-import { BlyntLogo } from '../../components/blynt-logo';
+import { apiRequest } from '../../lib/api';
+import { useAuth, type User } from '../../context/auth-context';
+import { friendlyAuthError } from '../../lib/auth-messages';
+import { passwordAcceptable } from '../../lib/password-policy';
+import {
+  AuthAlert,
+  AuthBackLink,
+  AuthField,
+  AuthHeading,
+  AuthLayout,
+  AuthStatusMark,
+  PasswordField,
+} from '../../components/auth/auth-ui';
+
+const ROLE_SUMMARY = [
+  { role: 'Owner / Administrator', can: 'everything, including users and settings' },
+  { role: 'Accountant', can: 'post, validate and lock periods' },
+  { role: 'Bookkeeper', can: 'create invoices, bills and draft journals' },
+  { role: 'Viewer', can: 'read reports and records only' },
+];
 
 function AcceptInvitationForm() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const token = useSearchParams()?.get('token') ?? '';
   const router = useRouter();
   const { login } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linkDead, setLinkDead] = useState(!token);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const pwOk = passwordAcceptable(password);
+  const matches = confirm.length > 0 && confirm === password;
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched(true);
     setError(null);
-
-    if (!token) {
-      setError('Invitation token is missing. Please click the link received in your invitation email.');
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    setIsSubmitting(true);
-
+    if (!pwOk || !matches) return;
+    setSubmitting(true);
     try {
-      const res = await apiRequest<{ user: any }>('/auth/accept-invitation', {
+      const res = await apiRequest<{ user: User }>('/auth/accept-invitation', {
         method: 'POST',
         body: JSON.stringify({
           token,
@@ -51,128 +57,107 @@ function AcceptInvitationForm() {
           lastName: lastName.trim() || undefined,
         }),
       });
-
       await login(res.user);
       router.push('/');
-    } catch (err: any) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('Failed to accept invitation. The invitation link may have expired or already been accepted.');
-      }
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === 'AUTH_TOKEN_INVALID' || code === 'AUTH_INVALID_TOKEN') setLinkDead(true);
+      else setError(friendlyAuthError(err));
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  if (!token) {
+  if (linkDead) {
     return (
-      <div style={{ textAlign: 'center' }}>
-        <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
-          Invalid or missing invitation token. Please check the invitation email you received.
+      <>
+        <AuthStatusMark tone="danger" />
+        <div className="bl-auth-center" style={{ display: 'flex', flexDirection: 'column' }}>
+          <AuthHeading title="This invitation can’t be used">
+            It may have expired or already been accepted. Ask the person who invited you to send a new one —
+            or sign in if you’ve already joined.
+          </AuthHeading>
         </div>
-        <Link href="/login" className="btn btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
-          Go to Sign In
+        <Link href="/login" className="btn btn-primary bl-auth-submit">
+          Sign in
         </Link>
-      </div>
+      </>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label" htmlFor="firstName">First name</label>
-          <input
-            id="firstName"
-            type="text"
-            className="form-input"
+    <>
+      <AuthHeading title="You’ve been invited to Blynt">
+        Set a password to join your team’s books.
+      </AuthHeading>
+      <details className="bl-auth-invite" style={{ display: 'block' }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>What can each role do?</summary>
+        <ul
+          style={{
+            margin: '10px 0 0',
+            paddingLeft: 18,
+            fontSize: 13.5,
+            lineHeight: 1.6,
+            color: 'var(--ink-2)',
+          }}
+        >
+          {ROLE_SUMMARY.map((r) => (
+            <li key={r.role}>
+              <strong style={{ color: 'var(--text-main)' }}>{r.role}</strong> — {r.can}
+            </li>
+          ))}
+        </ul>
+      </details>
+      {error && <AuthAlert tone="danger">{error}</AuthAlert>}
+      <form onSubmit={submit} noValidate>
+        <div className="bl-auth-split">
+          <AuthField
+            label="First name"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            placeholder="Jane"
+            autoComplete="given-name"
+            maxLength={100}
             autoFocus
           />
-        </div>
-
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label" htmlFor="lastName">Last name</label>
-          <input
-            id="lastName"
-            type="text"
-            className="form-input"
+          <AuthField
+            label="Last name"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            placeholder="Smith"
+            autoComplete="family-name"
+            maxLength={100}
           />
         </div>
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '1rem' }}>
-        <label className="form-label" htmlFor="password">Set Account Password *</label>
-        <input
-          id="password"
-          type="password"
-          required
-          minLength={8}
-          className="form-input"
+        <PasswordField
+          label="Choose a password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••••••"
+          autoComplete="new-password"
+          showRules
+          error={touched && !pwOk ? 'Your password needs everything in the list below' : null}
         />
-        <span style={{ fontSize: '0.725rem', color: '#6B7280', marginTop: '0.25rem', display: 'block' }}>
-          Must be at least 8 characters long with uppercase, lowercase, numbers, or symbols.
-        </span>
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-        <label className="form-label" htmlFor="confirmPassword">Confirm Password *</label>
-        <input
-          id="confirmPassword"
-          type="password"
-          required
-          minLength={8}
-          className="form-input"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="••••••••••••"
+        <PasswordField
+          label="Confirm password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          autoComplete="new-password"
+          hint={matches ? '✓ Matches' : undefined}
+          error={touched && !matches ? 'The two passwords don’t match' : null}
         />
-      </div>
-
-      <button
-        type="submit"
-        className="btn btn-primary"
-        style={{ width: '100%', marginBottom: '1rem' }}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? 'Accepting Invitation...' : 'Accept Invitation & Continue'}
-      </button>
-
-      <div style={{ textAlign: 'center' }}>
-        <Link href="/login" style={{ fontSize: '0.8rem', color: '#2563eb', textDecoration: 'none' }}>
-          Already have an active account? Sign In
-        </Link>
-      </div>
-    </form>
+        <button type="submit" className="btn btn-primary bl-auth-submit" disabled={submitting}>
+          {submitting ? 'Joining…' : 'Accept and join'}
+        </button>
+      </form>
+      <AuthBackLink>Already have an account? Sign in</AuthBackLink>
+    </>
   );
 }
 
 export default function AcceptInvitationPage() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6FAFD', padding: '1.5rem' }}>
-      <div style={{ width: '100%', maxWidth: '440px', backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '2.25rem 2rem', boxShadow: '0 8px 30px rgba(8, 43, 92, 0.06)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <BlyntLogo variant="stacked" size="md" showTagline />
-          <p style={{ color: '#64748B', fontSize: '0.85rem', marginTop: '0.65rem' }}>
-            Complete your profile to accept the organisation invitation
-          </p>
-        </div>
-
-        <Suspense fallback={<div style={{ textAlign: 'center', color: '#64748B' }}>Loading...</div>}>
-          <AcceptInvitationForm />
-        </Suspense>
-      </div>
-    </div>
+    <AuthLayout wide>
+      <Suspense fallback={<span className="bl-skeleton" style={{ height: 160 }} />}>
+        <AcceptInvitationForm />
+      </Suspense>
+    </AuthLayout>
   );
 }
