@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { confirmAction } from '@/lib/dialog-bus';
 
 interface Period {
   id: string;
@@ -97,7 +98,7 @@ export default function FinancialYearsPage() {
 
     if (
       targetStatus === 'HARD_LOCKED' &&
-      !confirm(`Are you sure you want to HARD LOCK period ${period.periodName || period.name}? Only Administrators/Owners can reopen it.`)
+      !await confirmAction(`Are you sure you want to HARD LOCK period ${period.periodName || period.name}? Only Administrators/Owners can reopen it.`)
     ) {
       return;
     }

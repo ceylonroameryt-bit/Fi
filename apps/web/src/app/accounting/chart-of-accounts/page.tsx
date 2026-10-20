@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { confirmAction } from '@/lib/dialog-bus';
 
 interface Account {
   id: string;
@@ -185,7 +186,7 @@ export default function ChartOfAccountsPage() {
   const handleArchiveToggle = async (account: Account) => {
     setActionMenuId(null);
     const action = account.isActive ? 'archive' : 'restore';
-    if (!confirm(`Are you sure you want to ${action} account ${account.code} (${account.name})?`)) return;
+    if (!await confirmAction(`Are you sure you want to ${action} account ${account.code} (${account.name})?`)) return;
 
     try {
       setError(null);
@@ -200,7 +201,7 @@ export default function ChartOfAccountsPage() {
   };
 
   const handleLoadTemplate = async () => {
-    if (!confirm('Populate standard UK / International Chart of Accounts template (1000–8999)?')) return;
+    if (!await confirmAction('Populate standard UK / International Chart of Accounts template (1000–8999)?')) return;
     try {
       setLoading(true);
       setError(null);

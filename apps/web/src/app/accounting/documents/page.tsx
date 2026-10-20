@@ -20,6 +20,7 @@ import {
   X,
   FileCheck,
 } from 'lucide-react';
+import { askReason } from '@/lib/dialog-bus';
 
 interface AiDocItem {
   id: string;
@@ -217,7 +218,7 @@ export default function DocumentIntelligencePage() {
 
   const handleReject = async () => {
     if (!selectedDoc) return;
-    const reason = prompt('Please specify rejection reason:');
+    const reason = await askReason('Please specify rejection reason:');
     if (!reason) return;
     try {
       setActionLoading(true);

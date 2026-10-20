@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { confirmAction } from '@/lib/dialog-bus';
 
 interface AccountingPeriod {
   id: string;
@@ -68,7 +69,7 @@ function PeriodsContent() {
 
   const handlePeriodAction = async (periodId: string, action: 'soft-lock' | 'hard-lock' | 'unlock') => {
     if (action === 'hard-lock') {
-      if (!confirm('Warning: HARD LOCK permanently prevents any posting or validation of journals in this period. Only administrators can unlock. Proceed?')) {
+      if (!await confirmAction('Warning: HARD LOCK permanently prevents any posting or validation of journals in this period. Only administrators can unlock. Proceed?')) {
         return;
       }
     }

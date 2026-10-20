@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { askReason, notify } from '@/lib/dialog-bus';
 
 interface Contact {
   id: string;
@@ -160,13 +161,13 @@ export default function PurchasesPaymentsPage() {
   const handleCreatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSupplierId || !amount) {
-      alert('Please select a supplier and enter an amount');
+      notify('Please select a supplier and enter an amount');
       return;
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      alert('Amount must be greater than zero');
+      notify('Amount must be greater than zero');
       return;
     }
 
@@ -177,7 +178,7 @@ export default function PurchasesPaymentsPage() {
 
     const totalAllocated = allocationList.reduce((acc, a) => acc + a.amount, 0);
     if (totalAllocated > numAmount + 0.001) {
-      alert(`Allocated amount (£${totalAllocated.toFixed(2)}) cannot exceed total payment (£${numAmount.toFixed(2)})`);
+      notify(`Allocated amount (£${totalAllocated.toFixed(2)}) cannot exceed total payment (£${numAmount.toFixed(2)})`);
       return;
     }
 
@@ -204,14 +205,14 @@ export default function PurchasesPaymentsPage() {
       setAllocations({});
       await loadPayments();
     } catch (err: any) {
-      alert(err.message || 'Failed to record supplier payment');
+      notify(err.message || 'Failed to record supplier payment');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleVoidPayment = async (paymentId: string) => {
-    const reason = prompt('Please enter the reason for voiding this payment (will reverse general ledger entries and allocations):');
+    const reason = await askReason('Please enter the reason for voiding this payment (will reverse general ledger entries and allocations):');
     if (!reason || !reason.trim()) return;
 
     try {
@@ -221,7 +222,7 @@ export default function PurchasesPaymentsPage() {
       });
       await loadPayments();
     } catch (err: any) {
-      alert(err.message || 'Failed to void payment');
+      notify(err.message || 'Failed to void payment');
     }
   };
 

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { askReason, notify } from '@/lib/dialog-bus';
 
 interface Contact {
   id: string;
@@ -158,13 +159,13 @@ export default function SalesPaymentsPage() {
   const handleCreatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomerId || !amount) {
-      alert('Please select a customer and enter an amount');
+      notify('Please select a customer and enter an amount');
       return;
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      alert('Amount must be greater than zero');
+      notify('Amount must be greater than zero');
       return;
     }
 
@@ -175,7 +176,7 @@ export default function SalesPaymentsPage() {
 
     const totalAllocated = allocationList.reduce((acc, a) => acc + a.amount, 0);
     if (totalAllocated > numAmount + 0.001) {
-      alert(`Allocated amount (£${totalAllocated.toFixed(2)}) cannot exceed total receipt (£${numAmount.toFixed(2)})`);
+      notify(`Allocated amount (£${totalAllocated.toFixed(2)}) cannot exceed total receipt (£${numAmount.toFixed(2)})`);
       return;
     }
 
@@ -202,14 +203,14 @@ export default function SalesPaymentsPage() {
       setAllocations({});
       await loadPayments();
     } catch (err: any) {
-      alert(err.message || 'Failed to record customer receipt');
+      notify(err.message || 'Failed to record customer receipt');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleVoidPayment = async (paymentId: string) => {
-    const reason = prompt('Please enter the reason for voiding this receipt (will reverse general ledger entries and allocations):');
+    const reason = await askReason('Please enter the reason for voiding this receipt (will reverse general ledger entries and allocations):');
     if (!reason || !reason.trim()) return;
 
     try {
@@ -219,7 +220,7 @@ export default function SalesPaymentsPage() {
       });
       await loadPayments();
     } catch (err: any) {
-      alert(err.message || 'Failed to void receipt');
+      notify(err.message || 'Failed to void receipt');
     }
   };
 

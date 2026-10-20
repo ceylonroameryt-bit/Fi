@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { AiReportInsightsModal } from '@/components/reports/ai-report-insights-modal';
+import { notify } from '@/lib/dialog-bus';
 
 interface FinancialYear {
   id: string;
@@ -167,7 +168,7 @@ function ProfitAndLossContent() {
       a.click();
       a.remove();
     } catch (err: any) {
-      alert(err.message || 'Failed to export CSV');
+      notify(err.message || 'Failed to export CSV');
     } finally {
       setExporting(false);
     }

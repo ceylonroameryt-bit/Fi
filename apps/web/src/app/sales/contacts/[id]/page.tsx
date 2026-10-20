@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { notify } from '@/lib/dialog-bus';
 
 interface ContactPerson {
   id: string;
@@ -266,7 +267,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
       setShowEditModal(false);
       await loadContact();
     } catch (err: any) {
-      alert(err.message || 'Failed to update contact');
+      notify(err.message || 'Failed to update contact');
     } finally {
       setSavingEdit(false);
     }
@@ -294,7 +295,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
       });
       await loadContact();
     } catch (err: any) {
-      alert(err.message || 'Failed to add contact person');
+      notify(err.message || 'Failed to add contact person');
     } finally {
       setSavingPerson(false);
     }
@@ -305,7 +306,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
       await apiRequest(`/contacts/${contactId}/people/${personId}/primary`, { method: 'POST' });
       await loadContact();
     } catch (err: any) {
-      alert(err.message || 'Failed to set primary contact person');
+      notify(err.message || 'Failed to set primary contact person');
     }
   };
 
@@ -314,7 +315,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
       await apiRequest(`/contacts/${contactId}/people/${personId}/deactivate`, { method: 'POST' });
       await loadContact();
     } catch (err: any) {
-      alert(err.message || 'Failed to deactivate contact person');
+      notify(err.message || 'Failed to deactivate contact person');
     }
   };
 
@@ -327,7 +328,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
       setShowArchiveConfirm(false);
       await loadContact();
     } catch (err: any) {
-      alert(err.message || 'Failed to change contact archive status');
+      notify(err.message || 'Failed to change contact archive status');
     } finally {
       setActionInProgress(false);
     }

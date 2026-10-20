@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { askReason, confirmAction, notify } from '@/lib/dialog-bus';
 
 interface Contact {
   id: string;
@@ -173,13 +174,13 @@ export default function CreditNotesPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomerId) {
-      alert('Please select a customer');
+      notify('Please select a customer');
       return;
     }
 
     const validLines = lines.filter((l) => l.accountId && l.netAmount > 0);
     if (validLines.length === 0) {
-      alert('Please enter at least one line with an account and net amount greater than zero');
+      notify('Please enter at least one line with an account and net amount greater than zero');
       return;
     }
 
@@ -210,25 +211,25 @@ export default function CreditNotesPage() {
       setLines([{ accountId: accounts[0]?.id || '', description: 'Credit adjustment', netAmount: 0, taxRate: 0.20, taxAmount: 0 }]);
       await loadCreditNotes();
     } catch (err: any) {
-      alert(err.message || 'Failed to create credit note');
+      notify(err.message || 'Failed to create credit note');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handlePost = async (id: string, num: string) => {
-    if (!confirm(`Post credit note ${num} to the General Ledger? This will record double-entry reversals and reduce customer balance.`)) return;
+    if (!await confirmAction(`Post credit note ${num} to the General Ledger? This will record double-entry reversals and reduce customer balance.`)) return;
 
     try {
       await apiRequest(`/credit-notes/${id}/post`, { method: 'POST' });
       await loadCreditNotes();
     } catch (err: any) {
-      alert(err.message || 'Failed to post credit note');
+      notify(err.message || 'Failed to post credit note');
     }
   };
 
   const handleVoid = async (id: string) => {
-    const reason = prompt('Please enter the reason for voiding this credit note:');
+    const reason = await askReason('Please enter the reason for voiding this credit note:');
     if (!reason || !reason.trim()) return;
 
     try {
@@ -238,7 +239,7 @@ export default function CreditNotesPage() {
       });
       await loadCreditNotes();
     } catch (err: any) {
-      alert(err.message || 'Failed to void credit note');
+      notify(err.message || 'Failed to void credit note');
     }
   };
 
@@ -268,7 +269,7 @@ export default function CreditNotesPage() {
     }));
 
     if (allocationList.length === 0) {
-      alert('Please enter an amount to allocate');
+      notify('Please enter an amount to allocate');
       return;
     }
 
@@ -282,7 +283,7 @@ export default function CreditNotesPage() {
       setAllocatingCN(null);
       await loadCreditNotes();
     } catch (err: any) {
-      alert(err.message || 'Failed to allocate credit note');
+      notify(err.message || 'Failed to allocate credit note');
     } finally {
       setAllocating(false);
     }

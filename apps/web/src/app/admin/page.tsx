@@ -12,6 +12,7 @@ import { OrganisationTable, type AdminOrg } from '@/components/admin/Organisatio
 import { UserTable, type AdminUser } from '@/components/admin/UserTable';
 import { AuditTable, type AuditLogItem } from '@/components/admin/AuditTable';
 import { SystemDiagnostics } from '@/components/admin/SystemDiagnostics';
+import { confirmAction } from '@/lib/dialog-bus';
 
 export default function AdminPortalPage() {
   const { user, switchOrg, refreshOrgs } = useAuth();
@@ -206,7 +207,7 @@ export default function AdminPortalPage() {
       ? `Promote ${u.email} to Platform Super Admin? They will gain unrestricted access to all tenants and system data.`
       : `Revoke Super Admin privileges from ${u.email}?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    if (!await confirmAction(confirmMsg)) return;
 
     try {
       await apiRequest(`/admin/users/${u.id}/super-admin`, {

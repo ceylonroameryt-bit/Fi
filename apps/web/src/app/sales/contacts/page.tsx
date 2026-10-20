@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { notify } from '@/lib/dialog-bus';
 
 interface ContactPersonSummary {
   id: string;
@@ -310,7 +311,7 @@ export default function ContactsPage() {
       resetForm();
       await Promise.all([loadContacts(), loadSummary()]);
     } catch (err: any) {
-      alert(err.message || 'Failed to create contact');
+      notify(err.message || 'Failed to create contact');
     } finally {
       setSubmitting(false);
     }
@@ -360,7 +361,7 @@ export default function ContactsPage() {
       setConfirmModalContact(null);
       await Promise.all([loadContacts(), loadSummary()]);
     } catch (err: any) {
-      alert(err.message || `Failed to ${confirmModalAction} contact`);
+      notify(err.message || `Failed to ${confirmModalAction} contact`);
     } finally {
       setActionInProgress(false);
     }

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { notify } from '@/lib/dialog-bus';
 
 interface FinancialYear {
   id: string;
@@ -151,7 +152,7 @@ function TrialBalanceContent() {
       a.click();
       a.remove();
     } catch (err: any) {
-      alert(err.message || 'Failed to export CSV');
+      notify(err.message || 'Failed to export CSV');
     } finally {
       setExporting(false);
     }

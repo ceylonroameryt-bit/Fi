@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest, ApiError } from '@/lib/api';
+import { notify } from '@/lib/dialog-bus';
 
 interface Account {
   id: string;
@@ -86,7 +87,7 @@ export default function NewJournalPage() {
 
   const handleRemoveLine = (index: number) => {
     if (lines.length <= 2) {
-      alert('A double-entry manual journal must contain at least 2 lines.');
+      notify('A double-entry manual journal must contain at least 2 lines.');
       return;
     }
     setLines(lines.filter((_, idx) => idx !== index));

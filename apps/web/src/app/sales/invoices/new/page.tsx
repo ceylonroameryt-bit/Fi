@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { notify } from '@/lib/dialog-bus';
 
 interface Contact {
   id: string;
@@ -173,15 +174,15 @@ function NewInvoiceForm() {
 
   const handleSubmit = async (postToLedger: boolean) => {
     if (!contactId) {
-      alert('Please select a customer');
+      notify('Please select a customer');
       return;
     }
     if (lines.some((l) => !l.accountId || !l.description.trim())) {
-      alert('Please provide account and description for every line item');
+      notify('Please provide account and description for every line item');
       return;
     }
     if (lines.some((l) => !l.taxCodeId)) {
-      alert('Please choose a VAT code for every line item');
+      notify('Please choose a VAT code for every line item');
       return;
     }
 

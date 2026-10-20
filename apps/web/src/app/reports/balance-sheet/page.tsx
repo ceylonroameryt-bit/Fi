@@ -6,6 +6,7 @@ import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
 import { Scale, Download, CheckCircle2, AlertTriangle, Building2, Calendar, Layers } from 'lucide-react';
+import { notify } from '@/lib/dialog-bus';
 
 interface FinancialYear {
   id: string;
@@ -149,7 +150,7 @@ function BalanceSheetContent() {
       a.click();
       a.remove();
     } catch (err: any) {
-      alert(err.message || 'Failed to export CSV');
+      notify(err.message || 'Failed to export CSV');
     } finally {
       setExporting(false);
     }

@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { askReason, confirmAction, notify } from '@/lib/dialog-bus';
 
 interface InvoiceDetail {
   id: string;
@@ -93,14 +94,14 @@ export default function InvoiceDetailPage() {
 
   const handlePost = async () => {
     if (!invoice) return;
-    if (!confirm(`Post ${invoice.invoiceNumber} to the General Ledger? This creates immutable double-entry postings.`)) return;
+    if (!await confirmAction(`Post ${invoice.invoiceNumber} to the General Ledger? This creates immutable double-entry postings.`)) return;
 
     try {
       setActionLoading(true);
       await apiRequest(`/invoices/${invoice.id}/post`, { method: 'POST' });
       await loadInvoice();
     } catch (err: any) {
-      alert(err.message || 'Failed to post invoice');
+      notify(err.message || 'Failed to post invoice');
     } finally {
       setActionLoading(false);
     }
@@ -108,7 +109,7 @@ export default function InvoiceDetailPage() {
 
   const handleVoid = async () => {
     if (!invoice) return;
-    const reason = prompt('Please enter the reason for voiding this invoice:');
+    const reason = await askReason('Please enter the reason for voiding this invoice:');
     if (!reason) return;
 
     try {
@@ -119,7 +120,7 @@ export default function InvoiceDetailPage() {
       });
       await loadInvoice();
     } catch (err: any) {
-      alert(err.message || 'Failed to void invoice');
+      notify(err.message || 'Failed to void invoice');
     } finally {
       setActionLoading(false);
     }

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { confirmAction, notify } from '@/lib/dialog-bus';
 
 interface Member {
   id: string;
@@ -128,10 +129,10 @@ export default function UsersSettingsPage() {
   const handleRemoveMember = async (member: Member) => {
     if (!activeOrg) return;
     if (member.role.systemKey === 'OWNER') {
-      alert('Organisation Owner cannot be removed.');
+      notify('Organisation Owner cannot be removed.');
       return;
     }
-    if (!confirm(`Are you sure you want to remove ${member.user.email} from ${activeOrg?.name}?`)) return;
+    if (!await confirmAction(`Are you sure you want to remove ${member.user.email} from ${activeOrg?.name}?`)) return;
     try {
       setError(null);
       await apiRequest(`/organizations/${activeOrg.id}/members/${member.id}`, {

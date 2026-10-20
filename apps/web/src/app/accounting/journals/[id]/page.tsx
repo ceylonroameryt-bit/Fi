@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest, ApiError } from '@/lib/api';
+import { confirmAction, notify } from '@/lib/dialog-bus';
 
 interface Account {
   id: string;
@@ -295,7 +296,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
   const handleDelete = async () => {
     if (!journal) return;
     if (
-      !confirm(
+      !await confirmAction(
         `Are you sure you want to delete journal entry ${journal.entryNumber}? This action is recorded in the audit log.`,
       )
     ) {
@@ -325,7 +326,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
 
   const handleRemoveLine = (index: number) => {
     if (editLines.length <= 2) {
-      alert('A double-entry manual journal must contain at least 2 lines.');
+      notify('A double-entry manual journal must contain at least 2 lines.');
       return;
     }
     setEditLines(editLines.filter((_, idx) => idx !== index));
