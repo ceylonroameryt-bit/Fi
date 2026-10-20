@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Sparkles } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest, ApiError } from '@/lib/api';
@@ -27,6 +27,7 @@ import {
   DashboardPreferences,
   DEFAULT_DASHBOARD_PREFERENCES,
 } from '@/components/dashboard/dashboard-customizer-modal';
+import { AddCompanyModal } from '@/components/organization/add-company-modal';
 
 interface PnlSection {
   total: string;
@@ -94,13 +95,14 @@ const TONE_STYLE: Record<AttentionTone, { bg: string; fg: string; symbol: string
 const EDITOR_ROLES = new Set(['OWNER', 'ADMINISTRATOR', 'ACCOUNTANT', 'BOOKKEEPER']);
 
 export default function DashboardPage() {
-  const { user, activeOrg, activeRole } = useAuth();
+  const { user, activeOrg, activeRole, refreshOrgs } = useAuth();
   const currency = activeOrg?.baseCurrency ?? 'GBP';
   const money = useCallback((v: string | null | undefined) => formatMoney(v, { currency }), [currency]);
-  const isEditor = !!activeRole?.systemKey && EDITOR_ROLES.has(activeRole.systemKey);
+  const isEditor = !activeOrg || (!!activeRole?.systemKey && EDITOR_ROLES.has(activeRole.systemKey));
 
   const [prefs, setPrefs] = useState<DashboardPreferences>(DEFAULT_DASHBOARD_PREFERENCES);
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
 
   const [bank, setBank] = useState<Load<BankAccountSummary[]>>(LOADING);
   const [ar, setAr] = useState<Load<AgeingReport>>(LOADING);
@@ -135,7 +137,35 @@ export default function DashboardPage() {
   };
 
   const load = useCallback(() => {
-    if (!activeOrg) return;
+    if (!activeOrg) {
+      setBank({ state: 'ok', data: [] });
+      setAr({
+        state: 'ok',
+        data: {
+          summaryTotals: { current: '0', days1To30: '0', days31To60: '0', days61To90: '0', days90Plus: '0', total: '0' },
+          groups: [],
+        },
+      });
+      setAp({
+        state: 'ok',
+        data: {
+          summaryTotals: { current: '0', days1To30: '0', days31To60: '0', days61To90: '0', days90Plus: '0', total: '0' },
+          groups: [],
+        },
+      });
+      setPnl({
+        state: 'ok',
+        data: {
+          thisMonth: { revenue: { total: '0' }, costOfSales: { total: '0' }, operatingExpenses: { total: '0' }, otherExpenses: { total: '0' }, netProfit: '0' },
+          lastMonth: { revenue: { total: '0' }, costOfSales: { total: '0' }, operatingExpenses: { total: '0' }, otherExpenses: { total: '0' }, netProfit: '0' },
+        },
+      });
+      setTrend({ state: 'ok', data: [] });
+      setReview({ state: 'ok', data: [] });
+      setPeriods({ state: 'ok', data: [] });
+      return;
+    }
+
     const { thisMonth, lastMonth } = monthRanges(today);
     setBank(LOADING);
     setAr(LOADING);
@@ -144,6 +174,47 @@ export default function DashboardPage() {
     setTrend(LOADING);
     setReview(LOADING);
     setPeriods(LOADING);
+
+    // Safety timeout: never leave the dashboard stuck in loading if backend is slow
+    const safetyTimer = setTimeout(() => {
+      setBank((s) => (s.state === 'loading' ? { state: 'ok', data: [] } : s));
+      setAr((s) =>
+        s.state === 'loading'
+          ? {
+              state: 'ok',
+              data: {
+                summaryTotals: { current: '0', days1To30: '0', days31To60: '0', days61To90: '0', days90Plus: '0', total: '0' },
+                groups: [],
+              },
+            }
+          : s,
+      );
+      setAp((s) =>
+        s.state === 'loading'
+          ? {
+              state: 'ok',
+              data: {
+                summaryTotals: { current: '0', days1To30: '0', days31To60: '0', days61To90: '0', days90Plus: '0', total: '0' },
+                groups: [],
+              },
+            }
+          : s,
+      );
+      setPnl((s) =>
+        s.state === 'loading'
+          ? {
+              state: 'ok',
+              data: {
+                thisMonth: { revenue: { total: '0' }, costOfSales: { total: '0' }, operatingExpenses: { total: '0' }, otherExpenses: { total: '0' }, netProfit: '0' },
+                lastMonth: { revenue: { total: '0' }, costOfSales: { total: '0' }, operatingExpenses: { total: '0' }, otherExpenses: { total: '0' }, netProfit: '0' },
+              },
+            }
+          : s,
+      );
+      setTrend((s) => (s.state === 'loading' ? { state: 'ok', data: [] } : s));
+      setReview((s) => (s.state === 'loading' ? { state: 'ok', data: [] } : s));
+      setPeriods((s) => (s.state === 'loading' ? { state: 'ok', data: [] } : s));
+    }, 3500);
 
     settle(apiRequest<BankAccountSummary[]>('/bank-accounts')).then(setBank);
     settle(apiRequest<AgeingReport>(`/reports/ar-ageing?asOfDate=${today}`)).then(setAr);
@@ -185,6 +256,8 @@ export default function DashboardPage() {
     if (isEditor) settle(apiRequest<unknown[]>('/ai/review-queue')).then(setReview);
     else setReview({ state: 'ok', data: [] });
     settle(apiRequest<PeriodLite[]>('/accounting-periods')).then(setPeriods);
+
+    return () => clearTimeout(safetyTimer);
   }, [activeOrg, today, isEditor]);
 
   useEffect(() => {
@@ -231,11 +304,13 @@ export default function DashboardPage() {
               {hello}
             </h1>
             <p className="bl-page-desc" aria-live="polite">
-              {todoLoading
-                ? 'Checking what needs you…'
-                : todo.length === 0
-                  ? 'You’re all caught up. Nothing needs you right now.'
-                  : `${todo.length} ${todo.length === 1 ? 'thing needs' : 'things need'} you today.`}
+              {!activeOrg
+                ? 'Welcome to Blynt. Select or add a company above to connect your live accounts.'
+                : todoLoading
+                  ? 'Checking what needs you…'
+                  : todo.length === 0
+                    ? 'You’re all caught up. Nothing needs you right now.'
+                    : `${todo.length} ${todo.length === 1 ? 'thing needs' : 'things need'} you today.`}
             </p>
           </div>
           <div className="bl-actions">
@@ -255,7 +330,27 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {nothingYet && isEditor && (
+        {!activeOrg && (
+          <EmptyState
+            title="Select or create a company to get started"
+            action={
+              <div className="bl-actions" style={{ justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-action"
+                  onClick={() => setShowAddCompanyModal(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Plus size={16} /> Create company
+                </button>
+              </div>
+            }
+          >
+            Connect your live bank accounts, send invoices, upload bills, and let Blynt’s AI assist with your bookkeeping once you select or create a company.
+          </EmptyState>
+        )}
+
+        {activeOrg && nothingYet && isEditor && (
           <EmptyState
             title="Let's get your numbers in"
             action={
@@ -372,6 +467,20 @@ export default function DashboardPage() {
                 </p>
               ) : bank.state === 'error' ? (
                 <p style={{ margin: 0, color: '#FFB4A8', fontSize: 14 }}>Couldn’t load bank balances.</p>
+              ) : !activeOrg ? (
+                <>
+                  <p style={{ margin: 0, color: '#C9D2E6', fontSize: 14, lineHeight: 1.5 }}>
+                    Select or create a company to track your live cash and safe spending limit.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCompanyModal(true)}
+                    className="btn btn-action"
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    Create company
+                  </button>
+                </>
               ) : cash && cash.count === 0 ? (
                 <>
                   <p style={{ margin: 0, color: '#C9D2E6', fontSize: 14, lineHeight: 1.5 }}>
@@ -663,6 +772,15 @@ export default function DashboardPage() {
         onClose={() => setShowCustomizer(false)}
         preferences={prefs}
         onChangePreferences={updatePrefs}
+      />
+
+      <AddCompanyModal
+        isOpen={showAddCompanyModal}
+        onClose={() => setShowAddCompanyModal(false)}
+        onSuccess={async () => {
+          setShowAddCompanyModal(false);
+          await refreshOrgs();
+        }}
       />
     </AppShell>
   );
