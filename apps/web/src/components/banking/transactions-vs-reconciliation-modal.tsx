@@ -61,7 +61,7 @@ export function TransactionsVsReconciliationModal({
           flexDirection: 'column',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           overflow: 'hidden',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -69,7 +69,7 @@ export function TransactionsVsReconciliationModal({
         <div
           style={{
             padding: '1.5rem 2rem',
-            background: 'linear-gradient(135deg, #041F46 0%, #0B3B7B 100%)',
+            background: 'linear-gradient(135deg, var(--nav-bg) 0%, #0B3B7B 100%)',
             color: '#FFFFFF',
             display: 'flex',
             justifyContent: 'space-between',
@@ -83,7 +83,7 @@ export function TransactionsVsReconciliationModal({
                 height: '42px',
                 borderRadius: '10px',
                 backgroundColor: 'rgba(24, 211, 190, 0.18)',
-                color: '#18D3BE',
+                color: 'var(--action-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -95,7 +95,7 @@ export function TransactionsVsReconciliationModal({
               <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
                 Transactions vs. Reconciliation
               </h2>
-              <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: '0.2rem 0 0 0' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
                 Understand the core difference and when to use each in your business workflow.
               </p>
             </div>
@@ -105,7 +105,7 @@ export function TransactionsVsReconciliationModal({
             style={{
               background: 'none',
               border: 'none',
-              color: '#94A3B8',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               padding: '0.35rem',
               display: 'flex',
@@ -126,10 +126,10 @@ export function TransactionsVsReconciliationModal({
             {/* Transactions Card */}
             <div
               style={{
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '0.75rem',
                 padding: '1.25rem',
-                backgroundColor: '#F8FAFC',
+                backgroundColor: 'var(--bg-app)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
@@ -142,8 +142,8 @@ export function TransactionsVsReconciliationModal({
                       width: '28px',
                       height: '28px',
                       borderRadius: '6px',
-                      backgroundColor: '#EFF6FF',
-                      color: '#2563EB',
+                      backgroundColor: 'var(--info-bg)',
+                      color: 'var(--primary)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -151,7 +151,7 @@ export function TransactionsVsReconciliationModal({
                   >
                     <ArrowRightLeft size={16} />
                   </div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
                     1. Transactions Feed
                   </h3>
                 </div>
@@ -159,8 +159,8 @@ export function TransactionsVsReconciliationModal({
                 <div
                   style={{
                     display: 'inline-block',
-                    backgroundColor: '#DBEAFE',
-                    color: '#1E40AF',
+                    backgroundColor: 'var(--info-border)',
+                    color: 'var(--info-text)',
                     fontSize: '0.725rem',
                     fontWeight: 700,
                     padding: '0.2rem 0.6rem',
@@ -171,27 +171,27 @@ export function TransactionsVsReconciliationModal({
                   THE RAW BANK ACTIVITY
                 </div>
 
-                <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, margin: '0 0 1rem 0' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--ink-2)', lineHeight: 1.5, margin: '0 0 1rem 0' }}>
                   The direct stream of bank statements imported via open banking or CSV. Here you inspect each row, see what was bought or sold, and categorize it.
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', color: '#334155' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--ink-2)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.45rem' }}>
-                    <CheckCircle2 size={15} color="#2563EB" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <CheckCircle2 size={15} color="#102654" style={{ marginTop: '2px', flexShrink: 0 }} />
                     <span><strong>What happens here:</strong> Tagging expenses (e.g. 6300 IT Software) and tagging customers/vendors.</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.45rem' }}>
-                    <CheckCircle2 size={15} color="#2563EB" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <CheckCircle2 size={15} color="#102654" style={{ marginTop: '2px', flexShrink: 0 }} />
                     <span><strong>Analogy:</strong> Sorting all your physical receipts into categorized piles on your desk.</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.45rem' }}>
-                    <CheckCircle2 size={15} color="#2563EB" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <CheckCircle2 size={15} color="#102654" style={{ marginTop: '2px', flexShrink: 0 }} />
                     <span><strong>Goal:</strong> Make sure no bank line is uncategorised.</span>
                   </div>
                 </div>
               </div>
 
-              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0' }}>
+              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
                 <Link
                   href={txUrl}
                   onClick={onClose}
@@ -203,9 +203,9 @@ export function TransactionsVsReconciliationModal({
                     width: '100%',
                     padding: '0.5rem',
                     backgroundColor: '#FFFFFF',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     borderRadius: '0.375rem',
-                    color: '#2563EB',
+                    color: 'var(--primary)',
                     fontSize: '0.825rem',
                     fontWeight: 600,
                     textDecoration: 'none',
@@ -220,10 +220,10 @@ export function TransactionsVsReconciliationModal({
             {/* Reconciliation Card */}
             <div
               style={{
-                border: '2px solid #0D9488',
+                border: '2px solid var(--action)',
                 borderRadius: '0.75rem',
                 padding: '1.25rem',
-                backgroundColor: '#F0FDFA',
+                backgroundColor: 'var(--action-soft)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
@@ -236,8 +236,8 @@ export function TransactionsVsReconciliationModal({
                       width: '28px',
                       height: '28px',
                       borderRadius: '6px',
-                      backgroundColor: '#CCFBF1',
-                      color: '#0D9488',
+                      backgroundColor: 'var(--action-soft)',
+                      color: 'var(--action-text)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -245,7 +245,7 @@ export function TransactionsVsReconciliationModal({
                   >
                     <CheckCheck size={18} />
                   </div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
                     2. Smart Reconciliation
                   </h3>
                 </div>
@@ -253,7 +253,7 @@ export function TransactionsVsReconciliationModal({
                 <div
                   style={{
                     display: 'inline-block',
-                    backgroundColor: '#99F6E4',
+                    backgroundColor: 'var(--action-soft)',
                     color: '#115E59',
                     fontSize: '0.725rem',
                     fontWeight: 700,
@@ -265,27 +265,27 @@ export function TransactionsVsReconciliationModal({
                   THE AUDIT & LEDGER MATCH
                 </div>
 
-                <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, margin: '0 0 1rem 0' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--ink-2)', lineHeight: 1.5, margin: '0 0 1rem 0' }}>
                   The formal accounting process that matches your bank statements against your official General Ledger and unpaid sales invoices or supplier bills.
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', color: '#334155' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--ink-2)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.45rem' }}>
-                    <CheckCircle2 size={15} color="#0D9488" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <CheckCircle2 size={15} color="#B8432F" style={{ marginTop: '2px', flexShrink: 0 }} />
                     <span><strong>What happens here:</strong> Proving that <em>Statement Balance == General Ledger Balance</em> with £0.00 difference.</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.45rem' }}>
-                    <CheckCircle2 size={15} color="#0D9488" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <CheckCircle2 size={15} color="#B8432F" style={{ marginTop: '2px', flexShrink: 0 }} />
                     <span><strong>Analogy:</strong> Balancing your company checkbook to ensure HMRC and tax returns are 100% audit-proof.</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.45rem' }}>
-                    <CheckCircle2 size={15} color="#0D9488" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <CheckCircle2 size={15} color="#B8432F" style={{ marginTop: '2px', flexShrink: 0 }} />
                     <span><strong>AI Power:</strong> 1-click auto-matching and posting to the General Ledger.</span>
                   </div>
                 </div>
               </div>
 
-              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #CCFBF1' }}>
+              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--action-soft)' }}>
                 <Link
                   href={reconUrl}
                   onClick={onClose}
@@ -296,7 +296,7 @@ export function TransactionsVsReconciliationModal({
                     gap: '0.4rem',
                     width: '100%',
                     padding: '0.5rem',
-                    backgroundColor: '#0D9488',
+                    backgroundColor: 'var(--action)',
                     borderRadius: '0.375rem',
                     color: '#FFFFFF',
                     fontSize: '0.825rem',
@@ -313,26 +313,26 @@ export function TransactionsVsReconciliationModal({
           </div>
 
           {/* Quick Summary Comparison Table */}
-          <div style={{ backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px solid #E2E8F0', padding: '1rem 1.25rem' }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.75rem 0' }}>
+          <div style={{ backgroundColor: 'var(--bg-app)', borderRadius: '0.75rem', border: '1px solid var(--border-subtle)', padding: '1rem 1.25rem' }}>
+            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 0.75rem 0' }}>
               Quick Comparison Cheat-Sheet
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr 2fr', gap: '0.5rem', fontSize: '0.775rem' }}>
-              <div style={{ fontWeight: 700, color: '#64748B' }}>Feature</div>
-              <div style={{ fontWeight: 700, color: '#2563EB' }}>Transactions Feed</div>
-              <div style={{ fontWeight: 700, color: '#0D9488' }}>Reconciliation</div>
+              <div style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Feature</div>
+              <div style={{ fontWeight: 700, color: 'var(--primary)' }}>Transactions Feed</div>
+              <div style={{ fontWeight: 700, color: 'var(--action-text)' }}>Reconciliation</div>
 
-              <div style={{ color: '#475569', fontWeight: 600 }}>Primary Question</div>
-              <div style={{ color: '#334155' }}>&ldquo;What was this £50 spent on?&rdquo;</div>
-              <div style={{ color: '#334155' }}>&ldquo;Does this £50 match an invoice or journal in our books?&rdquo;</div>
+              <div style={{ color: 'var(--ink-2)', fontWeight: 600 }}>Primary Question</div>
+              <div style={{ color: 'var(--ink-2)' }}>&ldquo;What was this £50 spent on?&rdquo;</div>
+              <div style={{ color: 'var(--ink-2)' }}>&ldquo;Does this £50 match an invoice or journal in our books?&rdquo;</div>
 
-              <div style={{ color: '#475569', fontWeight: 600 }}>Accounting Result</div>
-              <div style={{ color: '#334155' }}>Categorised Bank Statement Line</div>
-              <div style={{ color: '#334155' }}>Posted General Ledger Journal & Marked Paid</div>
+              <div style={{ color: 'var(--ink-2)', fontWeight: 600 }}>Accounting Result</div>
+              <div style={{ color: 'var(--ink-2)' }}>Categorised Bank Statement Line</div>
+              <div style={{ color: 'var(--ink-2)' }}>Posted General Ledger Journal & Marked Paid</div>
 
-              <div style={{ color: '#475569', fontWeight: 600 }}>HMRC Compliance</div>
-              <div style={{ color: '#334155' }}>Preliminary Record</div>
-              <div style={{ color: '#334155' }}>Official Audit Proof & VAT Return Source</div>
+              <div style={{ color: 'var(--ink-2)', fontWeight: 600 }}>HMRC Compliance</div>
+              <div style={{ color: 'var(--ink-2)' }}>Preliminary Record</div>
+              <div style={{ color: 'var(--ink-2)' }}>Official Audit Proof & VAT Return Source</div>
             </div>
           </div>
 
@@ -342,8 +342,8 @@ export function TransactionsVsReconciliationModal({
         <div
           style={{
             padding: '1rem 2rem',
-            backgroundColor: '#F8FAFC',
-            borderTop: '1px solid #E2E8F0',
+            backgroundColor: 'var(--bg-app)',
+            borderTop: '1px solid var(--border-subtle)',
             display: 'flex',
             justifyContent: 'flex-end',
           }}
@@ -355,7 +355,7 @@ export function TransactionsVsReconciliationModal({
               padding: '0.55rem 1.35rem',
               border: 'none',
               borderRadius: '0.5rem',
-              backgroundColor: '#041F46',
+              backgroundColor: 'var(--nav-bg)',
               color: '#FFFFFF',
               fontSize: '0.85rem',
               fontWeight: 600,

@@ -50,10 +50,11 @@ export default function ReviewQueuePage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.25rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ margin: 0 }}>Review queue</h1>
-          <p style={{ margin: '0.25rem 0 0', color: '#64748B' }}>
+          <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)' }}>
             AI-prepared drafts waiting for approval. Nothing is created or posted until someone approves it.
           </p>
         </div>
@@ -91,14 +92,14 @@ export default function ReviewQueuePage() {
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '1.5rem', textAlign: 'center', color: '#64748B' }}>Nothing is waiting for review.</td>
+                  <td colSpan={8} style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>Nothing is waiting for review.</td>
                 </tr>
               ) : (
                 items.map((d) => (
                   <tr key={d.id}>
                     <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.fileName}</td>
                     <td>{d.direction === 'PURCHASE' ? 'Supplier bill' : d.direction === 'SALE' ? 'Sales invoice' : 'Unclassified'}</td>
-                    <td>{d.counterparty ?? <span style={{ color: '#94A3B8' }}>Not matched</span>}</td>
+                    <td>{d.counterparty ?? <span style={{ color: 'var(--text-muted)' }}>Not matched</span>}</td>
                     <td>{d.invoiceNumber ?? '—'}</td>
                     <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{d.total ? `£${d.total}` : '—'}</td>
                     <td>
@@ -107,7 +108,7 @@ export default function ReviewQueuePage() {
                       ) : (
                         <span className="badge badge-posted">Consistent</span>
                       )}
-                      {d.missingFields ? <span style={{ marginLeft: 6, color: '#64748B', fontSize: '0.8rem' }}>{d.missingFields} missing</span> : null}
+                      {d.missingFields ? <span style={{ marginLeft: 6, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{d.missingFields} missing</span> : null}
                     </td>
                     <td style={{ textAlign: 'right' }}>{Math.round(d.confidenceScore * 100)}%</td>
                     <td style={{ textAlign: 'right' }}>
@@ -121,6 +122,7 @@ export default function ReviewQueuePage() {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </AppShell>
   );

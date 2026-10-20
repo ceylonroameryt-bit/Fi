@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { confirmAction } from '@/lib/dialog-bus';
 
 interface AccountingPeriod {
   id: string;
@@ -68,7 +69,7 @@ function PeriodsContent() {
 
   const handlePeriodAction = async (periodId: string, action: 'soft-lock' | 'hard-lock' | 'unlock') => {
     if (action === 'hard-lock') {
-      if (!confirm('Warning: HARD LOCK permanently prevents any posting or validation of journals in this period. Only administrators can unlock. Proceed?')) {
+      if (!await confirmAction('Warning: HARD LOCK permanently prevents any posting or validation of journals in this period. Only administrators can unlock. Proceed?')) {
         return;
       }
     }
@@ -91,6 +92,7 @@ function PeriodsContent() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header">
         <div>
           <h1 className="page-title">Accounting Periods</h1>
@@ -107,7 +109,7 @@ function PeriodsContent() {
       {/* Filter by Financial Year */}
       <div className="card" style={{ marginBottom: '1.25rem' }}>
         <div className="card-body" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Filter by Fiscal Year:</label>
+          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--ink-2)' }}>Filter by Fiscal Year:</label>
           <select
             className="form-select"
             style={{ width: 'auto', minWidth: '200px' }}
@@ -142,13 +144,13 @@ function PeriodsContent() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     Loading accounting periods...
                   </td>
                 </tr>
               ) : periods.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748b' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No accounting periods found. Create a Financial Year with auto-generated periods first.
                   </td>
                 </tr>
@@ -162,12 +164,12 @@ function PeriodsContent() {
                   return (
                     <tr key={p.id}>
                       <td className="font-mono text-center">
-                        <strong style={{ color: '#0f172a' }}>{p.periodNumber}</strong>
+                        <strong style={{ color: 'var(--text-main)' }}>{p.periodNumber}</strong>
                       </td>
                       <td>
-                        <strong style={{ color: '#0f172a' }}>{p.name}</strong>
+                        <strong style={{ color: 'var(--text-main)' }}>{p.name}</strong>
                       </td>
-                      <td style={{ color: '#64748b' }}>{p.financialYear?.name || '—'}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{p.financialYear?.name || '—'}</td>
                       <td className="font-mono">{new Date(p.startDate).toISOString().split('T')[0]}</td>
                       <td className="font-mono">{new Date(p.endDate).toISOString().split('T')[0]}</td>
                       <td>
@@ -175,7 +177,7 @@ function PeriodsContent() {
                           {p.status.replace('_', ' ')}
                         </span>
                         {p.lockedAt && (
-                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                             Locked: {new Date(p.lockedAt).toLocaleDateString()}
                           </div>
                         )}
@@ -221,6 +223,7 @@ function PeriodsContent() {
           </table>
         </div>
       </div>
+      </div>
     </AppShell>
   );
 }
@@ -230,7 +233,7 @@ export default function AccountingPeriodsPage() {
     <Suspense
       fallback={
         <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: '#64748b' }}>Loading periods...</div>
+          <div style={{ color: 'var(--text-muted)' }}>Loading periods...</div>
         </div>
       }
     >

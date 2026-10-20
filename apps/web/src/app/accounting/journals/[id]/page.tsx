@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest, ApiError } from '@/lib/api';
+import { confirmAction, notify } from '@/lib/dialog-bus';
 
 interface Account {
   id: string;
@@ -295,7 +296,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
   const handleDelete = async () => {
     if (!journal) return;
     if (
-      !confirm(
+      !await confirmAction(
         `Are you sure you want to delete journal entry ${journal.entryNumber}? This action is recorded in the audit log.`,
       )
     ) {
@@ -325,7 +326,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
 
   const handleRemoveLine = (index: number) => {
     if (editLines.length <= 2) {
-      alert('A double-entry manual journal must contain at least 2 lines.');
+      notify('A double-entry manual journal must contain at least 2 lines.');
       return;
     }
     setEditLines(editLines.filter((_, idx) => idx !== index));
@@ -340,8 +341,10 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <AppShell>
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+        <div className="bl-legacy">
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
           Loading journal entry...
+        </div>
         </div>
       </AppShell>
     );
@@ -350,10 +353,12 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
   if (!journal) {
     return (
       <AppShell>
+        <div className="bl-legacy">
         <div className="alert alert-danger">Journal not found.</div>
         <Link href="/accounting/journals" className="btn btn-secondary">
           &larr; Back to Journals
         </Link>
+        </div>
       </AppShell>
     );
   }
@@ -364,6 +369,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -399,7 +405,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
             <button
               onClick={() => setShowPostModal(true)}
               className="btn btn-primary btn-sm"
-              style={{ backgroundColor: '#10b981', borderColor: '#059669' }}
+              style={{ backgroundColor: 'var(--success)', borderColor: 'var(--success)' }}
             >
               Post Journal
             </button>
@@ -410,7 +416,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
             <button
               onClick={() => setShowReverseModal(true)}
               className="btn btn-secondary btn-sm"
-              style={{ color: '#7c3aed', borderColor: '#c4b5fd' }}
+              style={{ color: 'var(--primary)', borderColor: 'var(--info-border)' }}
             >
               Reverse Journal
             </button>
@@ -439,9 +445,9 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
         <div
           className="alert"
           style={{
-            backgroundColor: '#F5F3FF',
-            borderColor: '#DDD6FE',
-            color: '#6D28D9',
+            backgroundColor: 'var(--info-bg)',
+            borderColor: 'var(--info-border)',
+            color: 'var(--primary)',
             marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
@@ -454,7 +460,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
           <Link
             href={`/accounting/journals/${journal.reversedByJournalId}`}
             className="btn btn-secondary btn-sm"
-            style={{ color: '#6D28D9' }}
+            style={{ color: 'var(--primary)' }}
           >
             View Reversal Entry &rarr;
           </Link>
@@ -465,9 +471,9 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
         <div
           className="alert"
           style={{
-            backgroundColor: '#EFF6FF',
-            borderColor: '#BFDBFE',
-            color: '#1D4ED8',
+            backgroundColor: 'var(--info-bg)',
+            borderColor: 'var(--info-border)',
+            color: 'var(--primary)',
             marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
@@ -480,7 +486,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
           <Link
             href={`/accounting/journals/${journal.reversalOfJournalId}`}
             className="btn btn-secondary btn-sm"
-            style={{ color: '#1D4ED8' }}
+            style={{ color: 'var(--primary)' }}
           >
             View Original Entry &rarr;
           </Link>
@@ -490,10 +496,10 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
       {/* Validation status panel */}
       {journal.status === 'VALIDATED' && !isEditing && (
         <div className="validation-panel validation-panel-success" style={{ marginBottom: '1.5rem' }}>
-          <strong style={{ color: '#15803d', display: 'block', fontSize: '0.9rem' }}>
+          <strong style={{ color: 'var(--success-text)', display: 'block', fontSize: '0.9rem' }}>
             ✓ Validation Engine: All Rules Passed
           </strong>
-          <span style={{ fontSize: '0.8rem', color: '#166534' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--success-text)' }}>
             Total Debits match Credits ({Number(journal.totalDebit).toLocaleString('en-GB', { minimumFractionDigits: 2 })}{' '}
             {activeOrg?.baseCurrency}), accounting period is open, active accounts verified, and sequential numbering integrity maintained.
           </span>
@@ -502,10 +508,10 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
 
       {validationErrors.length > 0 && (
         <div className="validation-panel validation-panel-error" style={{ marginBottom: '1.5rem' }}>
-          <strong style={{ color: '#b91c1c', display: 'block', marginBottom: '0.5rem' }}>
+          <strong style={{ color: 'var(--danger)', display: 'block', marginBottom: '0.5rem' }}>
             Validation Engine Findings ({validationErrors.length} issues):
           </strong>
-          <ul style={{ paddingLeft: '1.25rem', color: '#b91c1c', fontSize: '0.825rem' }}>
+          <ul style={{ paddingLeft: '1.25rem', color: 'var(--danger)', fontSize: '0.825rem' }}>
             {validationErrors.map((msg, i) => (
               <li key={i}>{msg}</li>
             ))}
@@ -526,44 +532,44 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Description
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '0.2rem' }}>
                     {journal.description}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Reference
                   </div>
-                  <div style={{ fontSize: '0.95rem', color: '#0f172a', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '0.95rem', color: 'var(--text-main)', marginTop: '0.2rem' }}>
                     {journal.reference || '—'}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Posting Date
                   </div>
-                  <div className="font-mono" style={{ fontSize: '0.95rem', color: '#0f172a', marginTop: '0.2rem' }}>
+                  <div className="font-mono" style={{ fontSize: '0.95rem', color: 'var(--text-main)', marginTop: '0.2rem' }}>
                     {new Date(journal.postingDate || journal.entryDate).toISOString().split('T')[0]}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Total Balanced Amount
                   </div>
-                  <div className="font-mono" style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', marginTop: '0.2rem' }}>
+                  <div className="font-mono" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.2rem' }}>
                     {Number(journal.totalDebit).toLocaleString('en-GB', { minimumFractionDigits: 2 })} {activeOrg?.baseCurrency}
                   </div>
                 </div>
 
                 {isPosted && journal.postedAt && (
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                       Posted At
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#0f172a', marginTop: '0.2rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '0.2rem' }}>
                       {new Date(journal.postedAt).toLocaleString()}
                     </div>
                   </div>
@@ -596,19 +602,19 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                 <tbody>
                   {journal.lines.map((line, idx) => (
                     <tr key={line.id || idx}>
-                      <td className="font-mono text-center" style={{ color: '#64748b' }}>
+                      <td className="font-mono text-center" style={{ color: 'var(--text-muted)' }}>
                         {idx + 1}
                       </td>
                       <td className="font-mono">
-                        <strong style={{ color: '#0f172a' }}>{line.account?.code}</strong>
+                        <strong style={{ color: 'var(--text-main)' }}>{line.account?.code}</strong>
                       </td>
                       <td>
-                        <strong style={{ color: '#0f172a' }}>{line.account?.name}</strong>
+                        <strong style={{ color: 'var(--text-main)' }}>{line.account?.name}</strong>
                         <span className="badge badge-open" style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>
                           {line.account?.type}
                         </span>
                       </td>
-                      <td style={{ color: '#64748b' }}>{line.description || '—'}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{line.description || '—'}</td>
                       <td className="text-right font-mono" style={{ fontWeight: Number(line.debit) > 0 ? 600 : 400 }}>
                         {Number(line.debit) > 0
                           ? Number(line.debit).toLocaleString('en-GB', { minimumFractionDigits: 2 })
@@ -623,7 +629,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr style={{ backgroundColor: '#f8fafc', fontWeight: 700 }}>
+                  <tr style={{ backgroundColor: 'var(--bg-app)', fontWeight: 700 }}>
                     <td colSpan={4} className="text-right" style={{ padding: '0.75rem 1rem' }}>
                       Totals:
                     </td>
@@ -774,7 +780,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: '#b91c1c',
+                            color: 'var(--danger)',
                             cursor: 'pointer',
                             fontSize: '1.1rem',
                           }}
@@ -786,7 +792,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr style={{ backgroundColor: '#f8fafc', fontWeight: 700 }}>
+                  <tr style={{ backgroundColor: 'var(--bg-app)', fontWeight: 700 }}>
                     <td colSpan={3} className="text-right" style={{ padding: '0.75rem 1rem' }}>
                       Total:
                     </td>
@@ -798,9 +804,9 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                     </td>
                     <td></td>
                   </tr>
-                  <tr style={{ backgroundColor: editBalanced ? '#f0fdf4' : '#fef2f2' }}>
+                  <tr style={{ backgroundColor: editBalanced ? 'var(--success-bg)' : 'var(--danger-bg)' }}>
                     <td colSpan={3} className="text-right" style={{ padding: '0.75rem 1rem' }}>
-                      <span style={{ fontWeight: 600, color: editBalanced ? '#15803d' : '#b91c1c' }}>
+                      <span style={{ fontWeight: 600, color: editBalanced ? 'var(--success-text)' : 'var(--danger)' }}>
                         {editBalanced ? '✓ Balanced' : '⚠ Out of Balance:'}
                       </span>
                     </td>
@@ -809,7 +815,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                       className="text-right font-mono"
                       style={{
                         padding: '0.75rem 1rem',
-                        color: editBalanced ? '#15803d' : '#b91c1c',
+                        color: editBalanced ? 'var(--success-text)' : 'var(--danger)',
                         fontWeight: 700,
                       }}
                     >
@@ -871,14 +877,14 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
               <h3 className="card-title">Post Journal {journal.entryNumber}?</h3>
             </div>
             <div className="card-body">
-              <p style={{ fontSize: '0.875rem', color: '#4b5563', marginBottom: '1.25rem' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ink-2)', marginBottom: '1.25rem' }}>
                 Once posted, this journal becomes part of the permanent accounting records and cannot be edited or deleted directly.
               </p>
 
               <div
                 style={{
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  backgroundColor: 'var(--bg-app)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '6px',
                   padding: '1rem',
                   display: 'grid',
@@ -889,20 +895,20 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                 }}
               >
                 <div>
-                  <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Debit Total</div>
-                  <div className="font-mono" style={{ fontWeight: 600, color: '#0f172a' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Debit Total</div>
+                  <div className="font-mono" style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                     {Number(journal.totalDebit).toLocaleString('en-GB', { minimumFractionDigits: 2 })} {activeOrg?.baseCurrency}
                   </div>
                 </div>
                 <div>
-                  <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Credit Total</div>
-                  <div className="font-mono" style={{ fontWeight: 600, color: '#0f172a' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Credit Total</div>
+                  <div className="font-mono" style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                     {Number(journal.totalCredit).toLocaleString('en-GB', { minimumFractionDigits: 2 })} {activeOrg?.baseCurrency}
                   </div>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Posting Date</div>
-                  <div className="font-mono" style={{ fontWeight: 600, color: '#0f172a' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Posting Date</div>
+                  <div className="font-mono" style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                     {new Date(journal.postingDate || journal.entryDate).toISOString().split('T')[0]}
                   </div>
                 </div>
@@ -922,7 +928,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                   disabled={posting}
                   onClick={handlePost}
                   className="btn btn-primary"
-                  style={{ backgroundColor: '#10b981', borderColor: '#059669' }}
+                  style={{ backgroundColor: 'var(--success)', borderColor: 'var(--success)' }}
                 >
                   {posting ? 'Posting...' : 'Post Journal'}
                 </button>
@@ -958,7 +964,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
               <h3 className="card-title">Reverse {journal.entryNumber}?</h3>
             </div>
             <div className="card-body">
-              <p style={{ fontSize: '0.875rem', color: '#4b5563', marginBottom: '1.25rem' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ink-2)', marginBottom: '1.25rem' }}>
                 The original journal will remain in the accounting history. A new opposite journal with inverted debits and credits will be posted to the General Ledger.
               </p>
 
@@ -998,7 +1004,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
                   disabled={reversing}
                   onClick={handleReverse}
                   className="btn btn-primary"
-                  style={{ backgroundColor: '#7c3aed', borderColor: '#6d28d9' }}
+                  style={{ backgroundColor: 'var(--primary)', borderColor: 'var(--primary)' }}
                 >
                   {reversing ? 'Reversing...' : 'Create Reversal'}
                 </button>
@@ -1007,6 +1013,7 @@ export default function JournalDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

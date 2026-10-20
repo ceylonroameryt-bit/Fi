@@ -386,13 +386,14 @@ function BankTransactionsContent() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       {/* Title & Top Toolbar */}
       <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
             Transactions
           </h1>
-          <p style={{ color: '#64748B', fontSize: '0.85rem', marginTop: '0.2rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
             Review, auto-categorise with AI, and confirm your bank activity into the General Ledger.
           </p>
         </div>
@@ -404,8 +405,8 @@ function BankTransactionsContent() {
               alignItems: 'center',
               gap: '0.45rem',
               backgroundColor: '#FFFFFF',
-              color: '#0F172A',
-              border: '1px solid #CBD5E1',
+              color: 'var(--text-main)',
+              border: '1px solid var(--border-strong)',
               padding: '0.5rem 0.85rem',
               borderRadius: '0.375rem',
               cursor: 'pointer',
@@ -414,7 +415,7 @@ function BankTransactionsContent() {
               boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
             }}
           >
-            <SlidersHorizontal size={14} color="#0EA5E9" />
+            <SlidersHorizontal size={14} color="#102654" />
             <span>AI Settings</span>
           </button>
 
@@ -424,9 +425,9 @@ function BankTransactionsContent() {
               display: 'flex',
               alignItems: 'center',
               gap: '0.45rem',
-              backgroundColor: '#F8FAFC',
-              color: '#475569',
-              border: '1px solid #E2E8F0',
+              backgroundColor: 'var(--bg-app)',
+              color: 'var(--ink-2)',
+              border: '1px solid var(--border-subtle)',
               padding: '0.5rem 0.85rem',
               borderRadius: '0.375rem',
               cursor: 'pointer',
@@ -434,7 +435,7 @@ function BankTransactionsContent() {
               fontSize: '0.85rem',
             }}
           >
-            <HelpCircle size={14} color="#64748B" />
+            <HelpCircle size={14} color="#5B6478" />
             <span>Guide</span>
           </button>
 
@@ -445,8 +446,8 @@ function BankTransactionsContent() {
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              backgroundColor: '#10B981',
-              backgroundImage: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+              backgroundColor: 'var(--success)',
+              backgroundImage: 'linear-gradient(135deg, var(--success) 0%, var(--success) 100%)',
               color: '#FFFFFF',
               border: 'none',
               padding: '0.5rem 1rem',
@@ -467,7 +468,7 @@ function BankTransactionsContent() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                backgroundColor: '#2563EB',
+                backgroundColor: 'var(--primary)',
                 color: '#FFFFFF',
                 border: 'none',
                 padding: '0.5rem 1rem',
@@ -487,8 +488,8 @@ function BankTransactionsContent() {
       {showLearnBanner && (
         <div
           style={{
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #E2E8F0',
+            backgroundColor: 'var(--bg-app)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '0.5rem',
             padding: '1.25rem',
             marginBottom: '1.5rem',
@@ -502,11 +503,11 @@ function BankTransactionsContent() {
           <div style={{ maxWidth: '800px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
               <span style={{ fontSize: '1.2rem' }}>📖</span>
-              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
                 Automated AI Accounting & Categorisation
               </span>
             </div>
-            <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--ink-2)', lineHeight: 1.5 }}>
               Blynt AI makes bookkeeping effortless in 3 key ways:
               <br />
               ✦ <strong>Automatically identifies vendors &amp; customers</strong> from transaction descriptions and merchants.
@@ -521,7 +522,7 @@ function BankTransactionsContent() {
               onClick={handleRunAiCategorisation}
               disabled={aiRunning}
               style={{
-                backgroundColor: '#10B981',
+                backgroundColor: 'var(--success)',
                 color: '#FFFFFF',
                 border: 'none',
                 padding: '0.55rem 1.1rem',
@@ -543,7 +544,7 @@ function BankTransactionsContent() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#94A3B8',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
                 fontSize: '1.1rem',
               }}
@@ -556,24 +557,24 @@ function BankTransactionsContent() {
       )}
 
       {bannerMessage && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--success-bg)', border: '1px solid var(--success-border)', color: 'var(--success-text)', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
           {bannerMessage}
         </div>
       )}
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FEF2F2', border: '1px solid #F87171', color: '#B91C1C', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger)', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
           {error}
         </div>
       )}
 
       {/* Puzzle.io Tabs */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
         <button
           onClick={() => setActiveTab('ALL')}
           style={{
             backgroundColor: activeTab === 'ALL' ? '#FFFFFF' : 'transparent',
-            border: activeTab === 'ALL' ? '1px solid #CBD5E1' : '1px solid transparent',
+            border: activeTab === 'ALL' ? '1px solid var(--border-strong)' : '1px solid transparent',
             borderRadius: '0.375rem',
             padding: '0.5rem 1rem',
             cursor: 'pointer',
@@ -582,12 +583,12 @@ function BankTransactionsContent() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>All</span>
-            <span style={{ fontSize: '0.75rem', backgroundColor: '#F1F5F9', padding: '0.1rem 0.4rem', borderRadius: '9999px', fontWeight: 600, color: '#475569' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>All</span>
+            <span style={{ fontSize: '0.75rem', backgroundColor: 'var(--bg-soft)', padding: '0.1rem 0.4rem', borderRadius: '9999px', fontWeight: 600, color: 'var(--ink-2)' }}>
               {allCount}
             </span>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
             Every transaction in range
           </div>
         </button>
@@ -596,7 +597,7 @@ function BankTransactionsContent() {
           onClick={() => setActiveTab('TO_CONFIRM')}
           style={{
             backgroundColor: activeTab === 'TO_CONFIRM' ? '#FFFFFF' : 'transparent',
-            border: activeTab === 'TO_CONFIRM' ? '1px solid #CBD5E1' : '1px solid transparent',
+            border: activeTab === 'TO_CONFIRM' ? '1px solid var(--border-strong)' : '1px solid transparent',
             borderRadius: '0.375rem',
             padding: '0.5rem 1rem',
             cursor: 'pointer',
@@ -605,12 +606,12 @@ function BankTransactionsContent() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>To confirm</span>
-            <span style={{ fontSize: '0.75rem', backgroundColor: '#FEF3C7', padding: '0.1rem 0.4rem', borderRadius: '9999px', fontWeight: 700, color: '#92400E' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>To confirm</span>
+            <span style={{ fontSize: '0.75rem', backgroundColor: 'var(--warning-bg)', padding: '0.1rem 0.4rem', borderRadius: '9999px', fontWeight: 700, color: 'var(--warning-text)' }}>
               {toConfirmCount}
             </span>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
             Still awaiting confirmation
           </div>
         </button>
@@ -619,7 +620,7 @@ function BankTransactionsContent() {
           onClick={() => setActiveTab('CONFIRMED')}
           style={{
             backgroundColor: activeTab === 'CONFIRMED' ? '#FFFFFF' : 'transparent',
-            border: activeTab === 'CONFIRMED' ? '1px solid #CBD5E1' : '1px solid transparent',
+            border: activeTab === 'CONFIRMED' ? '1px solid var(--border-strong)' : '1px solid transparent',
             borderRadius: '0.375rem',
             padding: '0.5rem 1rem',
             cursor: 'pointer',
@@ -628,12 +629,12 @@ function BankTransactionsContent() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>Confirmed</span>
-            <span style={{ fontSize: '0.75rem', backgroundColor: '#ECFDF5', padding: '0.1rem 0.4rem', borderRadius: '9999px', fontWeight: 700, color: '#065F46' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>Confirmed</span>
+            <span style={{ fontSize: '0.75rem', backgroundColor: 'var(--success-bg)', padding: '0.1rem 0.4rem', borderRadius: '9999px', fontWeight: 700, color: 'var(--success-text)' }}>
               {confirmedCount}
             </span>
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
             Already in your reports
           </div>
         </button>
@@ -648,7 +649,7 @@ function BankTransactionsContent() {
               setSelectedAccountId(e.target.value);
               setPage(1);
             }}
-            style={{ padding: '0.45rem 0.75rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.85rem', backgroundColor: '#FFFFFF', fontWeight: 600 }}
+            style={{ padding: '0.45rem 0.75rem', border: '1px solid var(--border-strong)', borderRadius: '0.375rem', fontSize: '0.85rem', backgroundColor: '#FFFFFF', fontWeight: 600 }}
           >
             <option value="">All Bank Accounts</option>
             {bankAccounts.map((b) => (
@@ -663,21 +664,21 @@ function BankTransactionsContent() {
             placeholder="Search by description or reference..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ padding: '0.45rem 0.75rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.85rem', width: '280px' }}
+            style={{ padding: '0.45rem 0.75rem', border: '1px solid var(--border-strong)', borderRadius: '0.375rem', fontSize: '0.85rem', width: '280px' }}
           />
         </div>
 
         {/* Bulk Action Button */}
         {selectedLineIds.size > 0 && canManage && (
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               {selectedLineIds.size} selected
             </span>
             <button
               onClick={handleBatchConfirm}
               disabled={batchConfirming}
               style={{
-                backgroundColor: '#2563EB',
+                backgroundColor: 'var(--primary)',
                 color: '#FFFFFF',
                 border: 'none',
                 padding: '0.45rem 0.9rem',
@@ -694,10 +695,10 @@ function BankTransactionsContent() {
       </div>
 
       {/* Puzzle.io Interactive Table */}
-      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div style={{ backgroundColor: '#FFFFFF', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 600 }}>
+            <tr style={{ backgroundColor: 'var(--bg-app)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--ink-2)', fontWeight: 600 }}>
               <th style={{ padding: '0.75rem 1rem', width: '40px' }}>
                 <input
                   type="checkbox"
@@ -716,14 +717,14 @@ function BankTransactionsContent() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} style={{ padding: '2.5rem', textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={7} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Loading transactions...
                 </td>
               </tr>
             ) : filteredLines.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: '2.5rem', textAlign: 'center', color: '#64748B' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0F172A', marginBottom: '0.25rem' }}>
+                <td colSpan={7} style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                     No transactions to show
                   </div>
                   <div style={{ fontSize: '0.85rem' }}>
@@ -744,8 +745,8 @@ function BankTransactionsContent() {
                   <tr
                     key={line.id}
                     style={{
-                      borderBottom: '1px solid #F1F5F9',
-                      backgroundColor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                      borderBottom: '1px solid var(--bg-soft)',
+                      backgroundColor: isSelected ? 'var(--info-bg)' : '#FFFFFF',
                       transition: 'background-color 0.15s ease',
                     }}
                   >
@@ -759,7 +760,7 @@ function BankTransactionsContent() {
                     </td>
 
                     {/* Date */}
-                    <td style={{ padding: '0.75rem 1rem', color: '#64748B', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(line.transactionDate).toLocaleDateString('en-GB', {
                         day: 'numeric',
                         month: 'short',
@@ -790,15 +791,15 @@ function BankTransactionsContent() {
                               style={{
                                 width: '100%',
                                 padding: '0.35rem 0.5rem',
-                                border: currentVal ? '1px solid #BBF7D0' : '1px solid #CBD5E1',
+                                border: currentVal ? '1px solid var(--success-border)' : '1px solid var(--border-strong)',
                                 borderRadius: '0.35rem',
                                 fontSize: '0.8rem',
                                 backgroundColor: isConfirmed
-                                  ? '#F8FAFC'
+                                  ? 'var(--bg-app)'
                                   : currentVal
-                                  ? '#F0FDF4'
+                                  ? 'var(--success-bg)'
                                   : '#FFFFFF',
-                                color: currentVal ? '#166534' : '#94A3B8',
+                                color: currentVal ? 'var(--success-text)' : 'var(--text-muted)',
                                 fontWeight: currentVal ? 600 : 400,
                               }}
                             >
@@ -815,7 +816,7 @@ function BankTransactionsContent() {
                                 style={{
                                   fontSize: '0.675rem',
                                   fontWeight: 600,
-                                  color: '#15803D',
+                                  color: 'var(--success-text)',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '0.25rem',
@@ -835,7 +836,7 @@ function BankTransactionsContent() {
                         padding: '0.75rem 1rem',
                         textAlign: 'right',
                         fontWeight: 700,
-                        color: isPositive ? '#10B981' : '#0F172A',
+                        color: isPositive ? 'var(--success-text)' : 'var(--text-main)',
                         whiteSpace: 'nowrap',
                       }}
                     >
@@ -843,10 +844,10 @@ function BankTransactionsContent() {
                     </td>
 
                     {/* Description */}
-                    <td style={{ padding: '0.75rem 1rem', color: '#1E293B' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-main)' }}>
                       <div style={{ fontWeight: 500 }}>{line.description}</div>
                       {line.matchExplanation && (
-                        <div style={{ fontSize: '0.7rem', color: '#2563EB', marginTop: '0.15rem' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--primary)', marginTop: '0.15rem' }}>
                           {line.matchExplanation}
                         </div>
                       )}
@@ -866,11 +867,11 @@ function BankTransactionsContent() {
                         style={{
                           width: '100%',
                           padding: '0.35rem 0.5rem',
-                          border: line.suggestedAccountId ? '1px solid #93C5FD' : '1px solid #CBD5E1',
+                          border: line.suggestedAccountId ? '1px solid var(--info-border)' : '1px solid var(--border-strong)',
                           borderRadius: '0.25rem',
                           fontSize: '0.8rem',
-                          backgroundColor: isConfirmed ? '#F8FAFC' : line.suggestedAccountId ? '#F0F9FF' : '#FFFFFF',
-                          color: line.suggestedAccountId ? '#1E3A8A' : '#94A3B8',
+                          backgroundColor: isConfirmed ? 'var(--bg-app)' : line.suggestedAccountId ? 'var(--info-bg)' : '#FFFFFF',
+                          color: line.suggestedAccountId ? 'var(--info-text)' : 'var(--text-muted)',
                           fontWeight: line.suggestedAccountId ? 600 : 400,
                         }}
                       >
@@ -892,11 +893,11 @@ function BankTransactionsContent() {
                           style={{
                             padding: '0.25rem 0.55rem',
                             backgroundColor: '#FFFFFF',
-                            border: '1px solid #CBD5E1',
+                            border: '1px solid var(--border-strong)',
                             borderRadius: '0.25rem',
                             fontSize: '0.75rem',
                             fontWeight: 600,
-                            color: '#64748B',
+                            color: 'var(--text-muted)',
                             cursor: 'pointer',
                           }}
                         >
@@ -908,8 +909,8 @@ function BankTransactionsContent() {
                           disabled={confirmingId === line.id || !line.suggestedAccountId}
                           style={{
                             padding: '0.25rem 0.65rem',
-                            backgroundColor: line.suggestedAccountId ? '#10B981' : '#E2E8F0',
-                            color: line.suggestedAccountId ? '#FFFFFF' : '#94A3B8',
+                            backgroundColor: line.suggestedAccountId ? 'var(--success)' : 'var(--border-subtle)',
+                            color: line.suggestedAccountId ? '#FFFFFF' : 'var(--text-muted)',
                             border: 'none',
                             borderRadius: '0.25rem',
                             fontSize: '0.75rem',
@@ -930,8 +931,8 @@ function BankTransactionsContent() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', borderTop: '1px solid #E2E8F0', fontSize: '0.85rem' }}>
-            <span style={{ color: '#64748B' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', backgroundColor: 'var(--bg-app)', borderTop: '1px solid var(--border-subtle)', fontSize: '0.85rem' }}>
+            <span style={{ color: 'var(--text-muted)' }}>
               Showing Page {page} of {totalPages} ({totalLines} total transactions)
             </span>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -940,9 +941,9 @@ function BankTransactionsContent() {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 style={{
                   padding: '0.35rem 0.75rem',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '0.25rem',
-                  backgroundColor: page <= 1 ? '#F1F5F9' : '#FFFFFF',
+                  backgroundColor: page <= 1 ? 'var(--bg-soft)' : '#FFFFFF',
                   cursor: page <= 1 ? 'not-allowed' : 'pointer',
                   fontSize: '0.8rem',
                 }}
@@ -954,9 +955,9 @@ function BankTransactionsContent() {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 style={{
                   padding: '0.35rem 0.75rem',
-                  border: '1px solid #CBD5E1',
+                  border: '1px solid var(--border-strong)',
                   borderRadius: '0.25rem',
-                  backgroundColor: page >= totalPages ? '#F1F5F9' : '#FFFFFF',
+                  backgroundColor: page >= totalPages ? 'var(--bg-soft)' : '#FFFFFF',
                   cursor: page >= totalPages ? 'not-allowed' : 'pointer',
                   fontSize: '0.8rem',
                 }}
@@ -994,12 +995,12 @@ function BankTransactionsContent() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                 Import Bank Statement
               </h2>
               <button
                 onClick={() => setShowImportModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#64748B' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ✕
               </button>
@@ -1007,14 +1008,14 @@ function BankTransactionsContent() {
 
             <form onSubmit={handleImportSubmit}>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.25rem' }}>
                   Target Bank Account *
                 </label>
                 <select
                   required
                   value={importBankAccountId}
                   onChange={(e) => setImportBankAccountId(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#FFFFFF' }}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid var(--border-strong)', borderRadius: '0.375rem', fontSize: '0.875rem', backgroundColor: '#FFFFFF' }}
                 >
                   <option value="">Select bank account...</option>
                   {bankAccounts.map((b) => (
@@ -1026,7 +1027,7 @@ function BankTransactionsContent() {
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.25rem' }}>
                   Statement Format
                 </label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1036,14 +1037,14 @@ function BankTransactionsContent() {
                       style={{
                         flex: 1,
                         padding: '0.5rem',
-                        border: importFileFormat === fmt ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                        border: importFileFormat === fmt ? '2px solid var(--primary)' : '1px solid var(--border-strong)',
                         borderRadius: '0.375rem',
-                        backgroundColor: importFileFormat === fmt ? '#EFF6FF' : '#FFFFFF',
+                        backgroundColor: importFileFormat === fmt ? 'var(--info-bg)' : '#FFFFFF',
                         cursor: 'pointer',
                         textAlign: 'center',
                         fontWeight: 600,
                         fontSize: '0.875rem',
-                        color: importFileFormat === fmt ? '#2563EB' : '#475569',
+                        color: importFileFormat === fmt ? 'var(--primary)' : 'var(--ink-2)',
                       }}
                     >
                       <input
@@ -1061,16 +1062,16 @@ function BankTransactionsContent() {
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.25rem' }}>
                   Statement File (.csv, .ofx, .qif) *
                 </label>
                 <div
                   style={{
-                    border: '2px dashed #CBD5E1',
+                    border: '2px dashed var(--border-strong)',
                     borderRadius: '0.375rem',
                     padding: '1.5rem',
                     textAlign: 'center',
-                    backgroundColor: '#F8FAFC',
+                    backgroundColor: 'var(--bg-app)',
                     cursor: 'pointer',
                   }}
                   onClick={() => document.getElementById('file-upload-input')?.click()}
@@ -1083,10 +1084,10 @@ function BankTransactionsContent() {
                     style={{ display: 'none' }}
                   />
                   <div style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>📄</div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F172A' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)' }}>
                     {selectedFileName || 'Click to select statement file'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                     Supports standard bank CSV, Quicken OFX / QFX, and QIF formats.
                   </div>
                 </div>
@@ -1099,11 +1100,11 @@ function BankTransactionsContent() {
                   style={{
                     padding: '0.5rem 1rem',
                     backgroundColor: '#FFFFFF',
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     borderRadius: '0.375rem',
                     fontSize: '0.875rem',
                     fontWeight: 600,
-                    color: '#475569',
+                    color: 'var(--ink-2)',
                     cursor: 'pointer',
                   }}
                 >
@@ -1114,7 +1115,7 @@ function BankTransactionsContent() {
                   disabled={importing || !selectedFileName}
                   style={{
                     padding: '0.5rem 1rem',
-                    backgroundColor: '#2563EB',
+                    backgroundColor: 'var(--primary)',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: '0.375rem',
@@ -1150,6 +1151,7 @@ function BankTransactionsContent() {
         onClose={() => setShowDiffModal(false)}
         bankAccountId={selectedAccountId}
       />
+      </div>
     </AppShell>
   );
 }
@@ -1159,8 +1161,10 @@ export default function BankTransactionsPage() {
     <Suspense
       fallback={
         <AppShell>
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#64748B' }}>
+          <div className="bl-legacy">
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             Loading transactions...
+          </div>
           </div>
         </AppShell>
       }

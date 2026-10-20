@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { confirmAction } from '@/lib/dialog-bus';
 
 interface Period {
   id: string;
@@ -97,7 +98,7 @@ export default function FinancialYearsPage() {
 
     if (
       targetStatus === 'HARD_LOCKED' &&
-      !confirm(`Are you sure you want to HARD LOCK period ${period.periodName || period.name}? Only Administrators/Owners can reopen it.`)
+      !await confirmAction(`Are you sure you want to HARD LOCK period ${period.periodName || period.name}? Only Administrators/Owners can reopen it.`)
     ) {
       return;
     }
@@ -156,6 +157,7 @@ export default function FinancialYearsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -175,16 +177,16 @@ export default function FinancialYearsPage() {
         {/* Left Panel: Financial Years List */}
         <div className="card">
           <div className="card-header" style={{ padding: '0.85rem 1.15rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#172033' }}>Fiscal Years</span>
-            <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>{financialYears.length} total</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Fiscal Years</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{financialYears.length} total</span>
           </div>
           <div className="card-body" style={{ padding: '0.5rem' }}>
             {loading ? (
-              <div style={{ padding: '1.5rem', textAlign: 'center', color: '#6B7280', fontSize: '0.8rem' }}>
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                 Loading financial years...
               </div>
             ) : financialYears.length === 0 ? (
-              <div style={{ padding: '1.5rem', textAlign: 'center', color: '#6B7280', fontSize: '0.8rem' }}>
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                 No financial years created yet.
               </div>
             ) : (
@@ -200,14 +202,14 @@ export default function FinancialYearsPage() {
                         padding: '0.75rem 0.85rem',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        backgroundColor: isSelected ? '#EFF6FF' : 'transparent',
+                        backgroundColor: isSelected ? 'var(--info-bg)' : 'transparent',
                         border: '1px solid',
-                        borderColor: isSelected ? '#BFDBFE' : 'transparent',
+                        borderColor: isSelected ? 'var(--info-border)' : 'transparent',
                         transition: 'all 0.15s ease',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: isSelected ? '#146EF5' : '#172033' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: isSelected ? 'var(--primary)' : 'var(--text-main)' }}>
                           {fy.name}
                         </span>
                         <span
@@ -217,7 +219,7 @@ export default function FinancialYearsPage() {
                           {isOpen ? 'Open' : 'Closed'}
                         </span>
                       </div>
-                      <div style={{ fontSize: '0.725rem', color: '#6B7280' }}>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
                         {new Date(fy.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} – {new Date(fy.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </div>
                     </div>
@@ -234,18 +236,18 @@ export default function FinancialYearsPage() {
             <div className="card-header" style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#172033' }}>{selectedYear.name}</h2>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)' }}>{selectedYear.name}</h2>
                   <span className={`badge ${!selectedYear.isClosed ? 'badge-open' : 'badge-closed'}`}>
                     {!selectedYear.isClosed ? 'Open' : 'Closed'}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                   {new Date(selectedYear.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} – {new Date(selectedYear.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </div>
               </div>
 
               {/* Tabs */}
-              <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#F1F5F9', padding: '0.2rem', borderRadius: '6px' }}>
+              <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: 'var(--bg-soft)', padding: '0.2rem', borderRadius: '6px' }}>
                 <button
                   onClick={() => setActiveTab('periods')}
                   style={{
@@ -256,7 +258,7 @@ export default function FinancialYearsPage() {
                     fontWeight: 600,
                     cursor: 'pointer',
                     backgroundColor: activeTab === 'periods' ? '#FFFFFF' : 'transparent',
-                    color: activeTab === 'periods' ? '#172033' : '#6B7280',
+                    color: activeTab === 'periods' ? 'var(--text-main)' : 'var(--text-muted)',
                     boxShadow: activeTab === 'periods' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                   }}
                 >
@@ -272,7 +274,7 @@ export default function FinancialYearsPage() {
                     fontWeight: 600,
                     cursor: 'pointer',
                     backgroundColor: activeTab === 'details' ? '#FFFFFF' : 'transparent',
-                    color: activeTab === 'details' ? '#172033' : '#6B7280',
+                    color: activeTab === 'details' ? 'var(--text-main)' : 'var(--text-muted)',
                     boxShadow: activeTab === 'details' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
                   }}
                 >
@@ -297,13 +299,13 @@ export default function FinancialYearsPage() {
                   <tbody>
                     {periodsLoading ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: '#6B7280' }}>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                           Loading accounting periods...
                         </td>
                       </tr>
                     ) : periods.length === 0 ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: '#6B7280' }}>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                           No monthly periods generated for this financial year.
                         </td>
                       </tr>
@@ -316,23 +318,23 @@ export default function FinancialYearsPage() {
                         return (
                           <tr key={p.id}>
                             <td>
-                              <div style={{ fontWeight: 600, color: '#172033' }}>
+                              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                                 {p.periodName || p.name || `Period ${p.periodNumber}`}
                               </div>
                             </td>
-                            <td className="font-mono" style={{ color: '#4B5563' }}>
+                            <td className="font-mono" style={{ color: 'var(--ink-2)' }}>
                               {new Date(p.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                             </td>
-                            <td className="font-mono" style={{ color: '#4B5563' }}>
+                            <td className="font-mono" style={{ color: 'var(--ink-2)' }}>
                               {new Date(p.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                             </td>
                             <td>
                               <span
                                 className="badge"
                                 style={{
-                                  backgroundColor: isOpen ? '#ECFDF5' : isSoft ? '#FFFBEB' : '#FEF2F2',
-                                  color: isOpen ? '#065F46' : isSoft ? '#92400E' : '#991B1B',
-                                  border: `1px solid ${isOpen ? '#A7F3D0' : isSoft ? '#FDE68A' : '#FECACA'}`,
+                                  backgroundColor: isOpen ? 'var(--success-bg)' : isSoft ? 'var(--warning-bg)' : 'var(--danger-bg)',
+                                  color: isOpen ? 'var(--success-text)' : isSoft ? 'var(--warning-text)' : 'var(--danger-text)',
+                                  border: `1px solid ${isOpen ? 'var(--success-border)' : isSoft ? 'var(--warning-border)' : 'var(--danger-border)'}`,
                                 }}
                               >
                                 {isOpen ? 'Open' : isSoft ? 'Soft Locked' : 'Hard Locked'}
@@ -382,35 +384,35 @@ export default function FinancialYearsPage() {
             {activeTab === 'details' && (
               <div className="card-body">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                  <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '6px', border: '1px solid #E6EAF0' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ backgroundColor: 'var(--bg-app)', padding: '1rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                       Fiscal Period Count
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#172033', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                       {periods.length} Periods
                     </div>
                   </div>
 
-                  <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '6px', border: '1px solid #E6EAF0' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ backgroundColor: 'var(--bg-app)', padding: '1rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                       Open Months
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#16A56A', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--success-text)', marginTop: '0.25rem' }}>
                       {periods.filter((p) => p.status === 'OPEN').length} Open
                     </div>
                   </div>
 
-                  <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '6px', border: '1px solid #E6EAF0' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6B7280', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ backgroundColor: 'var(--bg-app)', padding: '1rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                       Locked Months
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#DC3F45', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--danger)', marginTop: '0.25rem' }}>
                       {periods.filter((p) => p.status !== 'OPEN').length} Locked
                     </div>
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', padding: '1rem', borderRadius: '6px', fontSize: '0.825rem', color: '#1E40AF' }}>
+                <div style={{ backgroundColor: 'var(--info-bg)', border: '1px solid var(--info-border)', padding: '1rem', borderRadius: '6px', fontSize: '0.825rem', color: 'var(--info-text)' }}>
                   <strong>Period Locking Guidance:</strong> Soft locked periods require elevated accountant confirmation, while Hard locked periods strictly reject any new journal entries from being posted.
                 </div>
               </div>
@@ -418,7 +420,7 @@ export default function FinancialYearsPage() {
           </div>
         ) : (
           <div className="card">
-            <div className="card-body" style={{ textAlign: 'center', padding: '3rem', color: '#6B7280' }}>
+            <div className="card-body" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
               Select a financial year from the left panel to inspect accounting periods.
             </div>
           </div>
@@ -433,7 +435,7 @@ export default function FinancialYearsPage() {
               <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Create Financial Year</h3>
               <button
                 onClick={() => setShowNewModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#6B7280' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ×
               </button>
@@ -476,8 +478,8 @@ export default function FinancialYearsPage() {
                   </div>
                 </div>
 
-                <div className="form-group" style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '6px', border: '1px solid #E6EAF0' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.825rem', fontWeight: 600, color: '#172033' }}>
+                <div className="form-group" style={{ backgroundColor: 'var(--bg-app)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-main)' }}>
                     <input
                       type="checkbox"
                       checked={formData.autoGeneratePeriods}
@@ -485,7 +487,7 @@ export default function FinancialYearsPage() {
                     />
                     Automatically generate 12 monthly accounting periods
                   </label>
-                  <p style={{ fontSize: '0.725rem', color: '#6B7280', marginTop: '0.25rem', marginLeft: '1.4rem' }}>
+                  <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.25rem', marginLeft: '1.4rem' }}>
                     Creates 12 standard calendar / monthly accounting periods (Open status) aligned to the start and end dates.
                   </p>
                 </div>
@@ -503,6 +505,7 @@ export default function FinancialYearsPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

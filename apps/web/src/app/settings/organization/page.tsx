@@ -94,6 +94,7 @@ export default function OrganizationSettingsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div style={{ maxWidth: '860px', margin: '0 auto' }}>
         <div className="page-header">
           <div>
@@ -124,7 +125,7 @@ export default function OrganizationSettingsPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
-                  <span style={{ fontSize: '0.725rem', color: '#6B7280' }}>
+                  <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
                     Display name across navigation, reports, and team invites.
                   </span>
                 </div>
@@ -138,7 +139,7 @@ export default function OrganizationSettingsPage() {
                     value={formData.legalName}
                     onChange={(e) => setFormData({ ...formData, legalName: e.target.value })}
                   />
-                  <span style={{ fontSize: '0.725rem', color: '#6B7280' }}>
+                  <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
                     Official statutory name recorded at Companies House / registry.
                   </span>
                 </div>
@@ -230,7 +231,7 @@ export default function OrganizationSettingsPage() {
                     disabled
                     className="form-input"
                     value={`${formData.country} (United Kingdom)`}
-                    style={{ backgroundColor: '#F8FAFC', color: '#4B5563', cursor: 'not-allowed', fontWeight: 600 }}
+                    style={{ backgroundColor: 'var(--bg-app)', color: 'var(--ink-2)', cursor: 'not-allowed', fontWeight: 600 }}
                   />
                 </div>
               </div>
@@ -246,8 +247,8 @@ export default function OrganizationSettingsPage() {
               {/* Caution Callout */}
               <div
                 style={{
-                  backgroundColor: '#FFFBEB',
-                  border: '1px solid #FDE68A',
+                  backgroundColor: 'var(--warning-bg)',
+                  border: '1px solid var(--warning-border)',
                   borderRadius: '6px',
                   padding: '0.85rem 1rem',
                   display: 'flex',
@@ -258,10 +259,10 @@ export default function OrganizationSettingsPage() {
               >
                 <span style={{ fontSize: '1.1rem' }}>⚠️</span>
                 <div>
-                  <strong style={{ fontSize: '0.825rem', color: '#92400E', display: 'block' }}>
+                  <strong style={{ fontSize: '0.825rem', color: 'var(--warning-text)', display: 'block' }}>
                     Financial Anchor: Base Currency
                   </strong>
-                  <p style={{ fontSize: '0.775rem', color: '#92400E', margin: '0.2rem 0 0 0', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '0.775rem', color: 'var(--warning-text)', margin: '0.2rem 0 0 0', lineHeight: 1.4 }}>
                     Base currency establishes the reporting anchor for all nominal accounts and tax revaluations. Once financial activity is recorded, modifying base currency requires administrative audit reconciliation.
                   </p>
                 </div>
@@ -275,7 +276,7 @@ export default function OrganizationSettingsPage() {
                     disabled
                     className="form-input font-mono"
                     value={`${formData.baseCurrency} — British Pound Sterling (£)`}
-                    style={{ backgroundColor: '#F8FAFC', color: '#172033', cursor: 'not-allowed', fontWeight: 600 }}
+                    style={{ backgroundColor: 'var(--bg-app)', color: 'var(--text-main)', cursor: 'not-allowed', fontWeight: 600 }}
                   />
                 </div>
 
@@ -325,7 +326,7 @@ export default function OrganizationSettingsPage() {
                     disabled
                     className="form-input"
                     value="Strict Balanced Postings (ΣDr = ΣCr)"
-                    style={{ backgroundColor: '#F8FAFC', color: '#065F46', cursor: 'not-allowed', fontWeight: 600 }}
+                    style={{ backgroundColor: 'var(--bg-app)', color: 'var(--success-text)', cursor: 'not-allowed', fontWeight: 600 }}
                   />
                 </div>
               </div>
@@ -338,6 +339,7 @@ export default function OrganizationSettingsPage() {
             </button>
           </div>
         </form>
+      </div>
       </div>
     </AppShell>
   );

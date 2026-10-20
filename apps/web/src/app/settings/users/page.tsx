@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { confirmAction, notify } from '@/lib/dialog-bus';
 
 interface Member {
   id: string;
@@ -128,10 +129,10 @@ export default function UsersSettingsPage() {
   const handleRemoveMember = async (member: Member) => {
     if (!activeOrg) return;
     if (member.role.systemKey === 'OWNER') {
-      alert('Organisation Owner cannot be removed.');
+      notify('Organisation Owner cannot be removed.');
       return;
     }
-    if (!confirm(`Are you sure you want to remove ${member.user.email} from ${activeOrg?.name}?`)) return;
+    if (!await confirmAction(`Are you sure you want to remove ${member.user.email} from ${activeOrg?.name}?`)) return;
     try {
       setError(null);
       await apiRequest(`/organizations/${activeOrg.id}/members/${member.id}`, {
@@ -155,6 +156,7 @@ export default function UsersSettingsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -189,13 +191,13 @@ export default function UsersSettingsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: '#6B7280' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     Loading organisation users...
                   </td>
                 </tr>
               ) : members.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#6B7280' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No users found.
                   </td>
                 </tr>
@@ -214,26 +216,26 @@ export default function UsersSettingsPage() {
                               width: '32px',
                               height: '32px',
                               borderRadius: '50%',
-                              backgroundColor: '#EFF6FF',
-                              color: '#146EF5',
+                              backgroundColor: 'var(--info-bg)',
+                              color: 'var(--primary)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontWeight: 600,
                               fontSize: '0.75rem',
-                              border: '1px solid #BFDBFE',
+                              border: '1px solid var(--info-border)',
                             }}
                           >
                             {userInitial}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 600, color: '#172033' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                               {m.user.firstName} {m.user.lastName}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td style={{ color: '#4B5563' }}>{m.user.email}</td>
+                      <td style={{ color: 'var(--ink-2)' }}>{m.user.email}</td>
                       <td>
                         {canManageUsers && !isOwner && roles.length > 0 ? (
                           <select
@@ -267,7 +269,7 @@ export default function UsersSettingsPage() {
                           return <span className={`badge ${cls}`}>{lbl}</span>;
                         })()}
                       </td>
-                      <td style={{ color: '#6B7280', fontSize: '0.775rem' }}>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '0.775rem' }}>
                         {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
                       </td>
                       {canManageUsers && (
@@ -297,17 +299,17 @@ export default function UsersSettingsPage() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#172033' }}>Invite User to Organisation</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>Invite User to Organisation</h3>
               <button
                 onClick={() => setShowInviteModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#6B7280' }}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
               >
                 ×
               </button>
             </div>
             <form onSubmit={handleInvite}>
               <div className="modal-body">
-                <p style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
                   Invited users receive an email invitation to access <strong>{activeOrg?.name}</strong> with the specified permission tier.
                 </p>
 
@@ -352,6 +354,7 @@ export default function UsersSettingsPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

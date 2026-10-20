@@ -1,136 +1,164 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { Bell, Building2, LogOut, Menu, Search, Shield, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../context/auth-context';
-import { BlyntLogo } from './blynt-logo';
+import { apiRequest } from '../lib/api';
+import { buildSearchIndex, defaultNavMode, toSystemRoleKey, type NavMode } from '../lib/navigation';
 import { CompanySwitcherDropdown } from './organization/company-switcher-dropdown';
 import { GlobalAiAssistantModal } from './ai/global-ai-assistant-modal';
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  CreditCard,
-  Receipt,
-  Truck,
-  FileCheck,
-  ArrowRightLeft,
-  Landmark,
-  CheckCheck,
-  ListTree,
-  BookOpenCheck,
-  BookOpen,
-  Scale,
-  Sparkles,
-  CalendarRange,
-  CalendarClock,
-  TrendingUp,
-  Activity,
-  Clock,
-  History,
-  FileSpreadsheet,
-  Building2,
-  Percent,
-  Settings,
-  Layers,
-  ShieldCheck,
-  ScrollText,
-  Search,
-  Bell,
-  Menu,
-  X,
-  ChevronDown,
-  ArrowRight,
-  CheckCircle2,
-  AlertTriangle,
-  Info,
-  Shield,
-  LogOut,
-  SlidersHorizontal,
-} from 'lucide-react';
+import { Sidebar } from './shell/sidebar';
+import { CommandPalette } from './shell/command-palette';
+import { DialogHost } from './ui/dialog-host';
 
-interface SearchResultItem {
-  title: string;
-  category: string;
-  href: string;
-  badge?: string;
+const EDITOR_ROLES = new Set(['OWNER', 'ADMINISTRATOR', 'ACCOUNTANT', 'BOOKKEEPER']);
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+}
+
+function readMode(key: string): NavMode | null {
+  try {
+    const v = localStorage.getItem(key);
+    return v === 'pro' || v === 'simple' ? v : null;
+  } catch {
+    return null;
+  }
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, activeOrg, activeRole, userOrgs, switchOrg, logout, isLoading } = useAuth();
-  const pathname = usePathname();
+  const { user, activeOrg, activeRole, logout, isLoading } = useAuth();
+  const pathname = usePathname() ?? '/';
   const router = useRouter();
 
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
-  const [showAiAssistant, setShowAiAssistant] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
+  const role = toSystemRoleKey(activeRole?.systemKey);
+  const modeKey = user ? `blynt_nav_mode_${user.id}` : '';
 
-  const searchRef = useRef<HTMLDivElement>(null);
-  const userDropdownRef = useRef<HTMLDivElement>(null);
-  const notifDropdownRef = useRef<HTMLDivElement>(null);
-  const currencyDropdownRef = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<NavMode>('simple');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [inboxCount, setInboxCount] = useState<number | null>(null);
 
-  // Close menus on outside click
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  // View mode: remembered per person on this device, otherwise based on role.
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setSearchFocused(false);
+    if (!user) return;
+    setMode(readMode(modeKey) ?? defaultNavMode(role));
+  }, [user, modeKey, role]);
+
+  const changeMode = useCallback(
+    (next: NavMode) => {
+      setMode(next);
+      try {
+        localStorage.setItem(modeKey, next);
+      } catch {
+        /* storage unavailable — keep in memory only */
       }
-      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
-        setShowUserDropdown(false);
-      }
-      if (notifDropdownRef.current && !notifDropdownRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
-      if (currencyDropdownRef.current && !currencyDropdownRef.current.contains(event.target as Node)) {
-        setShowCurrencyDropdown(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    },
+    [modeKey],
+  );
+
+  // AI drafts waiting — drives the Inbox badge and the bell. Real data only.
+  useEffect(() => {
+    let cancelled = false;
+    setInboxCount(null);
+    if (!activeOrg || !activeRole?.systemKey || !EDITOR_ROLES.has(activeRole.systemKey)) return;
+    apiRequest<unknown[]>('/ai/review-queue')
+      .then((items) => {
+        if (!cancelled) setInboxCount(Array.isArray(items) ? items.length : null);
+      })
+      .catch(() => {
+        if (!cancelled) setInboxCount(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrg, activeRole?.systemKey, pathname]);
+
+  // Close transient UI on navigation.
+  useEffect(() => {
+    setDrawerOpen(false);
+    setCreateMenuOpen(false);
+    setUserMenuOpen(false);
+    setBellOpen(false);
+  }, [pathname]);
+
+  // Outside click for topbar popovers.
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
   }, []);
 
-  // Close mobile nav on route change
+  // Global shortcuts: ⌘K / Ctrl+K or "/" search, "N" create, Esc closes drawer.
   useEffect(() => {
-    setMobileNavOpen(false);
-  }, [pathname]);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey || isTypingTarget(e.target)) return;
+      if (e.key === '/') {
+        e.preventDefault();
+        setPaletteOpen(true);
+      } else if (e.key.toLowerCase() === 'n' && !paletteOpen && !aiOpen) {
+        e.preventDefault();
+        setDrawerOpen(true);
+        setCreateMenuOpen(true);
+      } else if (e.key === 'Escape') {
+        setDrawerOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [paletteOpen, aiOpen]);
+
+  const searchIndex = useMemo(() => {
+    const idx = buildSearchIndex(role);
+    if (user?.isSuperAdmin) {
+      idx.push({
+        title: 'Platform admin',
+        group: 'Pages',
+        context: 'Super admin',
+        href: '/admin',
+        keywords: ['admin'],
+      });
+    }
+    return idx;
+  }, [role, user?.isSuperAdmin]);
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          height: '100vh',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#F4F7FC',
-        }}
-      >
+      <div className="bl-app" style={{ alignItems: 'center', justifyContent: 'center' }} aria-busy="true">
         <div
           style={{
-            color: '#0C182F',
-            fontSize: '0.9rem',
-            fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
-            gap: '0.65rem',
+            gap: 10,
+            fontWeight: 600,
+            color: 'var(--text-main)',
           }}
         >
           <span
-            style={{
-              display: 'inline-block',
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              backgroundColor: '#FF705B',
-            }}
-          ></span>
-          Loading Blynt workspace...
+            style={{ width: 10, height: 10, borderRadius: 99, background: 'var(--action)' }}
+            aria-hidden="true"
+          />
+          Loading your books…
         </div>
       </div>
     );
@@ -141,458 +169,205 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const userInitials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'JD';
-  const userName = user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'John Doe';
-  const roleTitle = activeRole?.name ?? 'Administrator';
-
-  interface NavItem {
-    label: string;
-    href: string;
-    icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
-  }
-
-  interface NavSection {
-    title?: string;
-    items: NavItem[];
-  }
-
-  // Exact navigation categories and items from the official Blynt design reference
-  const navSections: NavSection[] = [
-    {
-      items: [{ label: 'Dashboard', href: '/', icon: LayoutDashboard }],
-    },
-    {
-      title: 'SALES',
-      items: [
-        { label: 'Customers', href: '/sales/contacts', icon: Users },
-        { label: 'Invoices', href: '/sales/invoices', icon: FileText },
-        { label: 'Payments', href: '/sales/payments', icon: CreditCard },
-        { label: 'Credit Notes', href: '/sales/credit-notes', icon: Receipt },
-      ],
-    },
-    {
-      title: 'PURCHASES',
-      items: [
-        { label: 'Suppliers', href: '/purchases/suppliers', icon: Truck },
-        { label: 'Bills', href: '/purchases/bills', icon: FileCheck },
-        { label: 'Review queue', href: '/purchases/review', icon: Sparkles },
-        { label: 'Expenses', href: '/purchases/expenses', icon: CreditCard },
-        { label: 'Supplier Payments', href: '/purchases/payments', icon: ArrowRightLeft },
-      ],
-    },
-    {
-      title: 'BANKING',
-      items: [
-        { label: 'Bank Accounts', href: '/banking/accounts', icon: Landmark },
-        { label: 'Transactions', href: '/banking/transactions', icon: ArrowRightLeft },
-        { label: 'Reconciliation', href: '/banking/reconciliation', icon: CheckCheck },
-      ],
-    },
-    {
-      title: 'ACCOUNTING',
-      items: [
-        { label: 'Document Intelligence', href: '/accounting/documents', icon: Sparkles },
-        { label: 'Chart of Accounts', href: '/accounting/chart-of-accounts', icon: ListTree },
-        { label: 'Journals', href: '/accounting/journals', icon: BookOpenCheck },
-        { label: 'General Ledger', href: '/accounting/general-ledger', icon: BookOpen },
-        { label: 'Trial Balance', href: '/reports/trial-balance', icon: Scale },
-        { label: 'Financial Years', href: '/accounting/financial-years', icon: CalendarRange },
-        { label: 'Accounting Periods', href: '/accounting/periods', icon: CalendarClock },
-      ],
-    },
-    {
-      title: 'REPORTS',
-      items: [
-        { label: 'Profit & Loss', href: '/reports/profit-and-loss', icon: TrendingUp },
-        { label: 'Balance Sheet', href: '/reports/balance-sheet', icon: Scale },
-        { label: 'Cash Flow', href: '/reports/cash-flow', icon: Activity },
-        { label: 'AR Ageing', href: '/reports/ar-ageing', icon: Clock },
-        { label: 'AP Ageing', href: '/reports/ap-ageing', icon: History },
-        { label: 'VAT Reports', href: '/reports/vat', icon: FileSpreadsheet },
-      ],
-    },
-    {
-      title: 'SETTINGS',
-      items: [
-        { label: 'Organisation', href: '/settings/organization', icon: Building2 },
-        { label: 'Users', href: '/settings/users', icon: Users },
-        { label: 'Taxes', href: '/settings/taxes', icon: Percent },
-        { label: 'Invoice Settings', href: '/settings/invoice-settings', icon: Settings },
-        { label: 'Integrations', href: '/settings/integrations', icon: Layers },
-        { label: 'Security', href: '/settings/security', icon: ShieldCheck },
-        { label: 'Audit Log', href: '/settings/audit-logs', icon: ScrollText },
-      ],
-    },
-  ];
-
-  // Quick search directory
-  const searchCatalog: SearchResultItem[] = [
-    { title: 'Dashboard', category: 'Overview', href: '/' },
-    { title: 'Invoices', category: 'Sales', href: '/sales/invoices' },
-    { title: 'Customers', category: 'Sales', href: '/sales/contacts' },
-    { title: 'Chart of Accounts', category: 'Accounting', href: '/accounting/chart-of-accounts' },
-    {
-      title: 'New Manual Journal',
-      category: 'Accounting',
-      href: '/accounting/journals/new',
-      badge: 'Action',
-    },
-    { title: 'Trial Balance', category: 'Reports', href: '/reports/trial-balance' },
-    { title: 'Financial Years', category: 'Accounting', href: '/accounting/financial-years' },
-    { title: 'Accounting Periods', category: 'Accounting', href: '/accounting/periods' },
-    { title: 'Audit Logs', category: 'Settings', href: '/settings/audit-logs' },
-  ];
-
-  const searchResults = searchQuery.trim()
-    ? searchCatalog.filter(
-        (item) =>
-          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.category.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : searchCatalog.slice(0, 5);
+  const initials =
+    `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || user.email[0].toUpperCase();
+  const displayName = user.firstName ? `${user.firstName} ${user.lastName ?? ''}`.trim() : user.email;
+  const roleName = activeRole?.name ?? 'Member';
+  const isAdmin = role === 'OWNER' || role === 'ADMINISTRATOR';
 
   return (
-    <div className="app-container">
-      {/* Mobile Drawer Overlay */}
-      {mobileNavOpen && (
-        <div className="mobile-drawer-overlay" onClick={() => setMobileNavOpen(false)} aria-hidden="true" />
-      )}
+    <div className="bl-app">
+      <a href="#main-content" className="bl-skip-link">
+        Skip to content
+      </a>
 
-      {/* Left Sidebar (Dark Navy matching design) */}
-      <aside className={`sidebar ${mobileNavOpen ? 'mobile-open' : ''}`}>
-        {/* Brand Header */}
-        <div className="sidebar-header">
-          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-            <BlyntLogo size="sm" theme="dark" />
-          </Link>
+      <div
+        className={`bl-overlay ${drawerOpen ? 'is-open' : ''}`}
+        onClick={() => setDrawerOpen(false)}
+        aria-hidden="true"
+      />
 
-          {/* Close button for mobile */}
+      <Sidebar
+        pathname={pathname}
+        role={role}
+        mode={mode}
+        onModeChange={changeMode}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        inboxCount={inboxCount}
+        createMenuOpen={createMenuOpen}
+        onCreateMenuOpenChange={setCreateMenuOpen}
+      />
+
+      <div className="bl-main">
+        <header className="bl-topbar">
           <button
-            className="mobile-close-btn"
-            onClick={() => setMobileNavOpen(false)}
-            aria-label="Close navigation menu"
+            type="button"
+            className="bl-icon-btn bl-menu-btn"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open menu"
+            aria-controls="bl-sidebar"
+            aria-expanded={drawerOpen}
           >
-            <X size={18} />
+            <Menu size={20} />
           </button>
-        </div>
 
-        {/* Navigation Sections */}
-        <nav className="sidebar-nav">
-          {navSections.map((section, sIdx) => (
-            <div key={section.title || `section-${sIdx}`} className="nav-group">
-              {section.title && <div className="nav-section-title">{section.title}</div>}
-              {section.items.map((item) => {
-                const isActive =
-                  pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-                const Icon = item.icon;
+          <button
+            type="button"
+            className="bl-search-trigger"
+            onClick={() => setPaletteOpen(true)}
+            aria-haspopup="dialog"
+          >
+            <Search size={18} aria-hidden="true" />
+            <span>Search or jump to…</span>
+            <span className="bl-kbd" aria-hidden="true">
+              ⌘K
+            </span>
+          </button>
 
-                return (
-                  <Link key={item.label} href={item.href} className={`nav-link ${isActive ? 'active' : ''}`}>
-                    <div className="nav-link-content">
-                      <Icon size={16} className="nav-link-icon" />
-                      <span>{item.label}</span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-      </aside>
+          <div className="bl-topbar-spacer" />
 
-      {/* Main Content Area */}
-      <div className="main-content">
-        {/* Topbar matching official screenshot */}
-        <header className="topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-            {/* Mobile menu trigger */}
+          {user.isSuperAdmin && (
+            <Link href="/admin" className="bl-admin-pill" title="Platform admin — affects every customer">
+              <Shield size={13} aria-hidden="true" />
+              Platform admin
+            </Link>
+          )}
+
+          <button type="button" className="bl-ask-btn" onClick={() => setAiOpen(true)}>
+            <Sparkles size={16} aria-hidden="true" />
+            <span className="bl-ask-label">Ask Blynt</span>
+          </button>
+
+          <CompanySwitcherDropdown />
+
+          <div style={{ position: 'relative' }} ref={bellRef}>
             <button
-              className="mobile-hamburger-btn"
-              onClick={() => setMobileNavOpen(true)}
-              aria-label="Open navigation menu"
+              type="button"
+              className="bl-icon-btn"
+              onClick={() => setBellOpen((o) => !o)}
+              aria-expanded={bellOpen}
+              aria-label={inboxCount ? `Notifications, ${inboxCount} waiting` : 'Notifications'}
             >
-              <Menu size={20} />
+              <Bell size={20} />
+              {!!inboxCount && <span className="bl-dot" aria-hidden="true" />}
             </button>
-
-            {/* Global Search Bar with ⌘ K shortcut badge */}
-            <div className="topbar-search-wrap" ref={searchRef}>
-              <Search size={15} className="topbar-search-icon" />
-              <input
-                type="text"
-                className="topbar-search-input"
-                placeholder="Search invoices, contacts, accounts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                style={{ paddingRight: '2.5rem' }}
-              />
-              <span
-                style={{
-                  position: 'absolute',
-                  right: '0.65rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  color: '#94A3B8',
-                  backgroundColor: '#F1F5F9',
-                  padding: '0.15rem 0.35rem',
-                  borderRadius: '4px',
-                  pointerEvents: 'none',
-                }}
-              >
-                ⌘ K
-              </span>
-
-              {/* Quick Search Popover */}
-              {searchFocused && (
-                <div className="search-results-popover">
-                  <div className="search-results-header">
-                    <span>{searchQuery ? 'Matching Resources' : 'Quick Navigation'}</span>
-                    <span style={{ fontSize: '0.7rem', color: '#9CA3AF' }}>Esc to close</span>
-                  </div>
-                  <div className="search-results-list">
-                    {searchResults.length === 0 ? (
-                      <div
-                        style={{ padding: '1rem', textAlign: 'center', color: '#6B7280', fontSize: '0.8rem' }}
-                      >
-                        No results found for &ldquo;{searchQuery}&rdquo;
-                      </div>
-                    ) : (
-                      searchResults.map((res, idx) => (
-                        <Link
-                          key={idx}
-                          href={res.href}
-                          className="search-result-row"
-                          onClick={() => {
-                            setSearchFocused(false);
-                            setSearchQuery('');
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: '0.825rem', fontWeight: 600, color: '#172033' }}>
-                              {res.title}
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>{res.category}</div>
-                          </div>
-                          {res.badge ? (
-                            <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
-                              {res.badge}
-                            </span>
-                          ) : (
-                            <ArrowRight size={13} style={{ color: '#9CA3AF' }} />
-                          )}
-                        </Link>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            {bellOpen && (
+              <div className="bl-popover" role="dialog" aria-label="Notifications">
+                <div className="bl-popover-head">Notifications</div>
+                {inboxCount ? (
+                  <Link href="/purchases/review" className="bl-popover-item">
+                    <Sparkles size={16} aria-hidden="true" style={{ color: 'var(--action-text)' }} />
+                    <span>
+                      <strong>{inboxCount}</strong> AI {inboxCount === 1 ? 'draft is' : 'drafts are'} ready to
+                      review
+                    </span>
+                  </Link>
+                ) : (
+                  <p style={{ margin: 0, padding: '8px 10px 12px', fontSize: 13.5, color: 'var(--ink-2)' }}>
+                    You’re all caught up.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Right Topbar Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            {/* Super Admin indicator if privileged */}
-            {user.isSuperAdmin && (
-              <Link href="/admin" className="super-admin-pill" title="Platform Super Admin Portal">
-                <Shield size={12} />
-                <span>Super Admin</span>
-              </Link>
-            )}
-
-            {/* AI Assistant Button */}
+          <div style={{ position: 'relative' }} ref={userMenuRef}>
             <button
-              onClick={() => setShowAiAssistant(true)}
+              type="button"
+              onClick={() => setUserMenuOpen((o) => !o)}
+              aria-expanded={userMenuOpen}
+              aria-haspopup="menu"
+              aria-label={`Account menu for ${displayName}`}
               style={{
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap: '0.45rem',
-                backgroundColor: '#F0FDFA',
-                border: '1px solid #99F6E4',
-                color: '#0F766E',
-                height: '36px',
-                padding: '0 0.85rem',
-                borderRadius: '9999px',
-                fontSize: '0.8rem',
-                fontWeight: 700,
+                gap: 10,
+                background: 'none',
+                border: 0,
+                padding: 4,
+                borderRadius: 10,
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: '0 1px 2px rgba(15, 118, 110, 0.05)',
+                font: 'inherit',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#CCFBF1';
-                e.currentTarget.style.borderColor = '#5EEAD4';
-                e.currentTarget.style.boxShadow = '0 2px 6px rgba(15, 118, 110, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#F0FDFA';
-                e.currentTarget.style.borderColor = '#99F6E4';
-                e.currentTarget.style.boxShadow = '0 1px 2px rgba(15, 118, 110, 0.05)';
-              }}
-              title="Blynt AI Assistant - Natural Language Drafting across all categories"
             >
-              <Sparkles size={14} color="#0D9488" />
-              <span>AI Assistant</span>
+              <span className="bl-avatar" aria-hidden="true">
+                {initials}
+              </span>
+              <span
+                className="bl-user-meta"
+                style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}
+              >
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
+                  {displayName}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{roleName}</span>
+              </span>
             </button>
-
-            {/* Multi-Company Switcher Dropdown */}
-            <CompanySwitcherDropdown />
-
-            {/* Currency Selector Pill */}
-            <div style={{ position: 'relative' }} ref={currencyDropdownRef}>
-              <button
-                className="topbar-currency-pill"
-                onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                title="Active currency"
-              >
-                <span>🇬🇧</span>
-                <span>{activeOrg?.baseCurrency ?? 'GBP'}</span>
-                <ChevronDown size={13} style={{ color: '#94A3B8' }} />
-              </button>
-            </div>
-
-            {/* Notifications Bell with Red Badge Count */}
-            <div style={{ position: 'relative' }} ref={notifDropdownRef}>
-              <button
-                className="topbar-bell-btn"
-                onClick={() => setShowNotifications(!showNotifications)}
-                aria-label="View notifications"
-                title="Financial alerts"
-              >
-                <Bell size={16} />
-                <span className="bell-badge-count">3</span>
-              </button>
-
-              {showNotifications && (
-                <div className="notifications-dropdown" style={{ right: 0 }}>
-                  <div className="notif-header">
-                    <span>Financial Alerts</span>
-                    <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: 600 }}>Active</span>
+            {userMenuOpen && (
+              <div className="bl-popover" role="menu" style={{ width: 260 }}>
+                <div style={{ padding: '8px 10px' }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{displayName}</div>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      color: 'var(--text-muted)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {user.email}
                   </div>
-                  <div className="notif-list">
-                    <div className="notif-item">
-                      <div className="notif-icon red">
-                        <AlertTriangle size={14} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div className="notif-title">3 invoices are overdue</div>
-                        <div className="notif-time">Total value £4,320.00</div>
-                      </div>
-                    </div>
-                    <div className="notif-item">
-                      <div className="notif-icon amber">
-                        <Clock size={14} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div className="notif-title">2 bills due within 7 days</div>
-                        <div className="notif-time">Total value £760.00</div>
-                      </div>
-                    </div>
-                    <div className="notif-item">
-                      <div className="notif-icon blue">
-                        <Info size={14} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div className="notif-title">VAT return due in 14 days</div>
-                        <div className="notif-time">Period ends 31 Dec 2024</div>
-                      </div>
-                    </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: 4 }}>
+                    {roleName} · {activeOrg?.name}
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* User Profile Card */}
-            <div style={{ position: 'relative' }} ref={userDropdownRef}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.65rem',
-                  cursor: 'pointer',
-                  padding: '0.25rem',
-                }}
-                onClick={() => setShowUserDropdown(!showUserDropdown)}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="user-avatar-navy">{userInitials}</div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>
-                    {userName}
-                  </span>
-                  <span style={{ fontSize: '0.725rem', color: '#64748B' }}>{roleTitle}</span>
-                </div>
+                <div className="bl-popover-sep" />
+                <Link href="/settings/security" className="bl-popover-item" role="menuitem">
+                  <ShieldCheck size={16} aria-hidden="true" /> Security &amp; sessions
+                </Link>
+                {isAdmin && (
+                  <>
+                    <Link href="/settings/organization" className="bl-popover-item" role="menuitem">
+                      <Building2 size={16} aria-hidden="true" /> Organisation settings
+                    </Link>
+                    <Link href="/settings/users" className="bl-popover-item" role="menuitem">
+                      <Users size={16} aria-hidden="true" /> Users &amp; invites
+                    </Link>
+                  </>
+                )}
+                <div className="bl-popover-sep" />
+                <button
+                  type="button"
+                  className="bl-popover-item"
+                  role="menuitem"
+                  onClick={() => logout().then(() => router.push('/login'))}
+                  style={{ color: 'var(--danger)' }}
+                >
+                  <LogOut size={16} aria-hidden="true" /> Sign out
+                </button>
               </div>
-
-              {showUserDropdown && (
-                <div className="user-dropdown-menu" style={{ right: 0 }}>
-                  <div className="user-dropdown-meta">
-                    <div style={{ fontWeight: 600, color: '#172033', fontSize: '0.85rem' }}>{userName}</div>
-                    <div
-                      style={{
-                        color: '#6B7280',
-                        fontSize: '0.75rem',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {user.email}
-                    </div>
-                    <div style={{ marginTop: '0.35rem' }}>
-                      <span className="badge badge-owner" style={{ fontSize: '0.65rem' }}>
-                        {roleTitle}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Link
-                    href="/settings/users"
-                    className="user-dropdown-link"
-                    onClick={() => setShowUserDropdown(false)}
-                  >
-                    <Users size={14} />
-                    <span>User Management</span>
-                  </Link>
-                  <Link
-                    href="/settings/organization"
-                    className="user-dropdown-link"
-                    onClick={() => setShowUserDropdown(false)}
-                  >
-                    <Building2 size={14} />
-                    <span>Organisation Settings</span>
-                  </Link>
-                  <Link
-                    href="/settings/roles"
-                    className="user-dropdown-link"
-                    onClick={() => setShowUserDropdown(false)}
-                  >
-                    <SlidersHorizontal size={14} />
-                    <span>Roles & Permissions</span>
-                  </Link>
-
-                  <div className="user-dropdown-divider">
-                    <button
-                      onClick={() => logout().then(() => router.push('/login'))}
-                      className="user-logout-btn"
-                    >
-                      <LogOut size={14} />
-                      <span>Sign out</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </header>
 
-        {/* Page Content Body */}
-        {children}
-
-        {/* Global AI Assistant Modal */}
-        <GlobalAiAssistantModal isOpen={showAiAssistant} onClose={() => setShowAiAssistant(false)} />
+        <main
+          id="main-content"
+          tabIndex={-1}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', outline: 'none' }}
+        >
+          {children}
+        </main>
       </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        index={searchIndex}
+        onAsk={role && role !== 'VIEWER' ? () => setAiOpen(true) : undefined}
+      />
+      <GlobalAiAssistantModal isOpen={aiOpen} onClose={() => setAiOpen(false)} />
+      <DialogHost />
     </div>
   );
 }

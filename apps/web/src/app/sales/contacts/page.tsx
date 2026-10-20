@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { notify } from '@/lib/dialog-bus';
 
 interface ContactPersonSummary {
   id: string;
@@ -310,7 +311,7 @@ export default function ContactsPage() {
       resetForm();
       await Promise.all([loadContacts(), loadSummary()]);
     } catch (err: any) {
-      alert(err.message || 'Failed to create contact');
+      notify(err.message || 'Failed to create contact');
     } finally {
       setSubmitting(false);
     }
@@ -360,7 +361,7 @@ export default function ContactsPage() {
       setConfirmModalContact(null);
       await Promise.all([loadContacts(), loadSummary()]);
     } catch (err: any) {
-      alert(err.message || `Failed to ${confirmModalAction} contact`);
+      notify(err.message || `Failed to ${confirmModalAction} contact`);
     } finally {
       setActionInProgress(false);
     }
@@ -375,13 +376,14 @@ export default function ContactsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       {/* Page Header */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 700, color: '#102654', margin: 0, letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: '1.65rem', fontWeight: 700, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.02em' }}>
             Contacts & Subledger Directory
           </h1>
-          <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
             Authoritative commercial accounts, customer & supplier subledgers, payment terms, and statements.
           </p>
         </div>
@@ -401,42 +403,42 @@ export default function ContactsPage() {
 
       {/* Authoritative KPI Cards from Summary API */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid #102654' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Directory</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#102654', marginTop: '0.25rem' }}>
+        <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid var(--primary)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Directory</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
             {summaryLoading ? '...' : summary?.total ?? 0}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
             {summary?.active ?? 0} active &bull; {summary?.archived ?? 0} archived
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid #2563EB' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Customers</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#2563EB', marginTop: '0.25rem' }}>
+        <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid var(--primary)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Customers</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--primary)', marginTop: '0.25rem' }}>
             {summaryLoading ? '...' : (summary?.customers ?? 0) + (summary?.both ?? 0)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
             {summary?.customersWithOutstandingBalance ?? 0} with outstanding AR
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid #059669' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Suppliers</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#059669', marginTop: '0.25rem' }}>
+        <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid var(--success)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--success-text)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Suppliers</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--success-text)', marginTop: '0.25rem' }}>
             {summaryLoading ? '...' : (summary?.suppliers ?? 0) + (summary?.both ?? 0)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
             {summary?.suppliersWithOutstandingBalance ?? 0} with payable balance
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid #FF7D6B' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#FF7D6B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dual Commercial (Both)</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#FF7D6B', marginTop: '0.25rem' }}>
+        <div className="card" style={{ padding: '1.1rem 1.25rem', borderLeft: '4px solid var(--action)' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--action-text)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dual Commercial (Both)</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--action-text)', marginTop: '0.25rem' }}>
             {summaryLoading ? '...' : summary?.both ?? 0}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
             Customer & Supplier dual roles
           </div>
         </div>
@@ -447,7 +449,7 @@ export default function ContactsPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           {/* Type filters */}
           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748B', marginRight: '0.25rem' }}>Type:</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginRight: '0.25rem' }}>Type:</span>
             {(['ALL', 'CUSTOMER', 'SUPPLIER', 'BOTH'] as const).map((type) => (
               <button
                 key={type}
@@ -460,7 +462,7 @@ export default function ContactsPage() {
                 {type === 'ALL' ? 'All Types' : type === 'CUSTOMER' ? 'Customers' : type === 'SUPPLIER' ? 'Suppliers' : 'Dual (Both)'}
               </button>
             ))}
-            <div style={{ width: '1px', height: '1.25rem', backgroundColor: '#E2E8F0', margin: '0 0.5rem' }} />
+            <div style={{ width: '1px', height: '1.25rem', backgroundColor: 'var(--border-subtle)', margin: '0 0.5rem' }} />
             <button
               className={`btn btn-sm ${statusFilter === 'ARCHIVED' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => {
@@ -514,7 +516,7 @@ export default function ContactsPage() {
                     transform: 'translateY(-50%)',
                     background: 'none',
                     border: 'none',
-                    color: '#94A3B8',
+                    color: 'var(--text-muted)',
                     cursor: 'pointer',
                     fontSize: '1rem',
                   }}
@@ -548,14 +550,14 @@ export default function ContactsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     Loading contacts directory...
                   </td>
                 </tr>
               ) : contacts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '3.5rem', color: '#64748B' }}>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>
                       No commercial contacts found
                     </div>
                     <div style={{ fontSize: '0.85rem' }}>
@@ -573,11 +575,11 @@ export default function ContactsPage() {
                         href={`/sales/contacts/${c.id}`}
                         style={{ textDecoration: 'none', color: 'inherit' }}
                       >
-                        <div style={{ fontWeight: 600, color: '#102654', fontSize: '0.95rem' }} className="hover-link">
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }} className="hover-link">
                           {c.name}
                         </div>
                         {c.companyName && (
-                          <div style={{ fontSize: '0.78rem', color: '#64748B' }}>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                             {c.companyName}
                           </div>
                         )}
@@ -597,30 +599,30 @@ export default function ContactsPage() {
                       </span>
                     </td>
                     <td>
-                      <div style={{ fontSize: '0.82rem', color: '#334155' }}>
-                        {c.companyNumber && <div><span style={{ color: '#64748B' }}>Co:</span> {c.companyNumber}</div>}
-                        {c.vatNumber && <div><span style={{ color: '#64748B' }}>VAT:</span> {c.vatNumber}</div>}
-                        {!c.companyNumber && !c.vatNumber && <span style={{ color: '#94A3B8' }}>—</span>}
+                      <div style={{ fontSize: '0.82rem', color: 'var(--ink-2)' }}>
+                        {c.companyNumber && <div><span style={{ color: 'var(--text-muted)' }}>Co:</span> {c.companyNumber}</div>}
+                        {c.vatNumber && <div><span style={{ color: 'var(--text-muted)' }}>VAT:</span> {c.vatNumber}</div>}
+                        {!c.companyNumber && !c.vatNumber && <span style={{ color: 'var(--text-muted)' }}>—</span>}
                       </div>
                     </td>
                     <td>
                       {c.primaryPerson ? (
                         <div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 500, color: '#0F172A' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)' }}>
                             {c.primaryPerson.firstName} {c.primaryPerson.lastName}
                           </div>
                           {c.primaryPerson.jobTitle && (
-                            <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{c.primaryPerson.jobTitle}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.primaryPerson.jobTitle}</div>
                           )}
                         </div>
                       ) : (
-                        <span style={{ fontSize: '0.82rem', color: '#94A3B8' }}>{c.email || '—'}</span>
+                        <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{c.email || '—'}</span>
                       )}
                     </td>
                     <td>
                       <div style={{ fontSize: '0.85rem' }}>Net {c.paymentTermsDays || 30}d</div>
                       {c.creditLimit && (
-                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                           Limit: £{parseFloat(c.creditLimit).toLocaleString()}
                         </div>
                       )}
@@ -674,13 +676,13 @@ export default function ContactsPage() {
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '0.85rem 1.25rem',
-            borderTop: '1px solid #E2E8F0',
-            backgroundColor: '#F8FAFC',
+            borderTop: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-app)',
             flexWrap: 'wrap',
             gap: '1rem',
           }}
         >
-          <div style={{ fontSize: '0.85rem', color: '#64748B' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             {totalCount > 0 ? (
               <>
                 Showing <strong>{(page - 1) * pageSize + 1}</strong> to{' '}
@@ -692,7 +694,7 @@ export default function ContactsPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#64748B' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               <span>Per page:</span>
               <select
                 className="form-input"
@@ -723,7 +725,7 @@ export default function ContactsPage() {
                   alignItems: 'center',
                   padding: '0 0.5rem',
                   fontSize: '0.85rem',
-                  color: '#334155',
+                  color: 'var(--ink-2)',
                   fontWeight: 500,
                 }}
               >
@@ -765,10 +767,10 @@ export default function ContactsPage() {
               boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
             }}
           >
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#102654', margin: '0 0 0.5rem 0' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
               {confirmModalAction === 'archive' ? 'Archive Contact' : 'Restore Contact'}
             </h3>
-            <p style={{ color: '#475569', fontSize: '0.875rem', lineHeight: 1.5, margin: '0 0 1.25rem 0' }}>
+            <p style={{ color: 'var(--ink-2)', fontSize: '0.875rem', lineHeight: 1.5, margin: '0 0 1.25rem 0' }}>
               {confirmModalAction === 'archive' ? (
                 <>
                   Are you sure you want to archive <strong>{confirmModalContact.name}</strong>?
@@ -838,15 +840,15 @@ export default function ContactsPage() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: '1.25rem',
-                borderBottom: '1px solid #E2E8F0',
+                borderBottom: '1px solid var(--border-subtle)',
                 paddingBottom: '0.85rem',
               }}
             >
               <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#102654' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
                   Add Commercial Contact
                 </h2>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748B' }}>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   Register customer or supplier account for subledger tracking
                 </p>
               </div>
@@ -857,7 +859,7 @@ export default function ContactsPage() {
                   border: 'none',
                   fontSize: '1.5rem',
                   cursor: 'pointer',
-                  color: '#64748B',
+                  color: 'var(--text-muted)',
                 }}
               >
                 &times;
@@ -868,9 +870,9 @@ export default function ContactsPage() {
             {duplicateWarning && (
               <div
                 style={{
-                  backgroundColor: '#FFFBEB',
-                  border: '1px solid #FDE68A',
-                  color: '#92400E',
+                  backgroundColor: 'var(--warning-bg)',
+                  border: '1px solid var(--warning-border)',
+                  color: 'var(--warning-text)',
                   padding: '0.75rem 1rem',
                   borderRadius: '8px',
                   marginBottom: '1rem',
@@ -950,8 +952,8 @@ export default function ContactsPage() {
               </div>
 
               {/* Communication Details */}
-              <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.75rem' }}>
+              <div style={{ borderTop: '1px solid var(--bg-soft)', paddingTop: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.75rem' }}>
                   Communication & Financial Terms
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -1004,8 +1006,8 @@ export default function ContactsPage() {
               </div>
 
               {/* Billing Address */}
-              <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.75rem' }}>
+              <div style={{ borderTop: '1px solid var(--bg-soft)', paddingTop: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--ink-2)', marginBottom: '0.75rem' }}>
                   Billing Address
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1040,12 +1042,12 @@ export default function ContactsPage() {
               </div>
 
               {/* Shipping Address */}
-              <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ borderTop: '1px solid var(--bg-soft)', paddingTop: '1rem', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--ink-2)' }}>
                     Shipping / Delivery Address
                   </div>
-                  <label style={{ fontSize: '0.8rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={shippingSameAsBilling}
@@ -1089,14 +1091,14 @@ export default function ContactsPage() {
               </div>
 
               {/* Advanced Accounting Toggle */}
-              <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ borderTop: '1px solid var(--bg-soft)', paddingTop: '1rem', marginBottom: '1.25rem' }}>
                 <button
                   type="button"
                   onClick={() => setShowAdvancedAccounting(!showAdvancedAccounting)}
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#2563EB',
+                    color: 'var(--primary)',
                     fontSize: '0.85rem',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -1125,7 +1127,7 @@ export default function ContactsPage() {
                           </option>
                         ))}
                       </select>
-                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Must be active ASSET / ACCOUNTS_RECEIVABLE</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Must be active ASSET / ACCOUNTS_RECEIVABLE</span>
                     </div>
 
                     <div className="form-group">
@@ -1142,7 +1144,7 @@ export default function ContactsPage() {
                           </option>
                         ))}
                       </select>
-                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Must be active LIABILITY / ACCOUNTS_PAYABLE</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Must be active LIABILITY / ACCOUNTS_PAYABLE</span>
                     </div>
                   </div>
                 )}
@@ -1154,7 +1156,7 @@ export default function ContactsPage() {
                   display: 'flex',
                   justifyContent: 'flex-end',
                   gap: '0.75rem',
-                  borderTop: '1px solid #E2E8F0',
+                  borderTop: '1px solid var(--border-subtle)',
                   paddingTop: '1rem',
                 }}
               >
@@ -1178,6 +1180,7 @@ export default function ContactsPage() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   );
 }

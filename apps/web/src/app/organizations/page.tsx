@@ -36,6 +36,7 @@ export default function OrganizationsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header">
         <div>
           <h1 className="page-title">Organisations</h1>
@@ -63,13 +64,13 @@ export default function OrganizationsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     Loading organisations...
                   </td>
                 </tr>
               ) : organizations.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     No organisations found. Create your first organisation above.
                   </td>
                 </tr>
@@ -77,27 +78,27 @@ export default function OrganizationsPage() {
                 organizations.map((m) => {
                   const isActive = activeOrg?.id === m.organization.id;
                   return (
-                    <tr key={m.organization.id} style={{ backgroundColor: isActive ? '#f8fafc' : undefined }}>
+                    <tr key={m.organization.id} style={{ backgroundColor: isActive ? 'var(--bg-app)' : undefined }}>
                       <td>
-                        <strong style={{ color: '#0f172a' }}>{m.organization.name}</strong>
+                        <strong style={{ color: 'var(--text-main)' }}>{m.organization.name}</strong>
                         {isActive && (
                           <span className="badge badge-open" style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>
                             Active
                           </span>
                         )}
                       </td>
-                      <td style={{ color: '#64748b' }}>{m.organization.legalName || '—'}</td>
+                      <td style={{ color: 'var(--text-muted)' }}>{m.organization.legalName || '—'}</td>
                       <td>{m.organization.country}</td>
                       <td className="font-mono">{m.organization.baseCurrency}</td>
                       <td>
                         <span className="badge badge-draft">{m.role.name}</span>
                       </td>
                       <td>
-                        <span style={{ color: '#16a34a', fontSize: '0.8rem', fontWeight: 600 }}>Active</span>
+                        <span style={{ color: 'var(--success-text)', fontSize: '0.8rem', fontWeight: 600 }}>Active</span>
                       </td>
                       <td className="text-right">
                         {isActive ? (
-                          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Current Org</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Current Org</span>
                         ) : (
                           <button
                             onClick={() => handleSwitch(m.organization.id)}
@@ -114,6 +115,7 @@ export default function OrganizationsPage() {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </AppShell>
   );

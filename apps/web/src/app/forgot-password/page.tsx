@@ -1,98 +1,119 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { apiRequest, ApiError } from '../../lib/api';
-import { BlyntLogo } from '../../components/blynt-logo';
+import React, { useEffect, useState } from 'react';
+import { apiRequest } from '../../lib/api';
+import { friendlyAuthError } from '../../lib/auth-messages';
+import {
+  AuthAlert,
+  AuthBackLink,
+  AuthField,
+  AuthHeading,
+  AuthLayout,
+  AuthStatusMark,
+} from '../../components/auth/auth-ui';
+
+const RESEND_SECONDS = 45;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const send = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError(null);
-    setIsSubmitting(true);
-
+    setSubmitting(true);
     try {
       await apiRequest('/auth/forgot-password', {
         method: 'POST',
         body: JSON.stringify({ email: email.trim() }),
       });
-      setSuccess(true);
-    } catch (err: any) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('Unable to request password reset. Please try again.');
-      }
+      setSent(true);
+      setCooldown(RESEND_SECONDS);
+    } catch (err) {
+      setError(friendlyAuthError(err));
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6FAFD', padding: '1.5rem' }}>
-      <div style={{ width: '100%', maxWidth: '420px', backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '2.25rem 2rem', boxShadow: '0 8px 30px rgba(8, 43, 92, 0.06)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <BlyntLogo variant="stacked" size="md" showTagline />
-          <p style={{ color: '#64748B', fontSize: '0.85rem', marginTop: '0.65rem' }}>
-            Reset your Blynt account password
-          </p>
+  if (sent) {
+    return (
+      <AuthLayout>
+        <AuthStatusMark tone="info" />
+        <div className="bl-auth-center" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <AuthHeading title="Check your inbox">
+            If there’s an account for <strong>{email.trim()}</strong>, a reset link is on its way. It works
+            for a limited time.
+          </AuthHeading>
         </div>
+        {error && <AuthAlert tone="danger">{error}</AuthAlert>}
+        <button
+          type="button"
+          className="btn btn-secondary bl-auth-submit"
+          onClick={() => send()}
+          disabled={cooldown > 0 || submitting}
+        >
+          {cooldown > 0
+            ? `Resend in 0:${String(cooldown).padStart(2, '0')}`
+            : submitting
+              ? 'Sending…'
+              : 'Resend the link'}
+        </button>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)', textAlign: 'center' }}>
+          Not there? Check spam, or{' '}
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{ border: 0, padding: '0 4px', minHeight: 0, textDecoration: 'underline' }}
+            onClick={() => {
+              setSent(false);
+              setError(null);
+            }}
+          >
+            try another email
+          </button>
+          .
+        </p>
+        <AuthBackLink />
+      </AuthLayout>
+    );
+  }
 
-        {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
-
-        {success ? (
-          <div>
-            <div className="alert alert-success" style={{ marginBottom: '1.25rem' }}>
-              If an account exists for <strong>{email}</strong>, a password reset link has been dispatched.
-            </div>
-            <p style={{ fontSize: '0.85rem', color: '#6B7280', lineHeight: 1.5, marginBottom: '1.5rem' }}>
-              Please check your inbox and follow the instructions to set a new password. Reset links expire after 1 hour.
-            </p>
-            <Link href="/login" className="btn btn-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-              Return to Sign In
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label className="form-label" htmlFor="email">Email address</label>
-              <input
-                id="email"
-                type="email"
-                required
-                className="form-input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@example.com"
-                autoFocus
-              />
-              <span style={{ fontSize: '0.725rem', color: '#64748B', marginTop: '0.25rem', display: 'block' }}>
-                Enter the email associated with your Blynt account.
-              </span>
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary"
-              style={{ width: '100%', marginBottom: '1rem' }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Sending Instructions...' : 'Send Reset Instructions'}
-            </button>
-
-            <div style={{ textAlign: 'center' }}>
-              <Link href="/login" style={{ fontSize: '0.8rem', color: '#2563eb', textDecoration: 'none' }}>
-                Back to Sign In
-              </Link>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+  return (
+    <AuthLayout>
+      <AuthBackLink />
+      <AuthHeading title="Reset your password">
+        Enter the email you sign in with and we’ll send you a link to choose a new password.
+      </AuthHeading>
+      {error && <AuthAlert tone="danger">{error}</AuthAlert>}
+      <form onSubmit={send}>
+        <AuthField
+          label="Work email"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+          placeholder="name@company.com"
+          autoFocus
+        />
+        <button
+          type="submit"
+          className="btn btn-primary bl-auth-submit"
+          disabled={submitting || !/\S+@\S+\.\S+/.test(email)}
+        >
+          {submitting ? 'Sending…' : 'Send reset link'}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }

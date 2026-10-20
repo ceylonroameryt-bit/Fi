@@ -65,11 +65,11 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
           title="Total Organizations"
           value={stats?.overview.totalOrganizations ?? '—'}
           subtitle={
-            <div style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <div style={{ color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <span>●</span>
               <span>{stats?.overview.activeOrganizations ?? 0} Active</span>
               {stats?.overview.suspendedOrganizations ? (
-                <span style={{ color: '#E11D48', marginLeft: '0.3rem' }}>• {stats.overview.suspendedOrganizations} Suspended</span>
+                <span style={{ color: 'var(--danger)', marginLeft: '0.3rem' }}>• {stats.overview.suspendedOrganizations} Suspended</span>
               ) : null}
             </div>
           }
@@ -80,7 +80,7 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
           value={stats?.overview.totalUsers ?? '—'}
           subtitle={
             <div>
-              <strong style={{ color: '#F59E0B' }}>{stats?.overview.superAdmins ?? 0}</strong> Super Admins • {stats?.overview.activeUsers ?? 0} Active
+              <strong style={{ color: 'var(--warning-text)' }}>{stats?.overview.superAdmins ?? 0}</strong> Super Admins • {stats?.overview.activeUsers ?? 0} Active
             </div>
           }
         />
@@ -94,7 +94,7 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
         <AdminMetricCard
           title="System Transacted Volume"
           value={stats?.overview.totalTransactedVolume !== undefined ? formatCurrency(stats.overview.totalTransactedVolume) : '—'}
-          subtitle={<span style={{ color: '#16A34A' }}>Sum of total posted ledger debits</span>}
+          subtitle={<span style={{ color: 'var(--success-text)' }}>Sum of total posted ledger debits</span>}
         />
 
         <AdminMetricCard
@@ -112,11 +112,11 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
             backgroundColor: '#FFFFFF',
             borderRadius: '10px',
             padding: '1.5rem',
-            border: '1px solid #E2E8F0',
+            border: '1px solid var(--border-subtle)',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#0F172A', marginBottom: '1rem' }}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1rem' }}>
             Administrative Quick Actions
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -128,17 +128,17 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
                 justifyContent: 'space-between',
                 padding: '0.85rem 1rem',
                 borderRadius: '8px',
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
                 textAlign: 'left',
               }}
             >
               <div>
-                <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.875rem' }}>Manage Organizations</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Inspect, activate, or suspend tenant workspaces</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.875rem' }}>Manage Organizations</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Inspect, activate, or suspend tenant workspaces</div>
               </div>
-              <span style={{ color: '#2563EB', fontWeight: 600 }}>&rarr;</span>
+              <span style={{ color: 'var(--primary)', fontWeight: 600 }}>&rarr;</span>
             </button>
 
             <button
@@ -149,17 +149,17 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
                 justifyContent: 'space-between',
                 padding: '0.85rem 1rem',
                 borderRadius: '8px',
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
                 textAlign: 'left',
               }}
             >
               <div>
-                <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.875rem' }}>Global User Directory</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Search users, toggle Super Admin, reset passwords</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.875rem' }}>Global User Directory</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Search users, toggle Super Admin, reset passwords</div>
               </div>
-              <span style={{ color: '#2563EB', fontWeight: 600 }}>&rarr;</span>
+              <span style={{ color: 'var(--primary)', fontWeight: 600 }}>&rarr;</span>
             </button>
 
             <button
@@ -170,17 +170,17 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
                 justifyContent: 'space-between',
                 padding: '0.85rem 1rem',
                 borderRadius: '8px',
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
                 textAlign: 'left',
               }}
             >
               <div>
-                <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.875rem' }}>Security Audit Trail</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Cross-tenant log stream and admin action auditing</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.875rem' }}>Security Audit Trail</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cross-tenant log stream and admin action auditing</div>
               </div>
-              <span style={{ color: '#2563EB', fontWeight: 600 }}>&rarr;</span>
+              <span style={{ color: 'var(--primary)', fontWeight: 600 }}>&rarr;</span>
             </button>
 
             <button
@@ -191,17 +191,17 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
                 justifyContent: 'space-between',
                 padding: '0.85rem 1rem',
                 borderRadius: '8px',
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
                 textAlign: 'left',
               }}
             >
               <div>
-                <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '0.875rem' }}>Engine Telemetry & Health</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Database latency, memory usage, uptime, version info</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.875rem' }}>Engine Telemetry & Health</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Database latency, memory usage, uptime, version info</div>
               </div>
-              <span style={{ color: '#2563EB', fontWeight: 600 }}>&rarr;</span>
+              <span style={{ color: 'var(--primary)', fontWeight: 600 }}>&rarr;</span>
             </button>
           </div>
         </div>
@@ -212,17 +212,17 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
             backgroundColor: '#FFFFFF',
             borderRadius: '10px',
             padding: '1.5rem',
-            border: '1px solid #E2E8F0',
+            border: '1px solid var(--border-subtle)',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#0F172A', margin: 0 }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
               Recent System Events
             </h3>
             <button
               onClick={() => onNavigateTab('audit')}
-              style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
             >
               View All &rarr;
             </button>
@@ -236,16 +236,16 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
                   style={{
                     padding: '0.65rem 0.85rem',
                     borderRadius: '6px',
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-app)',
+                    border: '1px solid var(--border-subtle)',
                     fontSize: '0.8rem',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
                     <span
                       style={{
-                        backgroundColor: log.eventType.startsWith('ADMIN') ? '#FEF3C7' : '#EFF6FF',
-                        color: log.eventType.startsWith('ADMIN') ? '#92400E' : '#1E40AF',
+                        backgroundColor: log.eventType.startsWith('ADMIN') ? 'var(--warning-bg)' : 'var(--info-bg)',
+                        color: log.eventType.startsWith('ADMIN') ? 'var(--warning-text)' : 'var(--info-text)',
                         padding: '0.15rem 0.4rem',
                         borderRadius: '4px',
                         fontWeight: 600,
@@ -254,22 +254,22 @@ export function AdminOverview({ stats, onNavigateTab }: AdminOverviewProps) {
                     >
                       {log.eventType}
                     </span>
-                    <span style={{ color: '#94A3B8', fontSize: '0.7rem' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
                       {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <div style={{ color: '#334155', fontWeight: 500 }}>
+                  <div style={{ color: 'var(--ink-2)', fontWeight: 500 }}>
                     {log.user ? `${log.user.firstName} ${log.user.lastName} (${log.user.email})` : 'System Task'}
                   </div>
                   {log.organization && (
-                    <div style={{ color: '#64748B', fontSize: '0.7rem' }}>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
                       Org: {log.organization.name}
                     </div>
                   )}
                 </div>
               ))
             ) : (
-              <div style={{ color: '#94A3B8', fontSize: '0.85rem', textAlign: 'center', padding: '1.5rem 0' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '1.5rem 0' }}>
                 No recent platform audit events
               </div>
             )}

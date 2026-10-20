@@ -66,7 +66,7 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
           width: '100%',
           maxWidth: '680px',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
-          border: '1px solid #E2E8F0',
+          border: '1px solid var(--border-subtle)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -76,7 +76,7 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
         {/* Header */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #041F46 0%, #082E64 100%)',
+            background: 'linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg) 100%)',
             padding: '1.25rem 1.5rem',
             color: '#FFFFFF',
             display: 'flex',
@@ -91,7 +91,7 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
                 height: '34px',
                 borderRadius: '8px',
                 backgroundColor: 'rgba(24, 211, 190, 0.2)',
-                color: '#18D3BE',
+                color: 'var(--action-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -103,14 +103,14 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
               <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#FFFFFF' }}>
                 AI Manual Journal Drafter (Phase 7)
               </h2>
-              <p style={{ fontSize: '0.775rem', color: '#94A3B8', margin: '0.15rem 0 0 0' }}>
+              <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
                 Plain-English instruction generates strict, balanced double-entry ledger lines.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '0.25rem' }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}
           >
             <X size={20} />
           </button>
@@ -119,7 +119,7 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
         {/* Body */}
         <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.45rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.45rem' }}>
               Describe the Accounting Adjustment:
             </label>
             <textarea
@@ -131,9 +131,9 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
                 width: '100%',
                 padding: '0.65rem 0.85rem',
                 borderRadius: '0.5rem',
-                border: '1px solid #CBD5E1',
+                border: '1px solid var(--border-strong)',
                 fontSize: '0.9rem',
-                color: '#0F172A',
+                color: 'var(--text-main)',
                 fontFamily: 'inherit',
                 outline: 'none',
               }}
@@ -142,7 +142,7 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
 
           {/* Preset Prompts */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>Accounting Presets:</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Accounting Presets:</span>
             {[
               'Accrue £1,200 audit fee for March',
               'Prepay £2,400 annual building insurance',
@@ -154,11 +154,11 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
                 onClick={() => setPrompt(ex)}
                 style={{
                   padding: '0.2rem 0.55rem',
-                  backgroundColor: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
+                  backgroundColor: 'var(--bg-soft)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '999px',
                   fontSize: '0.725rem',
-                  color: '#334155',
+                  color: 'var(--ink-2)',
                   cursor: 'pointer',
                 }}
               >
@@ -172,8 +172,8 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
             disabled={generating}
             style={{
               padding: '0.65rem 1.25rem',
-              backgroundColor: '#0EA5E9',
-              backgroundImage: 'linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%)',
+              backgroundColor: 'var(--primary)',
+              backgroundImage: 'linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%)',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '0.5rem',
@@ -192,7 +192,7 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
           </button>
 
           {error && (
-            <div style={{ padding: '0.75rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '0.375rem', color: '#B91C1C', fontSize: '0.85rem' }}>
+            <div style={{ padding: '0.75rem', backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: '0.375rem', color: 'var(--danger)', fontSize: '0.85rem' }}>
               {error}
             </div>
           )}
@@ -201,8 +201,8 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
           {draft && (
             <div
               style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #CBD5E1',
+                backgroundColor: 'var(--bg-app)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: '0.65rem',
                 padding: '1.25rem',
                 display: 'flex',
@@ -211,22 +211,22 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#16A34A', fontWeight: 700, fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--success-text)', fontWeight: 700, fontSize: '0.85rem' }}>
                   <CheckCircle2 size={16} />
                   <span>Double-Entry Invariant: Debits = Credits (BALANCED)</span>
                 </div>
-                <span style={{ fontSize: '0.75rem', color: '#64748B', fontFamily: 'monospace' }}>Ref: {draft.reference}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>Ref: {draft.reference}</span>
               </div>
 
               <div>
-                <span style={{ color: '#64748B', fontSize: '0.825rem' }}>Narration:</span>{' '}
-                <strong style={{ color: '#0F172A', fontSize: '0.875rem' }}>{draft.description}</strong>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>Narration:</span>{' '}
+                <strong style={{ color: 'var(--text-main)', fontSize: '0.875rem' }}>{draft.description}</strong>
               </div>
 
               {/* Journal Lines Table */}
-              <div style={{ border: '1px solid #E2E8F0', borderRadius: '0.375rem', overflow: 'hidden', backgroundColor: '#FFFFFF' }}>
+              <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '0.375rem', overflow: 'hidden', backgroundColor: '#FFFFFF' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                  <thead style={{ backgroundColor: '#F1F5F9', color: '#475569', fontWeight: 600 }}>
+                  <thead style={{ backgroundColor: 'var(--bg-soft)', color: 'var(--ink-2)', fontWeight: 600 }}>
                     <tr>
                       <th style={{ padding: '0.45rem 0.65rem', textAlign: 'left', width: '90px' }}>Code</th>
                       <th style={{ padding: '0.45rem 0.65rem', textAlign: 'left' }}>Nominal Account</th>
@@ -236,27 +236,27 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
                   </thead>
                   <tbody>
                     {draft.lines.map((l: any, i: number) => (
-                      <tr key={i} style={{ borderTop: '1px solid #E2E8F0' }}>
-                        <td style={{ padding: '0.5rem 0.65rem', color: '#2563EB', fontWeight: 700 }}>{l.accountCode}</td>
-                        <td style={{ padding: '0.5rem 0.65rem', color: '#0F172A', fontWeight: 500 }}>{l.accountName}</td>
-                        <td style={{ padding: '0.5rem 0.65rem', textAlign: 'right', fontWeight: l.debit > 0 ? 700 : 400, color: l.debit > 0 ? '#0F172A' : '#94A3B8' }}>
+                      <tr key={i} style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                        <td style={{ padding: '0.5rem 0.65rem', color: 'var(--primary)', fontWeight: 700 }}>{l.accountCode}</td>
+                        <td style={{ padding: '0.5rem 0.65rem', color: 'var(--text-main)', fontWeight: 500 }}>{l.accountName}</td>
+                        <td style={{ padding: '0.5rem 0.65rem', textAlign: 'right', fontWeight: l.debit > 0 ? 700 : 400, color: l.debit > 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
                           {l.debit > 0 ? `£${l.debit.toFixed(2)}` : '-'}
                         </td>
-                        <td style={{ padding: '0.5rem 0.65rem', textAlign: 'right', fontWeight: l.credit > 0 ? 700 : 400, color: l.credit > 0 ? '#0F172A' : '#94A3B8' }}>
+                        <td style={{ padding: '0.5rem 0.65rem', textAlign: 'right', fontWeight: l.credit > 0 ? 700 : 400, color: l.credit > 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
                           {l.credit > 0 ? `£${l.credit.toFixed(2)}` : '-'}
                         </td>
                       </tr>
                     ))}
-                    <tr style={{ backgroundColor: '#F8FAFC', borderTop: '2px solid #E2E8F0', fontWeight: 700 }}>
-                      <td colSpan={2} style={{ padding: '0.5rem 0.65rem', textAlign: 'right', color: '#475569' }}>Total:</td>
-                      <td style={{ padding: '0.5rem 0.65rem', textAlign: 'right', color: '#059669' }}>£{draft.totalDebit.toFixed(2)}</td>
-                      <td style={{ padding: '0.5rem 0.65rem', textAlign: 'right', color: '#059669' }}>£{draft.totalCredit.toFixed(2)}</td>
+                    <tr style={{ backgroundColor: 'var(--bg-app)', borderTop: '2px solid var(--border-subtle)', fontWeight: 700 }}>
+                      <td colSpan={2} style={{ padding: '0.5rem 0.65rem', textAlign: 'right', color: 'var(--ink-2)' }}>Total:</td>
+                      <td style={{ padding: '0.5rem 0.65rem', textAlign: 'right', color: 'var(--success-text)' }}>£{draft.totalDebit.toFixed(2)}</td>
+                      <td style={{ padding: '0.5rem 0.65rem', textAlign: 'right', color: 'var(--success-text)' }}>£{draft.totalCredit.toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: '#0369A1', backgroundColor: '#F0F9FF', padding: '0.45rem 0.65rem', borderRadius: '0.25rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--info-text)', backgroundColor: 'var(--info-bg)', padding: '0.45rem 0.65rem', borderRadius: '0.25rem' }}>
                 💡 {draft.explanation}
               </div>
 
@@ -264,7 +264,7 @@ export function AiJournalDraftModal({ isOpen, onClose }: AiJournalDraftModalProp
                 onClick={handleApply}
                 style={{
                   padding: '0.65rem 1.25rem',
-                  backgroundColor: '#10B981',
+                  backgroundColor: 'var(--success)',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: '0.375rem',

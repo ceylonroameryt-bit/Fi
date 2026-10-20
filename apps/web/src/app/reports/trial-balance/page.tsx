@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { useAuth } from '@/context/auth-context';
 import { apiRequest } from '@/lib/api';
+import { notify } from '@/lib/dialog-bus';
 
 interface FinancialYear {
   id: string;
@@ -151,7 +152,7 @@ function TrialBalanceContent() {
       a.click();
       a.remove();
     } catch (err: any) {
-      alert(err.message || 'Failed to export CSV');
+      notify(err.message || 'Failed to export CSV');
     } finally {
       setExporting(false);
     }
@@ -163,6 +164,7 @@ function TrialBalanceContent() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       <div className="page-header">
         <div>
           <h1 className="page-title">Trial Balance</h1>
@@ -196,8 +198,8 @@ function TrialBalanceContent() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: report.isBalanced ? '#F0FDF4' : '#FEF2F2',
-            border: `1px solid ${report.isBalanced ? '#BBF7D0' : '#FECACA'}`,
+            backgroundColor: report.isBalanced ? 'var(--success-bg)' : 'var(--danger-bg)',
+            border: `1px solid ${report.isBalanced ? 'var(--success-border)' : 'var(--danger-border)'}`,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -207,7 +209,7 @@ function TrialBalanceContent() {
                 style={{
                   fontWeight: 700,
                   fontSize: '0.95rem',
-                  color: report.isBalanced ? '#15803D' : '#B91C1C',
+                  color: report.isBalanced ? 'var(--success-text)' : 'var(--danger)',
                 }}
               >
                 {report.isBalanced ? 'Balanced' : 'Critical Accounting Integrity Issue: Unbalanced'}
@@ -215,7 +217,7 @@ function TrialBalanceContent() {
               <div
                 style={{
                   fontSize: '0.8rem',
-                  color: report.isBalanced ? '#166534' : '#991B1B',
+                  color: report.isBalanced ? 'var(--success-text)' : 'var(--danger-text)',
                   marginTop: '0.1rem',
                 }}
               >
@@ -227,12 +229,12 @@ function TrialBalanceContent() {
           </div>
 
           <div className="font-mono" style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Difference</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Difference</div>
             <div
               style={{
                 fontSize: '1.1rem',
                 fontWeight: 700,
-                color: report.isBalanced ? '#15803D' : '#B91C1C',
+                color: report.isBalanced ? 'var(--success-text)' : 'var(--danger)',
               }}
             >
               £{Number(report.difference).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
@@ -332,13 +334,13 @@ function TrialBalanceContent() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     Generating authoritative Trial Balance...
                   </td>
                 </tr>
               ) : !report || report.accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     No posted ledger transactions exist as of {asOfDate}.
                   </td>
                 </tr>
@@ -351,10 +353,10 @@ function TrialBalanceContent() {
                     title="Click to view Account General Ledger"
                   >
                     <td className="font-mono">
-                      <strong style={{ color: '#146EF5' }}>{row.accountCode}</strong>
+                      <strong style={{ color: 'var(--primary)' }}>{row.accountCode}</strong>
                     </td>
                     <td>
-                      <strong style={{ color: '#0f172a' }}>{row.accountName}</strong>
+                      <strong style={{ color: 'var(--text-main)' }}>{row.accountName}</strong>
                     </td>
                     <td>
                       <span className="badge badge-open" style={{ fontSize: '0.7rem' }}>
@@ -383,7 +385,7 @@ function TrialBalanceContent() {
             </tbody>
             {report && report.accounts.length > 0 && (
               <tfoot>
-                <tr style={{ backgroundColor: '#F8FAFC', fontWeight: 700, borderTop: '2px solid #CBD5E1' }}>
+                <tr style={{ backgroundColor: 'var(--bg-app)', fontWeight: 700, borderTop: '2px solid var(--border-strong)' }}>
                   <td colSpan={3} className="text-right" style={{ padding: '0.85rem 1rem' }}>
                     TOTAL:
                   </td>
@@ -396,7 +398,7 @@ function TrialBalanceContent() {
                 </tr>
                 <tr
                   style={{
-                    backgroundColor: report.isBalanced ? '#F0FDF4' : '#FEF2F2',
+                    backgroundColor: report.isBalanced ? 'var(--success-bg)' : 'var(--danger-bg)',
                     fontWeight: 700,
                   }}
                 >
@@ -408,7 +410,7 @@ function TrialBalanceContent() {
                     className="text-right font-mono"
                     style={{
                       padding: '0.75rem 1rem',
-                      color: report.isBalanced ? '#15803D' : '#B91C1C',
+                      color: report.isBalanced ? 'var(--success-text)' : 'var(--danger)',
                     }}
                   >
                     £{Number(report.difference).toLocaleString('en-GB', { minimumFractionDigits: 2 })}{' '}
@@ -418,7 +420,7 @@ function TrialBalanceContent() {
                   </td>
                 </tr>
                 {report.roundingDifference !== '0.00' && (
-                  <tr style={{ color: '#64748B', fontSize: '0.85rem' }}>
+                  <tr style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                     <td colSpan={5} className="text-right" style={{ padding: '0.5rem 1rem' }}>
                       Totals differ by £{report.roundingDifference} because each row is rounded to the nearest penny; the
                       ledger itself balances.
@@ -430,6 +432,7 @@ function TrialBalanceContent() {
           </table>
         </div>
       </div>
+      </div>
     </AppShell>
   );
 }
@@ -439,7 +442,9 @@ export default function TrialBalancePage() {
     <Suspense
       fallback={
         <AppShell>
+          <div className="bl-legacy">
           <div style={{ padding: '3rem', textAlign: 'center' }}>Loading Trial Balance...</div>
+          </div>
         </AppShell>
       }
     >

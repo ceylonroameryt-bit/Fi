@@ -173,6 +173,7 @@ export default function RolesSettingsPage() {
 
   return (
     <AppShell>
+      <div className="bl-legacy">
       {/* Header */}
       <div className="page-header">
         <div>
@@ -190,12 +191,12 @@ export default function RolesSettingsPage() {
         {/* Left Column: Roles */}
         <div className="card">
           <div className="card-header" style={{ padding: '0.85rem 1.15rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#172033' }}>Available Roles</span>
-            <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>{roles.length} tiers</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Available Roles</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{roles.length} tiers</span>
           </div>
           <div className="card-body" style={{ padding: '0.5rem' }}>
             {loading ? (
-              <div style={{ padding: '1.5rem', textAlign: 'center', color: '#6B7280', fontSize: '0.8rem' }}>
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                 Loading roles...
               </div>
             ) : (
@@ -211,19 +212,19 @@ export default function RolesSettingsPage() {
                         padding: '0.85rem',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        backgroundColor: isSelected ? '#EFF6FF' : 'transparent',
+                        backgroundColor: isSelected ? 'var(--info-bg)' : 'transparent',
                         border: '1px solid',
-                        borderColor: isSelected ? '#BFDBFE' : 'transparent',
+                        borderColor: isSelected ? 'var(--info-border)' : 'transparent',
                         transition: 'all 0.15s ease',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: isSelected ? '#146EF5' : '#172033' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: isSelected ? 'var(--primary)' : 'var(--text-main)' }}>
                           {r.name}
                         </span>
                         <span className={`badge ${badgeClass}`}>{r.systemKey ? 'System' : 'Custom'}</span>
                       </div>
-                      <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0, lineHeight: 1.3 }}>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.3 }}>
                         {r.description}
                       </p>
                     </div>
@@ -240,14 +241,14 @@ export default function RolesSettingsPage() {
             <div className="card-header" style={{ padding: '1rem 1.25rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#172033' }}>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                     {selectedRole.name} Permissions
                   </h2>
                   <span className={`badge ${getRoleBadgeClass(selectedRole.systemKey || selectedRole.name)}`}>
                     {selectedRole.name}
                   </span>
                 </div>
-                <p style={{ fontSize: '0.785rem', color: '#6B7280', marginTop: '0.2rem' }}>
+                <p style={{ fontSize: '0.785rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                   {selectedRole.description} • {grantedCodes.size} permissions granted
                 </p>
               </div>
@@ -263,19 +264,19 @@ export default function RolesSettingsPage() {
                       style={{
                         fontSize: '0.8rem',
                         fontWeight: 700,
-                        color: '#172033',
+                        color: 'var(--text-main)',
                         textTransform: 'uppercase',
                         letterSpacing: '0.04em',
                         marginBottom: '0.65rem',
                         paddingBottom: '0.35rem',
-                        borderBottom: '1px solid #E6EAF0',
+                        borderBottom: '1px solid var(--border-subtle)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                       }}
                     >
                       <span>{cat}</span>
-                      <span style={{ fontSize: '0.7rem', color: '#6B7280', fontWeight: 500 }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                         {permsInCategory.filter((p) => grantedCodes.has(p.code)).length} / {permsInCategory.length} Granted
                       </span>
                     </div>
@@ -292,8 +293,8 @@ export default function RolesSettingsPage() {
                               padding: '0.6rem 0.75rem',
                               borderRadius: '6px',
                               border: '1px solid',
-                              borderColor: isGranted ? '#A7F3D0' : '#E6EAF0',
-                              backgroundColor: isGranted ? '#ECFDF5' : '#FAFCFE',
+                              borderColor: isGranted ? 'var(--success-border)' : 'var(--border-subtle)',
+                              backgroundColor: isGranted ? 'var(--success-bg)' : '#FAFCFE',
                               display: 'flex',
                               alignItems: 'flex-start',
                               gap: '0.65rem',
@@ -309,8 +310,8 @@ export default function RolesSettingsPage() {
                                 justifyContent: 'center',
                                 fontSize: '0.75rem',
                                 fontWeight: 700,
-                                backgroundColor: isGranted ? '#16A56A' : '#E5E7EB',
-                                color: isGranted ? '#FFFFFF' : '#9CA3AF',
+                                backgroundColor: isGranted ? 'var(--success)' : 'var(--border-subtle)',
+                                color: isGranted ? '#FFFFFF' : 'var(--text-muted)',
                                 flexShrink: 0,
                                 marginTop: '0.1rem',
                               }}
@@ -319,16 +320,16 @@ export default function RolesSettingsPage() {
                             </span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#172033' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>
                                   {perm.code}
                                 </span>
                                 {isFuture && (
-                                  <span style={{ fontSize: '0.65rem', backgroundColor: '#F3F4F6', color: '#6B7280', padding: '0.05rem 0.35rem', borderRadius: '4px' }}>
+                                  <span style={{ fontSize: '0.65rem', backgroundColor: 'var(--bg-soft)', color: 'var(--text-muted)', padding: '0.05rem 0.35rem', borderRadius: '4px' }}>
                                     Next Phase
                                   </span>
                                 )}
                               </div>
-                              <p style={{ fontSize: '0.725rem', color: '#6B7280', margin: '0.15rem 0 0 0', lineHeight: 1.3 }}>
+                              <p style={{ fontSize: '0.725rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0', lineHeight: 1.3 }}>
                                 {perm.description}
                               </p>
                             </div>
@@ -343,11 +344,12 @@ export default function RolesSettingsPage() {
           </div>
         ) : (
           <div className="card">
-            <div className="card-body" style={{ textAlign: 'center', padding: '3rem', color: '#6B7280' }}>
+            <div className="card-body" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
               Select a role from the left to view permissions.
             </div>
           </div>
         )}
+      </div>
       </div>
     </AppShell>
   );
