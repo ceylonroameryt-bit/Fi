@@ -51,7 +51,7 @@ describe('PaymentsService', () => {
     id: 'contact-1',
     organizationId: 'org-1',
     name: 'Client Alpha',
-    type: 'CUSTOMER',
+    type: 'BOTH',
     receivableAccountId: 'acc-ar-1',
     payableAccountId: 'acc-ap-1',
   };
@@ -86,12 +86,13 @@ describe('PaymentsService', () => {
   beforeEach(async () => {
     prisma = {
       $transaction: jest.fn((cb) => cb(prisma)),
+      $queryRaw: jest.fn().mockResolvedValue([]),
       contact: {
         findFirst: jest.fn().mockResolvedValue(mockContact),
       },
       account: {
         findFirst: jest.fn().mockImplementation(({ where }: any) => {
-          if (where?.id === 'acc-bank-1' || where?.code === '1200' || where?.OR?.some((o: any) => o.code === '1200')) {
+          if (where?.id === 'acc-bank-1' || where?.code === '1200' || where?.accountSubtype?.in?.includes(AccountSubtype.BANK) || where?.OR?.some((o: any) => o.code === '1200')) {
             return Promise.resolve(mockBankAccount);
           }
           if (where?.id === 'acc-ar-1' || where?.code === '1100' || where?.OR?.some((o: any) => o.code === '1100')) {
@@ -335,6 +336,7 @@ describe('PaymentsService', () => {
   describe('allocatePayment validation', () => {
     it('prevents allocating more than available unallocated payment amount', async () => {
       prisma.payment.findFirst.mockResolvedValue({
+        kind: PaymentKind.CUSTOMER_RECEIPT,
         id: 'pay-1',
         organizationId: 'org-1',
         status: PaymentStatus.POSTED,
@@ -360,6 +362,7 @@ describe('PaymentsService', () => {
 
     it('prevents allocating to invoice of a different contact', async () => {
       prisma.payment.findFirst.mockResolvedValue({
+        kind: PaymentKind.CUSTOMER_RECEIPT,
         id: 'pay-1',
         organizationId: 'org-1',
         status: PaymentStatus.POSTED,
@@ -395,6 +398,7 @@ describe('PaymentsService', () => {
   describe('voidPayment', () => {
     it('voids payment, reverses journal and unwinds allocations', async () => {
       prisma.payment.findFirst.mockResolvedValue({
+        kind: PaymentKind.CUSTOMER_RECEIPT,
         id: 'pay-1',
         organizationId: 'org-1',
         status: PaymentStatus.POSTED,

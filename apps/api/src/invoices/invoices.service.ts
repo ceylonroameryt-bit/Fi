@@ -699,6 +699,12 @@ export class InvoicesService {
         throw new DomainException('INVOICE_INVALID_STATE', 'Invoice is missing linked journal entry');
       }
 
+      // Money already set against the invoice must be unallocated first, or the debtor would be wrong.
+      const allocated = await tx.paymentAllocation.count({ where: { organizationId, invoiceId, isReversed: false } });
+      if (allocated > 0) {
+        throw new DomainException('DOCUMENT_HAS_ALLOCATIONS', `Invoice ${invoice.invoiceNumber} has ${allocated} payment or credit allocation(s); reverse them before voiding`);
+      }
+
       // 2. Reverse the linked journal inside the same transaction
       const reversal = await this.reversalService.reverseJournal(
         organizationId,

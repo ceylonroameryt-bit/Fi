@@ -9,7 +9,7 @@ import { INPUT_ONLY_TREATMENTS } from '../tax/vat-boxes';
 import { vatSchemeOn } from '../tax/vat-schemes';
 
 /** Journals generated from sales/purchase documents must VAT-analyse every non-control line. */
-const TAX_ANALYSED_SOURCES: ReadonlySet<JournalSourceType> = new Set([JournalSourceType.INVOICE, JournalSourceType.BILL]);
+const TAX_ANALYSED_SOURCES: ReadonlySet<JournalSourceType> = new Set([JournalSourceType.INVOICE, JournalSourceType.BILL, JournalSourceType.CREDIT_NOTE]);
 /** Control and settlement accounts never carry a tax code. */
 const NON_TAXABLE_SUBTYPES: ReadonlySet<AccountSubtype> = new Set([
   AccountSubtype.ACCOUNTS_RECEIVABLE,

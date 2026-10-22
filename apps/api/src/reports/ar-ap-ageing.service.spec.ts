@@ -37,6 +37,15 @@ describe('ArApAgeingService', () => {
       bill: {
         findMany: jest.fn(),
       },
+      // Allocations as at the date: here, each document's amountPaid fixture.
+      paymentAllocation: {
+        groupBy: jest.fn().mockImplementation(async ({ by }: any) => {
+          const key = by[0];
+          const source = key === 'invoiceId' ? prisma.invoice.findMany : prisma.bill.findMany;
+          const docs = (await source.mock.results[source.mock.results.length - 1]?.value) ?? [];
+          return docs.map((d: any) => ({ [key]: d.id, _sum: { amount: d.amountPaid } }));
+        }),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({

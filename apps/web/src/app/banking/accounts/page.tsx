@@ -60,7 +60,7 @@ export default function BankAccountsPage() {
   const { activeOrg, hasPermission } = useAuth();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [nominalAccounts, setNominalAccounts] = useState<NominalAccount[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
@@ -100,7 +100,12 @@ export default function BankAccountsPage() {
   const canManage = hasPermission('bank_account.manage');
 
   const loadData = useCallback(async () => {
-    if (!activeOrg) return;
+    if (!activeOrg) {
+      setLoading(false);
+      setBankAccounts([]);
+      setNominalAccounts([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

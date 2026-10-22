@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TaxModule } from '../tax/tax.module';
 import { BankAccountsController } from './bank-accounts.controller';
 import { BankAccountsService } from './bank-accounts.service';
 import { BankStatementsController } from './bank-statements.controller';
@@ -9,6 +10,7 @@ import { BankReconciliationService } from './bank-reconciliation.service';
 import { BankAiCategorisationService } from './bank-ai-categorisation.service';
 
 @Module({
+  imports: [TaxModule],
   controllers: [
     BankAccountsController,
     BankStatementsController,

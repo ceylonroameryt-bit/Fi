@@ -19,6 +19,7 @@ import { JournalPostingService } from '../accounting-engine/journal-posting.serv
 import { JournalReversalService } from '../accounting-engine/journal-reversal.service';
 import { MoneyService } from '../accounting-engine/money.service';
 import { AuditService } from '../audit/audit.service';
+import { TaxCodesService } from '../tax/tax-codes.service';
 import { DomainException } from '../common/errors/domain.exception';
 import type { Actor, OrgContext } from '../common/types/request-context.types';
 
@@ -91,6 +92,7 @@ describe('CreditNotesService', () => {
   beforeEach(async () => {
     prisma = {
       $transaction: jest.fn((cb) => cb(prisma)),
+      $queryRaw: jest.fn().mockResolvedValue([]),
       contact: {
         findFirst: jest.fn().mockImplementation(({ where }: any) => {
           if (where?.id === 'cust-1') return Promise.resolve(mockCustomer);
@@ -106,9 +108,10 @@ describe('CreditNotesService', () => {
           if (where?.id === 'acc-ap-1' || where?.code === '2000' || where?.OR?.some((o: any) => o.code === '2000')) {
             return Promise.resolve(mockApAccount);
           }
-          if (where?.id === 'acc-tax-1' || where?.code === '2100' || where?.OR?.some((o: any) => o.code === '2100')) {
+          if (where?.id === 'acc-tax-1' || where?.accountSubtype === AccountSubtype.TAX_PAYABLE || where?.OR?.some((o: any) => o.code === '2100')) {
             return Promise.resolve(mockTaxAccount);
           }
+          if (typeof where?.id === 'string' && where.id.startsWith('acc-')) return Promise.resolve({ id: where.id });
           return Promise.resolve(null);
         }),
       },
@@ -182,6 +185,12 @@ describe('CreditNotesService', () => {
         { provide: JournalReversalService, useValue: reversal },
         MoneyService,
         {
+          provide: TaxCodesService,
+          useValue: {
+            resolve: jest.fn().mockResolvedValue({ id: 'tc-sr', code: 'UK_SR', rate: new Prisma.Decimal('0.2'), treatment: 'STANDARD' }),
+          },
+        },
+        {
           provide: AuditService,
           useValue: { record: jest.fn().mockResolvedValue(undefined) },
         },
@@ -207,8 +216,7 @@ describe('CreditNotesService', () => {
               quantity: 1,
               unitPrice: 100,
               netAmount: 100,
-              taxRate: 0.20,
-              taxAmount: 20,
+              taxCodeId: 'tc-sr',
             },
           ],
         },
@@ -264,6 +272,9 @@ describe('CreditNotesService', () => {
             description: 'Returned widget',
             netAmount: new Prisma.Decimal('100.00'),
             taxAmount: new Prisma.Decimal('20.00'),
+            taxCodeId: 'tc-sr',
+            taxCode: { treatment: 'STANDARD' },
+            taxRate: new Prisma.Decimal('0.2'),
           },
         ],
       });
@@ -275,10 +286,15 @@ describe('CreditNotesService', () => {
       expect(journalCall.journalType).toBe(JournalType.CREDIT_NOTE);
       expect(journalCall.sourceType).toBe(JournalSourceType.CREDIT_NOTE);
 
-      const lines = journalCall.lines.create;
-      expect(lines).toHaveLength(3);
-      // Dr Revenue
+      const all = journalCall.lines.create;
+      expect(all).toHaveLength(3);
+      const byAccount = (id: string) => all.find((l: any) => l.accountId === id);
+      const lines = [byAccount('acc-rev-1'), byAccount('acc-tax-1'), byAccount('acc-ar-1')];
+      // Dr Revenue, VAT-analysed as a negative output line
       expect(lines[0].accountId).toBe('acc-rev-1');
+      expect(lines[0]).toMatchObject({ taxCodeId: 'tc-sr', taxDirection: 'OUTPUT' });
+      expect(new Prisma.Decimal(lines[0].taxNetAmount).toFixed(2)).toBe('-100.00');
+      expect(new Prisma.Decimal(lines[0].taxAmount).toFixed(2)).toBe('-20.00');
       expect(new Prisma.Decimal(lines[0].debit).toFixed(2)).toBe('100.00');
       expect(new Prisma.Decimal(lines[0].credit).toFixed(2)).toBe('0.00');
       // Dr Output VAT
@@ -314,6 +330,9 @@ describe('CreditNotesService', () => {
             description: 'Returned parts',
             netAmount: new Prisma.Decimal('200.00'),
             taxAmount: new Prisma.Decimal('40.00'),
+            taxCodeId: 'tc-sr',
+            taxCode: { treatment: 'STANDARD' },
+            taxRate: new Prisma.Decimal('0.2'),
           },
         ],
       });
@@ -321,8 +340,12 @@ describe('CreditNotesService', () => {
       await service.postCreditNote('org-1', 'cn-2', mockOrg, mockActor);
 
       const journalCall = prisma.journalEntry.create.mock.calls[0][0].data;
-      const lines = journalCall.lines.create;
-      expect(lines).toHaveLength(3);
+      const all = journalCall.lines.create;
+      expect(all).toHaveLength(3);
+      const byAccount = (id: string) => all.find((l: any) => l.accountId === id);
+      const lines = [byAccount('acc-ap-1'), byAccount('acc-exp-1'), byAccount('acc-tax-1')];
+      expect(lines[1]).toMatchObject({ taxCodeId: 'tc-sr', taxDirection: 'INPUT' });
+      expect(new Prisma.Decimal(lines[1].taxNetAmount).toFixed(2)).toBe('-200.00');
       // Dr AP with contactId
       expect(lines[0].accountId).toBe('acc-ap-1');
       expect(new Prisma.Decimal(lines[0].debit).toFixed(2)).toBe('240.00');
@@ -344,6 +367,7 @@ describe('CreditNotesService', () => {
       prisma.creditNote.findFirst.mockResolvedValue({
         id: 'cn-1',
         organizationId: 'org-1',
+        kind: CreditNoteKind.SALES_CREDIT_NOTE,
         contactId: 'cust-1',
         totalAmount: new Prisma.Decimal('120.00'),
         amountAllocated: new Prisma.Decimal('0'),
@@ -394,6 +418,7 @@ describe('CreditNotesService', () => {
       prisma.creditNote.findFirst.mockResolvedValue({
         id: 'cn-1',
         organizationId: 'org-1',
+        kind: CreditNoteKind.SALES_CREDIT_NOTE,
         contactId: 'cust-1',
         totalAmount: new Prisma.Decimal('100.00'),
         amountAllocated: new Prisma.Decimal('80.00'),

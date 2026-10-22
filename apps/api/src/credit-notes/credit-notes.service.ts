@@ -4,6 +4,7 @@ import {
   AllocationSourceType,
   AllocationTargetType,
   BillStatus,
+  ContactType,
   CreditNoteKind,
   CreditNoteStatus,
   InvoiceStatus,
@@ -26,6 +27,11 @@ import { CreateCreditNoteDto } from './dto/create-credit-note.dto';
 import { AllocateCreditNoteDto } from './dto/allocate-credit-note.dto';
 import { CreditNoteFilterQueryDto } from './dto/credit-note-query.dto';
 import { VoidCreditNoteDto } from './dto/void-credit-note.dto';
+import { TaxCodesService } from '../tax/tax-codes.service';
+import { calculateVat } from '../tax/vat-calculation';
+import { INPUT_ONLY_TREATMENTS } from '../tax/vat-boxes';
+import { buildCreditNoteJournalLines } from './credit-note-journal';
+import { allocationAmount, assertAllocationTargets, creditNoteTarget, lockRows } from '../payments/allocation-rules';
 
 const creditNoteInclude = {
   contact: {
@@ -68,6 +74,7 @@ export class CreditNotesService {
     private readonly reversal: JournalReversalService,
     private readonly money: MoneyService,
     private readonly audit: AuditService,
+    private readonly taxCodes: TaxCodesService,
   ) {}
 
   async listCreditNotes(organizationId: string, query: CreditNoteFilterQueryDto) {
@@ -186,36 +193,74 @@ export class CreditNotesService {
         throw new DomainException('CONTACT_NOT_FOUND', 'Contact not found in this organisation');
       }
 
-      // Calculate totals
-      let subtotalDec = new Prisma.Decimal('0');
-      let taxTotalDec = new Prisma.Decimal('0');
+      const sales = dto.kind === CreditNoteKind.SALES_CREDIT_NOTE;
+      if (sales ? contact.type === ContactType.SUPPLIER : contact.type === ContactType.CUSTOMER) {
+        throw new DomainException('CONTACT_TYPE_MISMATCH', sales ? 'A sales credit note needs a customer' : 'A supplier credit note needs a supplier');
+      }
+      const currency = dto.currency ?? orgContext.baseCurrency;
+      if (currency !== orgContext.baseCurrency) {
+        throw new DomainException('UNSUPPORTED_CURRENCY', `Only ${orgContext.baseCurrency} credit notes are supported`);
+      }
+      if (sales ? dto.relatedBillId : dto.relatedInvoiceId) {
+        throw new DomainException('VALIDATION_FAILED', sales ? 'A sales credit note can only relate to an invoice' : 'A supplier credit note can only relate to a bill');
+      }
 
-      const linesData = dto.lines.map((l, idx) => {
-        const net = this.money.toDecimal(l.netAmount);
-        const taxRate = this.money.toDecimal(l.taxRate ?? 0);
-        const taxAmount = l.taxAmount !== undefined
-          ? this.money.toDecimal(l.taxAmount)
-          : this.money.round(net.mul(taxRate), 2);
-        const lineTotal = net.add(taxAmount);
-
-        subtotalDec = subtotalDec.add(net);
-        taxTotalDec = taxTotalDec.add(taxAmount);
-
-        return {
-          lineNumber: idx + 1,
-          accountId: l.accountId,
-          description: l.description,
-          quantity: l.quantity ? new Prisma.Decimal(l.quantity.toString()) : new Prisma.Decimal('1'),
-          unitPrice: l.unitPrice ? new Prisma.Decimal(l.unitPrice.toString()) : net,
-          netAmount: new Prisma.Decimal(net.toFixed(4)),
-          taxCodeId: l.taxCodeId ?? null,
-          taxRate: new Prisma.Decimal(taxRate.toFixed(4)),
-          taxAmount: new Prisma.Decimal(taxAmount.toFixed(4)),
-          lineTotal: new Prisma.Decimal(lineTotal.toFixed(4)),
-        };
+      // Net per line to the penny; VAT only from the line's tax code (rate in force on the issue
+      // date) via the shared calculateVat. Lines without a code carry no VAT and block posting.
+      const prepared = await Promise.all(
+        dto.lines.map(async (l, i) => {
+          const net = this.money.round(l.netAmount, 2);
+          if (net.lessThanOrEqualTo(0)) throw new DomainException('VALIDATION_FAILED', `Line ${i + 1}: net amount must be positive`);
+          const code = l.taxCodeId ? await this.taxCodes.resolve(l.taxCodeId, issueDate) : null;
+          if (code && sales && INPUT_ONLY_TREATMENTS.has(code.treatment)) {
+            throw new DomainException('VALIDATION_FAILED', `Line ${i + 1}: tax code ${code.code} can only be used on purchases`);
+          }
+          const account = await tx.account.findFirst({ where: { id: l.accountId, organizationId, isActive: true }, select: { id: true } });
+          if (!account) throw new DomainException('ACCOUNT_NOT_FOUND', `Line ${i + 1}: account not found in this organisation`);
+          return { l, net, code };
+        }),
+      );
+      const vat = calculateVat(this.money, {
+        lines: prepared.map((p) => ({ amount: p.net, rate: p.code?.rate ?? 0, treatment: p.code?.treatment ?? 'OUTSIDE_SCOPE' })),
+        amountMode: 'NET',
+        rounding: 'LINE',
       });
+      const linesData = prepared.map((p, i) => ({
+        lineNumber: i + 1,
+        accountId: p.l.accountId,
+        description: p.l.description,
+        quantity: p.l.quantity !== undefined ? this.money.round(p.l.quantity, 4) : new Prisma.Decimal(1),
+        unitPrice: p.l.unitPrice !== undefined ? this.money.round(p.l.unitPrice, 4) : vat.lines[i].net,
+        netAmount: vat.lines[i].net,
+        taxCodeId: p.code?.id ?? null,
+        taxRate: p.code?.rate ?? new Prisma.Decimal(0),
+        taxAmount: vat.lines[i].vat,
+        lineTotal: vat.lines[i].gross,
+      }));
+      const subtotalDec = vat.totalNet;
+      const taxTotalDec = vat.totalVat;
+      const totalAmountDec = vat.totalGross;
 
-      const totalAmountDec = subtotalDec.add(taxTotalDec);
+      // A credit note against a document can't credit more than is left of it.
+      const relatedId = sales ? dto.relatedInvoiceId : dto.relatedBillId;
+      if (relatedId) {
+        const original = sales
+          ? await tx.invoice.findFirst({ where: { id: relatedId, organizationId }, select: { contactId: true, totalAmount: true, status: true } })
+          : await tx.bill.findFirst({ where: { id: relatedId, organizationId }, select: { contactId: true, totalAmount: true, status: true } });
+        if (!original) throw new DomainException('NOT_FOUND', `The ${sales ? 'invoice' : 'bill'} being credited was not found`);
+        if (original.contactId !== contact.id) throw new DomainException('CONTACT_MISMATCH', `The ${sales ? 'invoice' : 'bill'} belongs to another contact`);
+        if (original.status === 'DRAFT' || original.status === 'VOIDED') {
+          throw new DomainException('VALIDATION_FAILED', `Only a posted ${sales ? 'invoice' : 'bill'} can be credited (status ${original.status})`);
+        }
+        const earlier = await tx.creditNote.aggregate({
+          where: { organizationId, status: { not: CreditNoteStatus.VOIDED }, ...(sales ? { relatedInvoiceId: relatedId } : { relatedBillId: relatedId }) },
+          _sum: { totalAmount: true },
+        });
+        const remaining = original.totalAmount.sub(earlier._sum.totalAmount ?? 0);
+        if (totalAmountDec.greaterThan(remaining)) {
+          throw new DomainException('OVER_CREDIT', `Credit of ${totalAmountDec.toFixed(2)} exceeds the ${remaining.toFixed(2)} not yet credited on that ${sales ? 'invoice' : 'bill'}`);
+        }
+      }
 
       // Generate sequence number
       const year = issueDate.getUTCFullYear();
@@ -238,10 +283,10 @@ export class CreditNotesService {
           creditNoteNumber,
           reference: dto.reference ?? null,
           issueDate,
-          currency: dto.currency ?? orgContext.baseCurrency ?? 'GBP',
-          subtotal: new Prisma.Decimal(subtotalDec.toFixed(4)),
-          taxTotal: new Prisma.Decimal(taxTotalDec.toFixed(4)),
-          totalAmount: new Prisma.Decimal(totalAmountDec.toFixed(4)),
+          currency,
+          subtotal: subtotalDec,
+          taxTotal: taxTotalDec,
+          totalAmount: totalAmountDec,
           amountAllocated: new Prisma.Decimal('0'),
           status: CreditNoteStatus.DRAFT,
           relatedInvoiceId: dto.relatedInvoiceId ?? null,
@@ -249,10 +294,8 @@ export class CreditNotesService {
           notes: dto.notes ?? null,
           createdById: actor.userId!,
           lines: {
-            create: linesData.map((ld) => ({
-              organizationId,
-              ...ld,
-            })),
+            // organizationId on lines comes from the composite (organizationId, creditNoteId) relation.
+            create: linesData,
           },
         },
         include: creditNoteInclude,
@@ -304,7 +347,6 @@ export class CreditNotesService {
 
       // Identify control accounts
       let controlAccount = null;
-      let taxAccount = null;
 
       if (isSales) {
         // Trade Debtors
@@ -349,93 +391,32 @@ export class CreditNotesService {
         );
       }
 
-      // Tax account if taxTotal > 0
-      const taxTotalDec = new Prisma.Decimal(creditNote.taxTotal.toString());
-      if (taxTotalDec.greaterThan(0)) {
-        taxAccount = await tx.account.findFirst({
-          where: {
-            organizationId,
-            isActive: true,
-            OR: [{ code: '2100' }, { accountSubtype: AccountSubtype.TAX_PAYABLE }],
-          },
-        });
-        if (!taxAccount) {
-          throw new DomainException(
-            'ACCOUNT_NOT_FOUND',
-            'Tax control account (2100) not found in Chart of Accounts',
-          );
-        }
+      // Missing tax codes block posting – never assume a default rate.
+      const uncoded = creditNote.lines.filter((l) => !l.taxCodeId || !l.taxCode).map((l) => l.lineNumber);
+      if (uncoded.length > 0) {
+        throw new DomainException('TAX_CODE_REQUIRED', `Every line needs a tax code before posting (lines ${uncoded.join(', ')})`, { lineNumbers: uncoded });
       }
-
-      // Construct Double-Entry Journal Lines
-      const journalLines: Array<{
-        accountId: string;
-        description: string;
-        debit: Prisma.Decimal;
-        credit: Prisma.Decimal;
-        contactId?: string | null;
-      }> = [];
-
-      const zeroDec = new Prisma.Decimal('0');
-      const grossTotalDec = new Prisma.Decimal(creditNote.totalAmount.toString());
-
-      if (isSales) {
-        // Sales Credit Note:
-        // Dr Revenue accounts (net amounts)
-        for (const line of creditNote.lines) {
-          journalLines.push({
-            accountId: line.accountId,
-            description: line.description || `Sales Credit: ${creditNote.creditNoteNumber}`,
-            debit: new Prisma.Decimal(line.netAmount.toString()),
-            credit: zeroDec,
-          });
-        }
-        // Dr Output VAT
-        if (taxTotalDec.greaterThan(0) && taxAccount) {
-          journalLines.push({
-            accountId: taxAccount.id,
-            description: `VAT adjustment on Credit Note ${creditNote.creditNoteNumber}`,
-            debit: taxTotalDec,
-            credit: zeroDec,
-          });
-        }
-        // Cr Debtors Control (gross) with customer tagged
-        journalLines.push({
-          accountId: controlAccount.id,
-          description: `Credit Note ${creditNote.creditNoteNumber} - ${creditNote.contact.name}`,
-          debit: zeroDec,
-          credit: grossTotalDec,
-          contactId: creditNote.contactId,
-        });
-      } else {
-        // Supplier Credit Note:
-        // Dr Creditors Control (gross) with supplier tagged
-        journalLines.push({
-          accountId: controlAccount.id,
-          description: `Credit Note ${creditNote.creditNoteNumber} - ${creditNote.contact.name}`,
-          debit: grossTotalDec,
-          credit: zeroDec,
-          contactId: creditNote.contactId,
-        });
-        // Cr Expense accounts (net amounts)
-        for (const line of creditNote.lines) {
-          journalLines.push({
-            accountId: line.accountId,
-            description: line.description || `Supplier Credit: ${creditNote.creditNoteNumber}`,
-            debit: zeroDec,
-            credit: new Prisma.Decimal(line.netAmount.toString()),
-          });
-        }
-        // Cr Input VAT
-        if (taxTotalDec.greaterThan(0) && taxAccount) {
-          journalLines.push({
-            accountId: taxAccount.id,
-            description: `VAT adjustment on Supplier Credit ${creditNote.creditNoteNumber}`,
-            debit: zeroDec,
-            credit: taxTotalDec,
-          });
-        }
-      }
+      const vatAccount = await tx.account.findFirst({
+        where: { organizationId, isActive: true, accountSubtype: AccountSubtype.TAX_PAYABLE },
+        orderBy: { code: 'asc' },
+      });
+      const label = `Credit Note ${creditNote.creditNoteNumber} - ${creditNote.contact.name}`.slice(0, 255);
+      const journalLines = buildCreditNoteJournalLines(this.money, {
+        sales: isSales,
+        lines: creditNote.lines.map((l) => ({
+          accountId: l.accountId,
+          description: (l.description || label).slice(0, 255),
+          net: l.netAmount,
+          vat: l.taxAmount,
+          taxCodeId: l.taxCodeId!,
+          treatment: l.taxCode!.treatment,
+          rate: l.taxRate,
+        })),
+        vatAccountId: vatAccount?.id ?? null,
+        controlAccountId: controlAccount.id,
+        contactId: creditNote.contactId,
+        label,
+      });
 
       // Allocate journal number
       const year = creditNote.issueDate.getUTCFullYear();
@@ -469,6 +450,7 @@ export class CreditNotesService {
               credit: l.credit,
               currency,
               contactId: l.contactId ?? null,
+              ...(l.taxCodeId ? { taxCodeId: l.taxCodeId, taxDirection: l.taxDirection, taxNetAmount: l.taxNetAmount, taxAmount: l.taxAmount } : {}),
             })),
           },
         },
@@ -544,6 +526,7 @@ export class CreditNotesService {
     actor: Actor,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await lockRows(tx, 'credit_notes', organizationId, [creditNoteId]);
       const creditNote = await tx.creditNote.findFirst({
         where: { id: creditNoteId, organizationId },
       });
@@ -559,16 +542,15 @@ export class CreditNotesService {
         );
       }
 
+      assertAllocationTargets(creditNoteTarget(creditNote.kind), dto.allocations, creditNote.kind === CreditNoteKind.SALES_CREDIT_NOTE ? 'sales credit note' : 'supplier credit note');
+      await lockRows(tx, 'invoices', organizationId, dto.allocations.flatMap((a) => (a.invoiceId ? [a.invoiceId] : [])));
+      await lockRows(tx, 'bills', organizationId, dto.allocations.flatMap((a) => (a.billId ? [a.billId] : [])));
+
       let currentAllocated = creditNote.amountAllocated;
       const totalAmount = creditNote.totalAmount;
 
       for (const item of dto.allocations) {
-        const itemAmount = this.money.toDecimal(item.amount);
-        if (itemAmount.lessThanOrEqualTo(0)) {
-          throw new DomainException('INVALID_AMOUNT', 'Allocation amount must be greater than zero');
-        }
-
-        const itemAmountDec = new Prisma.Decimal(itemAmount.toFixed(4));
+        const itemAmountDec = allocationAmount(item.amount);
         const unallocatedBalance = totalAmount.sub(currentAllocated);
 
         if (itemAmountDec.greaterThan(unallocatedBalance)) {
@@ -690,6 +672,7 @@ export class CreditNotesService {
     actor: Actor,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await lockRows(tx, 'credit_notes', organizationId, [creditNoteId]);
       const creditNote = await tx.creditNote.findFirst({
         where: { id: creditNoteId, organizationId },
         include: {

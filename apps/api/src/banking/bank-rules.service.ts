@@ -144,15 +144,15 @@ export class BankRulesService {
     for (const rule of rules) {
       // 1. Check transaction direction
       if (rule.transactionDirection) {
-        const isMoneyIn = line.amount > 0;
+        const isMoneyIn = new Prisma.Decimal(line.amount).greaterThan(0);
         if (rule.transactionDirection === 'IN' && !isMoneyIn) continue;
         if (rule.transactionDirection === 'OUT' && isMoneyIn) continue;
       }
 
       // 2. Check amount range
-      const absAmount = Math.abs(line.amount);
-      if (rule.amountMin && absAmount < Number(rule.amountMin)) continue;
-      if (rule.amountMax && absAmount > Number(rule.amountMax)) continue;
+      const absAmount = new Prisma.Decimal(line.amount).abs();
+      if (rule.amountMin && absAmount.lessThan(rule.amountMin)) continue;
+      if (rule.amountMax && absAmount.greaterThan(rule.amountMax)) continue;
 
       // 3. Check field text match
       let targetText = '';
@@ -163,8 +163,13 @@ export class BankRulesService {
       } else if (rule.matchField === BankRuleMatchField.REFERENCE) {
         targetText = line.reference || '';
       } else if (rule.matchField === BankRuleMatchField.AMOUNT_EXACT) {
-        const targetVal = parseFloat(rule.matchValue);
-        if (Math.abs(absAmount - targetVal) < 0.001) {
+        let targetVal: Prisma.Decimal | null = null;
+        try {
+          targetVal = new Prisma.Decimal(rule.matchValue.trim());
+        } catch {
+          targetVal = null;
+        }
+        if (targetVal && absAmount.equals(targetVal)) {
           return {
             matchedRuleId: rule.id,
             suggestedAccountId: rule.suggestedAccountId ?? undefined,

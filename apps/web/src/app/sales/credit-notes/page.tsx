@@ -32,9 +32,19 @@ interface CreditNoteLine {
   accountId: string;
   description: string;
   netAmount: number;
-  taxRate: number;
-  taxAmount: number;
+  taxCodeId: string;
 }
+
+interface TaxCode {
+  id: string;
+  code: string;
+  name: string;
+  treatment: string;
+  rate: string;
+}
+
+/** Purchase-only treatments are not offered on sales credit notes. */
+const SALES_TREATMENTS = new Set(['STANDARD', 'REDUCED', 'ZERO', 'EXEMPT', 'OUTSIDE_SCOPE', 'DOMESTIC_REVERSE_CHARGE']);
 
 interface CreditNoteItem {
   id: string;
@@ -89,9 +99,25 @@ export default function CreditNotesPage() {
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<CreditNoteLine[]>([
-    { accountId: '', description: 'Credit adjustment', netAmount: 0, taxRate: 0.20, taxAmount: 0 },
+    { accountId: '', description: 'Credit adjustment', netAmount: 0, taxCodeId: '' },
   ]);
   const [submitting, setSubmitting] = useState(false);
+  const [taxCodes, setTaxCodes] = useState<TaxCode[]>([]);
+
+  // Rates are dated, so load the codes in force on the issue date. VAT itself is calculated by the server.
+  useEffect(() => {
+    if (!activeOrg || !/^\d{4}-\d{2}-\d{2}$/.test(issueDate)) return;
+    apiRequest<TaxCode[]>(`/tax-codes?date=${issueDate}`)
+      .then((codes) => setTaxCodes((Array.isArray(codes) ? codes : []).filter((c) => SALES_TREATMENTS.has(c.treatment))))
+      .catch(() => setTaxCodes([]));
+  }, [activeOrg, issueDate]);
+  /** Preview only (pence, rounded half-up); the server's figure is what gets saved. */
+  const previewVat = (l: CreditNoteLine) => {
+    const code = taxCodes.find((c) => c.id === l.taxCodeId);
+    if (!code || !(l.netAmount > 0)) return null;
+    const pence = Math.round(Math.round(Number(l.netAmount) * 100) * Number(code.rate));
+    return (pence / 100).toFixed(2);
+  };
 
   // Allocation modal state
   const [openInvoices, setOpenInvoices] = useState<OpenInvoice[]>([]);
@@ -147,13 +173,7 @@ export default function CreditNotesPage() {
   const handleLineChange = (idx: number, field: keyof CreditNoteLine, val: any) => {
     setLines((prev) => {
       const copy = [...prev];
-      const cur = { ...copy[idx], [field]: val };
-      if (field === 'netAmount' || field === 'taxRate') {
-        const net = field === 'netAmount' ? Number(val || 0) : cur.netAmount;
-        const rate = field === 'taxRate' ? Number(val || 0) : cur.taxRate;
-        cur.taxAmount = Math.round(net * rate * 100) / 100;
-      }
-      copy[idx] = cur;
+      copy[idx] = { ...copy[idx], [field]: field === 'netAmount' ? Number(val || 0) : val };
       return copy;
     });
   };
@@ -162,7 +182,7 @@ export default function CreditNotesPage() {
     const rev = accounts.find((a) => a.accountType === 'REVENUE') || accounts[0];
     setLines((prev) => [
       ...prev,
-      { accountId: rev?.id || '', description: '', netAmount: 0, taxRate: 0.20, taxAmount: 0 },
+      { accountId: rev?.id || '', description: '', netAmount: 0, taxCodeId: '' },
     ]);
   };
 
@@ -183,6 +203,10 @@ export default function CreditNotesPage() {
       notify('Please enter at least one line with an account and net amount greater than zero');
       return;
     }
+    if (validLines.some((l) => !l.taxCodeId)) {
+      notify('Choose a VAT code for every line');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -198,8 +222,7 @@ export default function CreditNotesPage() {
             accountId: l.accountId,
             description: l.description || 'Sales credit',
             netAmount: l.netAmount,
-            taxRate: l.taxRate,
-            taxAmount: l.taxAmount,
+            taxCodeId: l.taxCodeId,
           })),
         }),
       });
@@ -208,7 +231,7 @@ export default function CreditNotesPage() {
       setSelectedCustomerId('');
       setReference('');
       setNotes('');
-      setLines([{ accountId: accounts[0]?.id || '', description: 'Credit adjustment', netAmount: 0, taxRate: 0.20, taxAmount: 0 }]);
+      setLines([{ accountId: accounts[0]?.id || '', description: 'Credit adjustment', netAmount: 0, taxCodeId: '' }]);
       await loadCreditNotes();
     } catch (err: any) {
       notify(err.message || 'Failed to create credit note');
@@ -615,7 +638,8 @@ export default function CreditNotesPage() {
                         <th style={{ padding: '0.5rem' }}>Account</th>
                         <th style={{ padding: '0.5rem' }}>Description</th>
                         <th style={{ padding: '0.5rem', textAlign: 'right', width: '100px' }}>Net (£)</th>
-                        <th style={{ padding: '0.5rem', textAlign: 'right', width: '90px' }}>VAT (£)</th>
+                        <th style={{ padding: '0.5rem', width: '150px' }}>VAT code</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'right', width: '80px' }}>VAT (£)</th>
                         <th style={{ padding: '0.5rem', width: '30px' }}></th>
                       </tr>
                     </thead>
@@ -657,14 +681,21 @@ export default function CreditNotesPage() {
                             />
                           </td>
                           <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={l.taxAmount || ''}
-                              onChange={(e) => handleLineChange(idx, 'taxAmount', e.target.value)}
-                              placeholder="0.00"
-                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: '0.25rem', textAlign: 'right' }}
-                            />
+                            <select
+                              value={l.taxCodeId}
+                              onChange={(e) => handleLineChange(idx, 'taxCodeId', e.target.value)}
+                              required
+                              aria-label="VAT code"
+                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.8rem', border: '1px solid var(--border-strong)', borderRadius: '0.25rem' }}
+                            >
+                              <option value="">Choose…</option>
+                              {taxCodes.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            {previewVat(l) ?? '—'}
                           </td>
                           <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                             {lines.length > 1 && (

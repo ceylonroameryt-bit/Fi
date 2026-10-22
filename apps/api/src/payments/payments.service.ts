@@ -4,6 +4,8 @@ import {
   AllocationSourceType,
   AllocationTargetType,
   BillStatus,
+  ContactStatus,
+  ContactType,
   InvoiceStatus,
   JournalSourceType,
   JournalStatus,
@@ -26,6 +28,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { AllocatePaymentDto } from './dto/allocate-payment.dto';
 import { PaymentFilterQueryDto } from './dto/payment-query.dto';
 import { VoidPaymentDto } from './dto/void-payment.dto';
+import { allocationAmount, assertAllocationTargets, lockRows, paymentTarget } from './allocation-rules';
 
 const paymentInclude = {
   contact: {
@@ -180,8 +183,15 @@ export class PaymentsService {
     }
 
     const paymentAmount = this.money.toDecimal(dto.amount);
-    if (paymentAmount.lessThanOrEqualTo(0)) {
-      throw new DomainException('INVALID_AMOUNT', 'Payment amount must be greater than zero');
+    if (paymentAmount.lessThanOrEqualTo(0) || paymentAmount.decimalPlaces() > 2) {
+      throw new DomainException('INVALID_AMOUNT', 'Payment amount must be greater than zero, in pounds and pence');
+    }
+    const currency = dto.currency ?? orgContext.baseCurrency;
+    if (currency !== orgContext.baseCurrency) {
+      throw new DomainException('UNSUPPORTED_CURRENCY', `Only ${orgContext.baseCurrency} payments are supported`);
+    }
+    if (dto.allocations && dto.allocations.length > 0) {
+      assertAllocationTargets(paymentTarget(dto.kind), dto.allocations, dto.kind.toLowerCase().replace('_', ' '));
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -192,6 +202,13 @@ export class PaymentsService {
       if (!contact) {
         throw new DomainException('CONTACT_NOT_FOUND', 'Contact not found in this organisation');
       }
+      if (contact.status === ContactStatus.ARCHIVED) {
+        throw new DomainException('CONTACT_ARCHIVED', 'Cannot record a payment for an archived contact');
+      }
+      const customerSide = dto.kind === PaymentKind.CUSTOMER_RECEIPT || dto.kind === PaymentKind.CUSTOMER_REFUND;
+      if (customerSide ? contact.type === ContactType.SUPPLIER : contact.type === ContactType.CUSTOMER) {
+        throw new DomainException('CONTACT_TYPE_MISMATCH', customerSide ? 'This payment needs a customer' : 'This payment needs a supplier');
+      }
 
       // 2. Identify Bank nominal account
       let bankAccount = null;
@@ -201,20 +218,21 @@ export class PaymentsService {
             id: dto.bankAccountNominalId,
             organizationId,
             isActive: true,
+            accountSubtype: { in: [AccountSubtype.BANK, AccountSubtype.CASH] },
           },
         });
+        if (!bankAccount) {
+          throw new DomainException('BANK_ACCOUNT_NOT_FOUND', 'The chosen account is not an active bank or cash account of this organisation');
+        }
       }
       if (!bankAccount) {
         bankAccount = await tx.account.findFirst({
           where: {
             organizationId,
             isActive: true,
-            OR: [
-              { code: '1200' },
-              { accountSubtype: AccountSubtype.BANK },
-              { accountSubtype: AccountSubtype.CASH },
-            ],
+            accountSubtype: { in: [AccountSubtype.BANK, AccountSubtype.CASH] },
           },
+          orderBy: [{ accountSubtype: 'asc' }, { code: 'asc' }],
         });
       }
       if (!bankAccount) {
@@ -370,8 +388,6 @@ export class PaymentsService {
         journalType = JournalType.REFUND;
       }
 
-      const currency = dto.currency ?? orgContext.baseCurrency ?? 'GBP';
-
       const draftJournal = await tx.journalEntry.create({
         data: {
           organizationId,
@@ -444,7 +460,7 @@ export class PaymentsService {
           bankAccountNominalId: bankAccount.id,
           paymentDate,
           amount: amountDec,
-          currency: dto.currency ?? orgContext.baseCurrency ?? 'GBP',
+          currency,
           reference: dto.reference ?? null,
           notes: dto.notes ?? null,
           status: PaymentStatus.POSTED,
@@ -496,6 +512,7 @@ export class PaymentsService {
     actor: Actor,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await lockRows(tx, 'payments', organizationId, [paymentId]);
       const payment = await tx.payment.findFirst({
         where: { id: paymentId, organizationId },
         include: {
@@ -508,6 +525,8 @@ export class PaymentsService {
       if (!payment) {
         throw new DomainException('PAYMENT_NOT_FOUND', 'Payment not found in this organisation');
       }
+      await lockRows(tx, 'invoices', organizationId, payment.allocations.flatMap((a) => (a.invoiceId ? [a.invoiceId] : [])));
+      await lockRows(tx, 'bills', organizationId, payment.allocations.flatMap((a) => (a.billId ? [a.billId] : [])));
 
       if (payment.status === PaymentStatus.VOIDED) {
         throw new DomainException('PAYMENT_ALREADY_VOIDED', 'Payment is already voided');
@@ -596,6 +615,7 @@ export class PaymentsService {
     actor: Actor,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await lockRows(tx, 'payments', organizationId, [paymentId]);
       const payment = await tx.payment.findFirst({
         where: { id: paymentId, organizationId },
       });
@@ -603,6 +623,7 @@ export class PaymentsService {
       if (!payment) {
         throw new DomainException('PAYMENT_NOT_FOUND', 'Payment not found in this organisation');
       }
+      assertAllocationTargets(paymentTarget(payment.kind), dto.allocations, payment.kind.toLowerCase().replace('_', ' '));
 
       if (payment.status !== PaymentStatus.POSTED) {
         throw new DomainException(
@@ -634,9 +655,12 @@ export class PaymentsService {
     actor: Actor,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await lockRows(tx, 'payments', organizationId, [paymentId]);
       const allocation = await tx.paymentAllocation.findFirst({
         where: { id: allocationId, paymentId, organizationId },
       });
+      if (allocation?.invoiceId) await lockRows(tx, 'invoices', organizationId, [allocation.invoiceId]);
+      if (allocation?.billId) await lockRows(tx, 'bills', organizationId, [allocation.billId]);
 
       if (!allocation) {
         throw new DomainException('ALLOCATION_NOT_FOUND', 'Allocation record not found');
@@ -713,6 +737,9 @@ export class PaymentsService {
     allocations: Array<{ invoiceId?: string; billId?: string; amount: number }>,
     allocationDate: Date,
   ) {
+    await lockRows(tx, 'payments', organizationId, [paymentId]);
+    await lockRows(tx, 'invoices', organizationId, allocations.flatMap((a) => (a.invoiceId ? [a.invoiceId] : [])));
+    await lockRows(tx, 'bills', organizationId, allocations.flatMap((a) => (a.billId ? [a.billId] : [])));
     const payment = await tx.payment.findUniqueOrThrow({
       where: { id: paymentId },
     });
@@ -721,12 +748,7 @@ export class PaymentsService {
     const paymentAmount = payment.amount;
 
     for (const item of allocations) {
-      const itemAmount = this.money.toDecimal(item.amount);
-      if (itemAmount.lessThanOrEqualTo(0)) {
-        throw new DomainException('INVALID_AMOUNT', 'Allocation amount must be greater than zero');
-      }
-
-      const itemAmountDec = new Prisma.Decimal(itemAmount.toFixed(4));
+      const itemAmountDec = allocationAmount(item.amount);
       const unallocatedBalance = paymentAmount.sub(currentAllocated);
 
       if (itemAmountDec.greaterThan(unallocatedBalance)) {

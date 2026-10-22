@@ -6,6 +6,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuditEvents } from '../audit/audit-events';
 import { SYSTEM_PERMISSIONS, SYSTEM_ROLE_PERMISSIONS } from './roles.constants';
 import { SystemRoleKey } from '@prisma/client';
+import { appLogger } from '../common/logging/app-logger';
 
 @Injectable()
 export class RolesService implements OnModuleInit {
@@ -17,8 +18,9 @@ export class RolesService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       await this.syncSystemPermissionsAndRoles();
-    } catch {
-      // Allow boot in offline or limited DB environments
+    } catch (error) {
+      // Allow boot in offline or limited DB environments, but say so: roles may be missing permissions.
+      appLogger.event('warn', 'role_permission_sync_failed', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
