@@ -31,7 +31,7 @@ export class CreateCreditNoteLineDto {
   unitPrice?: number;
 
   @IsNotEmpty()
-  @IsNumber({ maxDecimalPlaces: 4 })
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   netAmount!: number;
 
@@ -39,13 +39,7 @@ export class CreateCreditNoteLineDto {
   @IsUUID()
   taxCodeId?: string;
 
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 4 })
-  taxRate?: number = 0;
-
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 4 })
-  taxAmount?: number = 0;
+  // VAT is never taken from the client: it is calculated from the tax code's rate on the issue date.
 }
 
 export class CreateCreditNoteDto {

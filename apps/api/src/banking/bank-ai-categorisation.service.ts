@@ -118,7 +118,7 @@ export class BankAiCategorisationService {
 
     for (const line of lines) {
       const descLower = (line.description + ' ' + (line.payee || '')).toLowerCase();
-      const isMoneyIn = Number(line.amount) > 0;
+      const isMoneyIn = new Prisma.Decimal(line.amount).greaterThan(0);
 
       let matchedAccountId: string | null = null;
       let matchedContactId: string | null = null;

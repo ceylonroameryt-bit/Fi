@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BankTransactionStatus, JournalStatus, Prisma } from '@prisma/client';
 import { BankReconciliationService } from './bank-reconciliation.service';
+import { MoneyService } from '../accounting-engine/money.service';
+import { TaxCodesService } from '../tax/tax-codes.service';
 import { PrismaService } from '../database/prisma.service';
 import { JournalsService } from '../journals/journals.service';
 import { JournalValidationService } from '../accounting-engine/journal-validation.service';
@@ -58,9 +60,12 @@ describe('BankReconciliationService', () => {
       },
       payment: {
         findMany: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue({ id: 'pay-1', kind: 'SUPPLIER_PAYMENT', amount: new Prisma.Decimal('15.00'), bankAccountNominalId: 'acc-1200' }),
       },
       journalLine: {
         findMany: jest.fn(),
+        findFirst: jest.fn(),
+        findFirstOrThrow: jest.fn().mockResolvedValue({ id: 'jl-bank' }),
       },
       account: {
         findFirst: jest.fn(),
@@ -68,8 +73,10 @@ describe('BankReconciliationService', () => {
       journalEntry: {
         create: jest.fn(),
         update: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue(null),
       },
       $transaction: jest.fn(async (cb) => cb(prisma)),
+      $queryRaw: jest.fn().mockResolvedValue([]),
     };
 
     journals = {
@@ -95,6 +102,8 @@ describe('BankReconciliationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BankReconciliationService,
+        MoneyService,
+        { provide: TaxCodesService, useValue: { resolve: jest.fn() } },
         { provide: PrismaService, useValue: prisma },
         { provide: JournalsService, useValue: journals },
         { provide: JournalValidationService, useValue: validator },
@@ -138,7 +147,7 @@ describe('BankReconciliationService', () => {
 
   describe('matchTransaction and unmatchTransaction', () => {
     it('matches line to payment and updates status to MATCHED', async () => {
-      prisma.bankStatementLine.findFirst.mockResolvedValue(mockStatementLine);
+      prisma.bankStatementLine.findFirst.mockResolvedValueOnce(mockStatementLine).mockResolvedValueOnce(null);
       prisma.bankStatementLine.update.mockResolvedValue({
         ...mockStatementLine,
         status: BankTransactionStatus.MATCHED,

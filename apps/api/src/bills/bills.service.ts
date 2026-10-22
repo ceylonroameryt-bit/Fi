@@ -300,6 +300,10 @@ export class BillsService {
       if (bill.status !== BillStatus.POSTED || !bill.journalEntryId) {
         throw new DomainException('BILL_INVALID_STATE', `Only posted bills can be voided (status ${bill.status})`);
       }
+      const allocated = await tx.paymentAllocation.count({ where: { organizationId, billId, isReversed: false } });
+      if (allocated > 0) {
+        throw new DomainException('DOCUMENT_HAS_ALLOCATIONS', `Bill ${bill.billNumber} has ${allocated} payment or credit allocation(s); reverse them before voiding`);
+      }
       const reversal = await this.reversalService.reverseJournal(
         organizationId,
         bill.journalEntryId,

@@ -81,6 +81,22 @@ export class ArApAgeingService {
     return { bucket: '90_PLUS', daysOverdue };
   }
 
+  /** Payments and credits allocated to each document on or before the date (not reversed). */
+  private async allocatedAsOf(organizationId: string, key: 'invoiceId' | 'billId', ids: string[], asOfDate: Date) {
+    const result = new Map<string, Prisma.Decimal>();
+    if (ids.length === 0) return result;
+    const rows = await this.prisma.paymentAllocation.groupBy({
+      by: [key],
+      where: { organizationId, [key]: { in: ids }, isReversed: false, allocationDate: { lte: asOfDate } },
+      _sum: { amount: true },
+    });
+    for (const r of rows) {
+      const id = r[key];
+      if (id) result.set(id, new Prisma.Decimal(r._sum.amount ?? 0));
+    }
+    return result;
+  }
+
   async generateArAgeing(
     organizationId: string,
     filter: AgeingFilterDto,
@@ -97,7 +113,10 @@ export class ArApAgeingService {
     const invoices = await this.prisma.invoice.findMany({
       where: {
         organizationId,
-        status: { in: [InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID] },
+        OR: [
+          { status: { in: [InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.PAID] } },
+          { status: InvoiceStatus.VOIDED, voidedAt: { gt: endOfDay(asOfDate) } },
+        ],
         issueDate: { lte: asOfDate },
         ...(filter.contactId ? { contactId: filter.contactId } : {}),
       },
@@ -120,9 +139,10 @@ export class ArApAgeingService {
 
     let totalItemsCount = 0;
 
+    const paidAsOf = await this.allocatedAsOf(organizationId, 'invoiceId', invoices.map((i) => i.id), asOfDate);
     for (const inv of invoices) {
       const totalAmountDec = new Prisma.Decimal(inv.totalAmount.toString());
-      const amountPaidDec = new Prisma.Decimal(inv.amountPaid.toString());
+      const amountPaidDec = paidAsOf.get(inv.id) ?? new Prisma.Decimal(0);
       const amountDueDec = totalAmountDec.sub(amountPaidDec);
 
       // Only include invoices with remaining unpaid amount
@@ -233,7 +253,7 @@ export class ArApAgeingService {
     const bills = await this.prisma.bill.findMany({
       where: {
         organizationId,
-        status: BillStatus.POSTED,
+        OR: [{ status: BillStatus.POSTED }, { status: BillStatus.VOIDED, voidedAt: { gt: endOfDay(asOfDate) } }],
         issueDate: { lte: asOfDate },
         ...(filter.contactId ? { contactId: filter.contactId } : {}),
       },
@@ -256,9 +276,10 @@ export class ArApAgeingService {
 
     let totalItemsCount = 0;
 
+    const billPaidAsOf = await this.allocatedAsOf(organizationId, 'billId', bills.map((b) => b.id), asOfDate);
     for (const bill of bills) {
       const totalAmountDec = new Prisma.Decimal(bill.totalAmount.toString());
-      const amountPaidDec = new Prisma.Decimal(bill.amountPaid.toString());
+      const amountPaidDec = billPaidAsOf.get(bill.id) ?? new Prisma.Decimal(0);
       const amountDueDec = totalAmountDec.sub(amountPaidDec);
 
       // Only include bills with remaining unpaid amount
@@ -432,4 +453,9 @@ export class ArApAgeingService {
 
     return rows.map(toCsvRow).join('\r\n');
   }
+}
+
+/** Last moment of a calendar date (dates are stored as UTC midnight). */
+function endOfDay(date: Date): Date {
+  return new Date(date.getTime() + 86_400_000 - 1);
 }
